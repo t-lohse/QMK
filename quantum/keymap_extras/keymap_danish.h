@@ -45,7 +45,7 @@
 #define DK_8    KC_8    // 8
 #define DK_9    KC_9    // 9
 #define DK_0    KC_0    // 0
-#define DK_PLUS KC_MINS // +
+//#define DK_PLUS KC_MINS // +
 #define DK_ACUT KC_EQL  // ´ (dead)
 // Row 2
 #define DK_Q    KC_Q    // Q
@@ -59,7 +59,7 @@
 #define DK_O    KC_O    // O
 #define DK_P    KC_P    // P
 #define DK_ARNG KC_LBRC // Å
-#define DK_DIAE KC_RBRC // ¨ (dead)
+//#define DK_DIAE KC_RBRC // ¨ (dead)
 // Row 3
 #define DK_A    KC_A    // A
 #define DK_S    KC_S    // S
@@ -72,9 +72,9 @@
 #define DK_L    KC_L    // L
 #define DK_AE   KC_SCLN // Æ
 #define DK_OSTR KC_QUOT // Ø
-#define DK_QUOT KC_NUHS // '
+//#define DK_QUOT KC_NUHS // '
 // Row 4
-#define DK_LABK KC_NUBS // <
+//#define DK_LABK KC_NUBS // <
 #define DK_Z    KC_Z    // Z
 #define DK_X    KC_X    // X
 #define DK_C    KC_C    // C
@@ -82,9 +82,9 @@
 #define DK_B    KC_B    // B
 #define DK_N    KC_N    // N
 #define DK_M    KC_M    // M
-#define DK_COMM KC_COMM // ,
-#define DK_DOT  KC_DOT  // .
-#define DK_MINS KC_SLSH // -
+//#define DK_COMM KC_COMM // ,
+//#define DK_DOT  KC_DOT  // .
+//#define DK_MINS KC_SLSH // -
 
 /* Shifted symbols
  * ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───────┐
