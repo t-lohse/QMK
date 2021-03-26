@@ -56,6 +56,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // The number of LEDs connected
 #define DRIVER_LED_TOTAL 74
 #ifdef RGB_DI_PIN
+<<<<<<< HEAD
 #define RGBLED_NUM 74
 //#    define RGBLIGHT_HUE_STEP 8
 //#    define RGBLIGHT_SAT_STEP 8
@@ -80,6 +81,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /*==== use exp() and sin() ====*/
 //#    define RGBLIGHT_EFFECT_BREATHE_CENTER 1.85  // 1 to 2.7
 //#    define RGBLIGHT_EFFECT_BREATHE_MAX    255   // 0 to 255
+=======
+    #define RGBLED_NUM 74
+    #define RGB_MATRIX_KEYPRESSES // reacts to keypresses
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
 #endif
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is not needed */

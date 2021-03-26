@@ -8,7 +8,11 @@ from milc import cli
 
 from qmk.datetime import current_datetime
 from qmk.info import info_json
+<<<<<<< HEAD
 from qmk.info_json_encoder import InfoJSONEncoder
+=======
+from qmk.json_encoders import InfoJSONEncoder
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
 from qmk.json_schema import json_load
 from qmk.keyboard import list_keyboards
 
