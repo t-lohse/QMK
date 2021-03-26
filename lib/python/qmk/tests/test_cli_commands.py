@@ -259,6 +259,8 @@ def test_generate_layouts():
     result = check_subcommand('generate-layouts', '-kb', 'handwired/pytest/basic')
     check_returncode(result)
     assert '#define LAYOUT_custom(k0A) {' in result.stdout
+<<<<<<< HEAD
+=======
 
 
 def test_format_json_keyboard():
@@ -283,3 +285,4 @@ def test_format_json_keymap_auto():
     result = check_subcommand('format-json', '--format', 'auto', 'lib/python/qmk/tests/minimal_keymap.json')
     check_returncode(result)
     assert result.stdout == '{\n    "keyboard": "handwired/pytest/basic",\n    "keymap": "test",\n    "layers": [\n        ["KC_A"]\n    ],\n    "layout": "LAYOUT_ortho_1x1",\n    "version": 1\n}\n'
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800

@@ -6,7 +6,11 @@ from milc import cli
 
 import qmk.keymap
 import qmk.path
+<<<<<<< HEAD
+from qmk.info_json_encoder import InfoJSONEncoder
+=======
 from qmk.json_encoders import InfoJSONEncoder
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
 from qmk.keyboard import keyboard_folder
 
 

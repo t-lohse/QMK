@@ -108,7 +108,11 @@ static uint8_t wheel_unit(void) {
 }
 
 #    else /* #ifndef MK_COMBINED */
+<<<<<<< HEAD:quantum/mousekey.c
+#        ifndef MK_KINETIC_SPEED
+=======
 #        ifdef MK_KINETIC_SPEED
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800:tmk_core/common/mousekey.c
 
 /*
  * Kinetic movement  acceleration algorithm

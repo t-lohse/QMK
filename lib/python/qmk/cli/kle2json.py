@@ -8,7 +8,11 @@ from milc import cli
 from kle2xy import KLE2xy
 
 from qmk.converter import kle2qmk
+<<<<<<< HEAD
+from qmk.info_json_encoder import InfoJSONEncoder
+=======
 from qmk.json_encoders import InfoJSONEncoder
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
 
 
 @cli.argument('filename', help='The KLE raw txt to convert')

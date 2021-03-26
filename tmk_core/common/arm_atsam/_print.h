@@ -27,8 +27,16 @@
 
 // Create user & normal print defines
 #define xprintf(fmt, ...) __xprintf(fmt, ##__VA_ARGS__)
+<<<<<<< HEAD:tmk_core/common/arm_atsam/_print.h
+#define print(s) xprintf(s)
+#define println(s) xprintf(s "\r\n")
+#define uprint(s) print(s)
+#define uprintln(s) println(s)
+#define uprintf(fmt, ...) xprintf(fmt, ##__VA_ARGS__)
+=======
 #define print(s) __xprintf(s)
 #define println(s) __xprintf(s "\r\n")
 #define uprint(s) __xprintf(s)
 #define uprintln(s) __xprintf(s "\r\n")
 #define uprintf(fmt, ...) __xprintf(fmt, ##__VA_ARGS__)
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800:tmk_core/common/print.c

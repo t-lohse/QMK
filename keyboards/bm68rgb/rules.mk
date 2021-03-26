@@ -7,7 +7,11 @@ BOOTLOADER = atmel-dfu
 # Build Options
 #   change yes to no to disable
 #
+<<<<<<< HEAD
+BOOTMAGIC_ENABLE = lite     # Virtual DIP switch configuration
+=======
 BOOTMAGIC_ENABLE = full     # Virtual DIP switch configuration
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
 MOUSEKEY_ENABLE = yes       # Mouse keys
 EXTRAKEY_ENABLE = yes       # Audio control and System control
 CONSOLE_ENABLE = no         # Console for debug
@@ -22,6 +26,10 @@ BLUETOOTH_ENABLE = no       # Enable Bluetooth
 AUDIO_ENABLE = no           # Audio output
 RGB_MATRIX_ENABLE = yes
 RGB_MATRIX_DRIVER = WS2812
+<<<<<<< HEAD
+#LTO_ENABLE = yes
+=======
 LTO_ENABLE = yes
+>>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
 
 LAYOUTS = 65_ansi
