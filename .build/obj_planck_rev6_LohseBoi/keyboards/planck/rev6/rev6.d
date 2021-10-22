@@ -8,8 +8,7 @@
  .build/obj_planck_rev6/src/layouts.h \
  keyboards/planck/keymaps/LohseBoi/config.h \
  platforms/chibios/boards/QMK_PROTON_C/configs/config.h \
- quantum/rgblight/rgblight_post_config.h keyboards/planck/rev6/rev6.h \
- keyboards/planck/planck.h quantum/quantum.h \
+ keyboards/planck/rev6/rev6.h keyboards/planck/planck.h quantum/quantum.h \
  tmk_core/common/chibios/platform_deps.h lib/chibios/os/hal/include/hal.h \
  lib/chibios/os/hal/osal/rt-nil/osal.h lib/chibios/os/rt/include/ch.h \
  keyboards/planck/rev6/chconf.h \
@@ -143,9 +142,7 @@
  quantum/bitwise.h quantum/logging/sendchar.h lib/printf/printf.h \
  quantum/keycode_config.h quantum/eeconfig.h quantum/quantum_keycodes.h \
  quantum/sequencer/sequencer.h tmk_core/common/timer.h \
- tmk_core/common/chibios/_timer.h quantum/rgblight/rgblight.h \
- quantum/rgblight/rgblight_modes.h drivers/ws2812.h quantum/color.h \
- quantum/rgblight/rgblight_list.h quantum/action_layer.h \
+ tmk_core/common/chibios/_timer.h quantum/action_layer.h \
  tmk_core/common/bootloader.h quantum/bootmagic/bootmagic.h \
  quantum/bootmagic/bootmagic_lite.h tmk_core/common/sync_timer.h \
  tmk_core/common/gpio.h tmk_core/common/chibios/gpio.h \
@@ -159,8 +156,7 @@
  quantum/process_keycode/process_terminal_nop.h \
  quantum/process_keycode/process_space_cadet.h \
  quantum/process_keycode/process_magic.h \
- quantum/process_keycode/process_grave_esc.h \
- quantum/process_keycode/process_rgb.h quantum/dip_switch.h \
+ quantum/process_keycode/process_grave_esc.h quantum/dip_switch.h \
  quantum/encoder.h keyboards/planck/rev6/rev6.h
 platforms/chibios/boards/QMK_PROTON_C/configs/bootloader_defs.h:
 keyboards/planck/config.h:
@@ -174,7 +170,6 @@ keyboards/planck/rev6/config.h:
 .build/obj_planck_rev6/src/layouts.h:
 keyboards/planck/keymaps/LohseBoi/config.h:
 platforms/chibios/boards/QMK_PROTON_C/configs/config.h:
-quantum/rgblight/rgblight_post_config.h:
 keyboards/planck/rev6/rev6.h:
 keyboards/planck/planck.h:
 quantum/quantum.h:
@@ -340,11 +335,6 @@ quantum/quantum_keycodes.h:
 quantum/sequencer/sequencer.h:
 tmk_core/common/timer.h:
 tmk_core/common/chibios/_timer.h:
-quantum/rgblight/rgblight.h:
-quantum/rgblight/rgblight_modes.h:
-drivers/ws2812.h:
-quantum/color.h:
-quantum/rgblight/rgblight_list.h:
 quantum/action_layer.h:
 tmk_core/common/bootloader.h:
 quantum/bootmagic/bootmagic.h:
@@ -369,7 +359,6 @@ quantum/process_keycode/process_terminal_nop.h:
 quantum/process_keycode/process_space_cadet.h:
 quantum/process_keycode/process_magic.h:
 quantum/process_keycode/process_grave_esc.h:
-quantum/process_keycode/process_rgb.h:
 quantum/dip_switch.h:
 quantum/encoder.h:
 keyboards/planck/rev6/rev6.h:

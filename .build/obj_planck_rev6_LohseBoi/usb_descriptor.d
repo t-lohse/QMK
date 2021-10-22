@@ -7,9 +7,8 @@
  keyboards/planck/rev6/config.h .build/obj_planck_rev6/src/info_config.h \
  .build/obj_planck_rev6/src/layouts.h \
  keyboards/planck/keymaps/LohseBoi/config.h \
- platforms/chibios/boards/QMK_PROTON_C/configs/config.h \
- quantum/rgblight/rgblight_post_config.h quantum/util.h quantum/bitwise.h \
- tmk_core/common/report.h quantum/keycode.h \
+ platforms/chibios/boards/QMK_PROTON_C/configs/config.h quantum/util.h \
+ quantum/bitwise.h tmk_core/common/report.h quantum/keycode.h \
  tmk_core/protocol/usb_descriptor.h \
  tmk_core/protocol/chibios/lufa_utils/LUFA/Drivers/USB/USB.h \
  tmk_core/common/progmem.h \
@@ -146,7 +145,6 @@ keyboards/planck/rev6/config.h:
 .build/obj_planck_rev6/src/layouts.h:
 keyboards/planck/keymaps/LohseBoi/config.h:
 platforms/chibios/boards/QMK_PROTON_C/configs/config.h:
-quantum/rgblight/rgblight_post_config.h:
 quantum/util.h:
 quantum/bitwise.h:
 tmk_core/common/report.h:
