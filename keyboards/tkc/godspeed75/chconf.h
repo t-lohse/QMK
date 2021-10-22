@@ -20,7 +20,6 @@
  */
 
 #pragma once
-<<<<<<< HEAD
 
 #define CH_CFG_ST_FREQUENCY 10000
 
@@ -29,14 +28,3 @@
 #define CH_CFG_USE_CONDVARS_TIMEOUT FALSE
 
 #include_next <chconf.h>
-
-=======
-
-#define CH_CFG_ST_FREQUENCY 10000
-
-#define CH_CFG_OPTIMIZE_SPEED FALSE
-
-#define CH_CFG_USE_CONDVARS_TIMEOUT FALSE
-
-#include_next <chconf.h>
->>>>>>> aa2b4a688b5f58bfa2818940c802659c2c1a1800
