@@ -1,0 +1,2488 @@
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 2
+  13              		.file	"hal_pal_lld.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text._pal_lld_init,"ax",%progbits
+  18              		.align	1
+  19              		.global	_pal_lld_init
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	_pal_lld_init:
+  27              	.LFB328:
+  28              		.file 1 "lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c"
+   1:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*
+   2:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+   4:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     you may not use this file except in compliance with the License.
+   6:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     You may obtain a copy of the License at
+   7:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+   8:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  10:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     Unless required by applicable law or agreed to in writing, software
+  11:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     See the License for the specific language governing permissions and
+  14:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     limitations under the License.
+  15:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** */
+  16:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  17:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /**
+  18:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @file    GPIOv2/hal_pal_lld.c
+  19:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @brief   STM32 PAL low level driver code.
+  20:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+  21:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @addtogroup PAL
+  22:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @{
+  23:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  */
+  24:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  25:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #include "hal.h"
+  26:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  27:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if HAL_USE_PAL || defined(__DOXYGEN__)
+  28:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  29:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  30:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /* Driver local definitions.                                                 */
+  31:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  32:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  33:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  34:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /* Driver exported variables.                                                */
+  35:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  36:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  37:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if (PAL_USE_WAIT == TRUE) || (PAL_USE_CALLBACKS == TRUE) || defined(__DOXYGEN__)
+  38:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /**
+  39:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @brief   Event records for the 16 GPIO EXTI channels.
+  40:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  */
+  41:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** palevent_t _pal_events[16];
+  42:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+  43:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  44:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  45:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /* Driver local variables and types.                                         */
+  46:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  47:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  48:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  49:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /* Driver local functions.                                                   */
+  50:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  51:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  52:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  53:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /* Driver interrupt handlers.                                                */
+  54:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  55:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  56:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  57:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /* Driver exported functions.                                                */
+  58:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /*===========================================================================*/
+  59:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  60:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /**
+  61:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @brief   PAL driver initialization.
+  62:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+  63:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @notapi
+  64:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  */
+  65:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** void _pal_lld_init(void) {
+  29              		.loc 1 65 26 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  66:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  67:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if PAL_USE_CALLBACKS || PAL_USE_WAIT || defined(__DOXYGEN__)
+  68:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   unsigned i;
+  34              		.loc 1 68 3 view .LVU1
+  69:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  70:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   for (i = 0; i < 16; i++) {
+  35              		.loc 1 70 3 view .LVU2
+  36              	.LVL0:
+  37              		.loc 1 70 17 view .LVU3
+  38              		.loc 1 70 10 is_stmt 0 view .LVU4
+  39 0000 0022     		movs	r2, #0
+  40 0002 064B     		ldr	r3, .L4
+  71:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     _pal_init_event(i);
+  41              		.loc 1 71 5 view .LVU5
+  42 0004 1146     		mov	r1, r2
+  43              	.LVL1:
+  44              	.L2:
+  45              		.loc 1 71 5 is_stmt 1 discriminator 3 view .LVU6
+  46              		.loc 1 71 5 discriminator 3 view .LVU7
+  47              	.LBB17:
+  48              	.LBI17:
+  49              		.file 2 "./lib/chibios/os/hal/osal/rt-nil/osal.h"
+   1:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*
+   2:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+   4:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     you may not use this file except in compliance with the License.
+   6:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     You may obtain a copy of the License at
+   7:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+   8:./lib/chibios/os/hal/osal/rt-nil/osal.h ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  10:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     Unless required by applicable law or agreed to in writing, software
+  11:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     See the License for the specific language governing permissions and
+  14:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     limitations under the License.
+  15:./lib/chibios/os/hal/osal/rt-nil/osal.h **** */
+  16:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  17:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  18:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @file    osal.h
+  19:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   OSAL module header.
+  20:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+  21:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @addtogroup OSAL
+  22:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+  23:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  24:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  25:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #ifndef OSAL_H
+  26:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_H
+  27:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  28:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #include <stddef.h>
+  29:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #include <stdint.h>
+  30:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #include <stdbool.h>
+  31:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  32:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #include "ch.h"
+  33:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  34:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+  35:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* Module constants.                                                         */
+  36:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+  37:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  38:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  39:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Common constants
+  40:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+  41:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  42:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if !defined(FALSE) || defined(__DOXYGEN__)
+  43:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define FALSE                               0
+  44:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+  45:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  46:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if !defined(TRUE) || defined(__DOXYGEN__)
+  47:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define TRUE                                1
+  48:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+  49:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  50:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_SUCCESS                        false
+  51:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_FAILED                         true
+  52:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+  53:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  54:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+  55:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  56:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Messages
+  57:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+  58:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  59:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define MSG_OK                              (msg_t)0
+  60:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define MSG_TIMEOUT                         (msg_t)-1
+  61:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define MSG_RESET                           (msg_t)-2
+  62:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+  63:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+  64:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  65:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+  66:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  67:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Special time constants
+  68:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+  69:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  70:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define TIME_IMMEDIATE                      ((sysinterval_t)0)
+  71:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define TIME_INFINITE                       ((sysinterval_t)-1)
+  72:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+  73:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+  74:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  75:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  76:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Systick modes.
+  77:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+  78:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  79:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_MODE_NONE                   0
+  80:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_MODE_PERIODIC               1
+  81:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_MODE_FREERUNNING            2
+  82:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+  83:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  84:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  85:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Systick parameters.
+  86:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+  87:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  88:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  89:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Size in bits of the @p systick_t type.
+  90:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  91:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_RESOLUTION                  CH_CFG_ST_RESOLUTION
+  92:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  93:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  94:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Required systick frequency or resolution.
+  95:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+  96:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_FREQUENCY                   CH_CFG_ST_FREQUENCY
+  97:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+  98:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+  99:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Systick mode required by the underlying OS.
+ 100:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 101:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if (CH_CFG_ST_TIMEDELTA == 0) || defined(__DOXYGEN__)
+ 102:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_MODE                        OSAL_ST_MODE_PERIODIC
+ 103:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #else
+ 104:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_ST_MODE                        OSAL_ST_MODE_FREERUNNING
+ 105:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 106:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+ 107:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 108:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 109:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* Module pre-compile time settings.                                         */
+ 110:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 111:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 112:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 113:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* Derived constants and error checks.                                       */
+ 114:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 115:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 116:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if !(OSAL_ST_MODE == OSAL_ST_MODE_NONE) &&                                 \
+ 117:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     !(OSAL_ST_MODE == OSAL_ST_MODE_PERIODIC) &&                             \
+ 118:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     !(OSAL_ST_MODE == OSAL_ST_MODE_FREERUNNING)
+ 119:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #error "invalid OSAL_ST_MODE setting in osal.h"
+ 120:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 121:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 122:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if (OSAL_ST_RESOLUTION != 16) && (OSAL_ST_RESOLUTION != 32) &&             \
+ 123:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     (OSAL_ST_RESOLUTION != 64)
+ 124:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #error "invalid OSAL_ST_RESOLUTION, must be 16, 32 or 64"
+ 125:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 126:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 127:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 128:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* Module data structures and types.                                         */
+ 129:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 130:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 131:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 132:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 133:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of a system status word.
+ 134:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 135:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint32_t syssts_t;
+ 136:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 137:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 138:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 139:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 140:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of a message.
+ 141:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 142:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef int32_t msg_t;
+ 143:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 144:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 145:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 146:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 147:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of system time counter.
+ 148:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 149:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint32_t systime_t;
+ 150:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 151:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 152:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 153:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 154:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of system time interval.
+ 155:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 156:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint32_t sysinterval_t;
+ 157:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 158:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 159:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 160:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 161:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of time conversion variable.
+ 162:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This type must have double width than other time types, it is
+ 163:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          only used internally for conversions.
+ 164:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 165:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint64_t time_conv_t;
+ 166:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 167:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 168:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 169:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 170:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of realtime counter.
+ 171:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 172:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint32_t rtcnt_t;
+ 173:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 174:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 175:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 176:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 177:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of a thread reference.
+ 178:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 179:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef thread_t * thread_reference_t;
+ 180:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 181:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 182:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 183:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 184:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of an event flags mask.
+ 185:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 186:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint32_t eventflags_t;
+ 187:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 188:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 189:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if (CH_CFG_USE_EVENTS == FALSE) || defined(__DOXYGEN__)
+ 190:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 191:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of an event flags object.
+ 192:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The content of this structure is not part of the API and should
+ 193:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          not be relied upon. Implementers may define this structure in
+ 194:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          an entirely different way.
+ 195:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Retrieval and clearing of the flags are not defined in this
+ 196:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          API and are implementation-dependent.
+ 197:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 198:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef struct event_source event_source_t;
+ 199:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 200:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 201:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of an event source callback.
+ 202:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This type is not part of the OSAL API and is provided
+ 203:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          exclusively as an example and for convenience.
+ 204:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 205:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef void (*eventcallback_t)(event_source_t *esp);
+ 206:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 207:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 208:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Events source object.
+ 209:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The content of this structure is not part of the API and should
+ 210:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          not be relied upon. Implementers may define this structure in
+ 211:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          an entirely different way.
+ 212:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Retrieval and clearing of the flags are not defined in this
+ 213:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          API and are implementation-dependent.
+ 214:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 215:./lib/chibios/os/hal/osal/rt-nil/osal.h **** struct event_source {
+ 216:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   volatile eventflags_t flags;      /**< @brief Stored event flags.         */
+ 217:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   eventcallback_t       cb;         /**< @brief Event source callback.      */
+ 218:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   void                  *param;     /**< @brief User defined field.         */
+ 219:./lib/chibios/os/hal/osal/rt-nil/osal.h **** };
+ 220:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif /* CH_CFG_USE_EVENTS == FALSE */
+ 221:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 222:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 223:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of a mutex.
+ 224:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    If the OS does not support mutexes or there is no OS then the
+ 225:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          mechanism can be simulated.
+ 226:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 227:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if CH_CFG_USE_MUTEXES || defined(__DOXYGEN__)
+ 228:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #elif CH_CFG_USE_SEMAPHORES
+ 229:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef semaphore_t mutex_t;
+ 230:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #else
+ 231:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef uint32_t mutex_t;
+ 232:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 233:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 234:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if 0
+ 235:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 236:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Type of a thread queue.
+ 237:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details A thread queue is a queue of sleeping threads, queued threads
+ 238:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          can be dequeued one at time or all together.
+ 239:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    In this implementation it is implemented as a single reference
+ 240:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          because there are no real threads.
+ 241:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 242:./lib/chibios/os/hal/osal/rt-nil/osal.h **** typedef struct {
+ 243:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   thread_reference_t    tr;
+ 244:./lib/chibios/os/hal/osal/rt-nil/osal.h **** } threads_queue_t;
+ 245:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 246:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 247:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 248:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* Module macros.                                                            */
+ 249:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 250:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 251:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 252:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Debug related macros
+ 253:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+ 254:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 255:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 256:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Condition assertion.
+ 257:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details If the condition check fails then the OSAL panics with a
+ 258:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          message and halts.
+ 259:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The condition is tested only if the @p OSAL_ENABLE_ASSERTIONS
+ 260:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          switch is enabled.
+ 261:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The remark string is not currently used except for putting a
+ 262:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          comment in the code about the assertion.
+ 263:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 264:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] c         the condition to be verified to be true
+ 265:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] remark    a remark string
+ 266:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 267:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 268:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 269:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalDbgAssert(c, remark) chDbgAssert(c, remark)
+ 270:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 271:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 272:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Function parameters check.
+ 273:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details If the condition check fails then the OSAL panics and halts.
+ 274:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The condition is tested only if the @p OSAL_ENABLE_CHECKS switch
+ 275:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          is enabled.
+ 276:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 277:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] c         the condition to be verified to be true
+ 278:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 279:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 280:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 281:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalDbgCheck(c) chDbgCheck(c)
+ 282:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 283:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 284:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   I-Class state check.
+ 285:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Not implemented in this simplified OSAL.
+ 286:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 287:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalDbgCheckClassI() chDbgCheckClassI()
+ 288:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 289:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 290:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   S-Class state check.
+ 291:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Not implemented in this simplified OSAL.
+ 292:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 293:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalDbgCheckClassS() chDbgCheckClassS()
+ 294:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+ 295:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 296:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 297:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    IRQ service routines wrappers
+ 298:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+ 299:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 300:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 301:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Priority level verification macro.
+ 302:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 303:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_IRQ_IS_VALID_PRIORITY(n) CH_IRQ_IS_VALID_KERNEL_PRIORITY(n)
+ 304:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 305:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 306:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   IRQ prologue code.
+ 307:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details This macro must be inserted at the start of all IRQ handlers.
+ 308:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 309:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_IRQ_PROLOGUE() CH_IRQ_PROLOGUE()
+ 310:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 311:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 312:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   IRQ epilogue code.
+ 313:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details This macro must be inserted at the end of all IRQ handlers.
+ 314:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 315:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_IRQ_EPILOGUE() CH_IRQ_EPILOGUE()
+ 316:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 317:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 318:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   IRQ handler function declaration.
+ 319:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details This macro hides the details of an ISR function declaration.
+ 320:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 321:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] id        a vector name as defined in @p vectors.s
+ 322:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 323:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_IRQ_HANDLER(id) CH_IRQ_HANDLER(id)
+ 324:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+ 325:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 326:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 327:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Time conversion utilities
+ 328:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+ 329:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 330:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 331:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Seconds to time interval.
+ 332:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from seconds to system ticks number.
+ 333:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 334:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Use of this macro for large values is not secure because
+ 335:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          integer overflows, make sure your value can be correctly
+ 336:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          converted.
+ 337:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 338:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] secs      number of seconds
+ 339:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of ticks.
+ 340:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 341:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 342:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 343:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_S2I(secs) TIME_S2I(secs)
+ 344:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 345:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 346:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Milliseconds to time interval.
+ 347:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from milliseconds to system ticks number.
+ 348:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 349:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Use of this macro for large values is not secure because
+ 350:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          integer overflows, make sure your value can be correctly
+ 351:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          converted.
+ 352:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 353:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msecs     number of milliseconds
+ 354:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of ticks.
+ 355:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 356:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 357:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 358:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_MS2I(msecs) TIME_MS2I(msecs)
+ 359:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 360:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 361:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Microseconds to time interval.
+ 362:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from microseconds to system ticks number.
+ 363:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 364:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Use of this macro for large values is not secure because
+ 365:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          integer overflows, make sure your value can be correctly
+ 366:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          converted.
+ 367:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 368:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] usecs     number of microseconds
+ 369:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of ticks.
+ 370:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 371:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 372:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 373:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_US2I(usecs) TIME_US2I(usecs)
+ 374:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 375:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 376:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Time interval to seconds.
+ 377:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from system ticks number to seconds.
+ 378:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded up to the next second boundary.
+ 379:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Use of this macro for large values is not secure because
+ 380:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          integer overflows, make sure your value can be correctly
+ 381:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          converted.
+ 382:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 383:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] interval  interval in ticks
+ 384:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of seconds.
+ 385:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 386:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 387:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 388:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_I2S(interval) TIME_I2S(interval)
+ 389:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 390:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 391:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Time interval to milliseconds.
+ 392:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from system ticks number to milliseconds.
+ 393:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded up to the next millisecond boundary.
+ 394:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Use of this macro for large values is not secure because
+ 395:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          integer overflows, make sure your value can be correctly
+ 396:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          converted.
+ 397:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 398:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] interval  interval in ticks
+ 399:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of milliseconds.
+ 400:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 401:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 402:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 403:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_I2MS(interval) TIME_I2MS(interval)
+ 404:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 405:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 406:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Time interval to microseconds.
+ 407:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from system ticks number to microseconds.
+ 408:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded up to the next microsecond boundary.
+ 409:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Use of this macro for large values is not secure because
+ 410:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          integer overflows, make sure your value can be correctly
+ 411:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          converted.
+ 412:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 413:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] interval  interval in ticks
+ 414:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of microseconds.
+ 415:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 416:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 417:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 418:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_I2US(interval) TIME_I2US(interval)
+ 419:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+ 420:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 421:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 422:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Time conversion utilities for the realtime counter
+ 423:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+ 424:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 425:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 426:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Seconds to realtime counter.
+ 427:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from seconds to realtime counter cycles.
+ 428:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The macro assumes that @p freq >= @p 1.
+ 429:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 430:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 431:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] sec       number of seconds
+ 432:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of cycles.
+ 433:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 434:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 435:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 436:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_S2RTC(freq, sec) S2RTC(freq, sec)
+ 437:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 438:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 439:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Milliseconds to realtime counter.
+ 440:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from milliseconds to realtime counter cycles.
+ 441:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded upward to the next millisecond boundary.
+ 442:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The macro assumes that @p freq >= @p 1000.
+ 443:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 444:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 445:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msec      number of milliseconds
+ 446:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of cycles.
+ 447:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 448:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 449:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 450:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_MS2RTC(freq, msec) MS2RTC(freq, msec)
+ 451:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 452:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 453:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Microseconds to realtime counter.
+ 454:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Converts from microseconds to realtime counter cycles.
+ 455:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The result is rounded upward to the next microsecond boundary.
+ 456:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The macro assumes that @p freq >= @p 1000000.
+ 457:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 458:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 459:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] usec      number of microseconds
+ 460:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The number of cycles.
+ 461:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 462:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 463:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 464:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define OSAL_US2RTC(freq, usec) US2RTC(freq, usec)
+ 465:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+ 466:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 467:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 468:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @name    Sleep macros using absolute time
+ 469:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @{
+ 470:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 471:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 472:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Delays the invoking thread for the specified number of seconds.
+ 473:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The specified time is rounded up to a value allowed by the real
+ 474:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          system tick clock.
+ 475:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The maximum specifiable value is implementation dependent.
+ 476:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 477:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] secs      time in seconds, must be different from zero
+ 478:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 479:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 480:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 481:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalThreadSleepSeconds(secs) osalThreadSleep(OSAL_S2I(secs))
+ 482:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 483:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 484:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Delays the invoking thread for the specified number of
+ 485:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          milliseconds.
+ 486:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The specified time is rounded up to a value allowed by the real
+ 487:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          system tick clock.
+ 488:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The maximum specifiable value is implementation dependent.
+ 489:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 490:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msecs     time in milliseconds, must be different from zero
+ 491:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 492:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 493:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 494:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalThreadSleepMilliseconds(msecs) osalThreadSleep(OSAL_MS2I(msecs))
+ 495:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 496:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 497:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Delays the invoking thread for the specified number of
+ 498:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          microseconds.
+ 499:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The specified time is rounded up to a value allowed by the real
+ 500:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          system tick clock.
+ 501:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The maximum specifiable value is implementation dependent.
+ 502:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 503:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] usecs     time in microseconds, must be different from zero
+ 504:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 505:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 506:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 507:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #define osalThreadSleepMicroseconds(usecs) osalThreadSleep(OSAL_US2I(usecs))
+ 508:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /** @} */
+ 509:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 510:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 511:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* External declarations.                                                    */
+ 512:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 513:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 514:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #ifdef __cplusplus
+ 515:./lib/chibios/os/hal/osal/rt-nil/osal.h **** extern "C" {
+ 516:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 517:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 518:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #ifdef __cplusplus
+ 519:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 520:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 521:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 522:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 523:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /* Module inline functions.                                                  */
+ 524:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*===========================================================================*/
+ 525:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 526:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 527:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   OSAL module initialization.
+ 528:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 529:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 530:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 531:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalInit(void) {
+ 532:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 533:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 534:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 535:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 536:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   System halt with error message.
+ 537:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 538:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] reason    the halt message pointer
+ 539:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 540:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 541:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 542:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysHalt(const char *reason) {
+ 543:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 544:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysHalt(reason);
+ 545:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 546:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 547:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 548:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Disables interrupts globally.
+ 549:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 550:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
+ 551:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 552:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysDisable(void) {
+ 553:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 554:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysDisable();
+ 555:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 556:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 557:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 558:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Enables interrupts globally.
+ 559:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 560:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
+ 561:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 562:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysEnable(void) {
+ 563:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 564:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysEnable();
+ 565:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 566:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 567:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 568:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Enters a critical zone from thread context.
+ 569:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function cannot be used for reentrant critical zones.
+ 570:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 571:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
+ 572:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 573:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysLock(void) {
+ 574:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 575:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysLock();
+ 576:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 577:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 578:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 579:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Leaves a critical zone from thread context.
+ 580:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function cannot be used for reentrant critical zones.
+ 581:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 582:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
+ 583:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 584:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysUnlock(void) {
+ 585:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 586:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysUnlock();
+ 587:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 588:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 589:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 590:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Enters a critical zone from ISR context.
+ 591:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function cannot be used for reentrant critical zones.
+ 592:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 593:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
+ 594:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 595:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysLockFromISR(void) {
+ 596:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 597:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysLockFromISR();
+ 598:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 599:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 600:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 601:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Leaves a critical zone from ISR context.
+ 602:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function cannot be used for reentrant critical zones.
+ 603:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 604:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
+ 605:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 606:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysUnlockFromISR(void) {
+ 607:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 608:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysUnlockFromISR();
+ 609:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 610:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 611:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 612:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Returns the execution status and enters a critical zone.
+ 613:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details This functions enters into a critical zone and can be called
+ 614:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          from any context. Because its flexibility it is less efficient
+ 615:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          than @p chSysLock() which is preferable when the calling context
+ 616:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          is known.
+ 617:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @post    The system is in a critical zone.
+ 618:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 619:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The previous system status, the encoding of this
+ 620:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      status word is architecture-dependent and opaque.
+ 621:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 622:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 623:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 624:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline syssts_t osalSysGetStatusAndLockX(void) {
+ 625:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 626:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chSysGetStatusAndLockX();
+ 627:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 628:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 629:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 630:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Restores the specified execution status and leaves a critical zone.
+ 631:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    A call to @p chSchRescheduleS() is automatically performed
+ 632:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          if exiting the critical zone and if not in ISR context.
+ 633:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 634:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] sts       the system status to be restored.
+ 635:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 636:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 637:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 638:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysRestoreStatusX(syssts_t sts) {
+ 639:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 640:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysRestoreStatusX(sts);
+ 641:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 642:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 643:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 644:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Polled delay.
+ 645:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The real delay is always few cycles in excess of the specified
+ 646:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          value.
+ 647:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 648:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] cycles    number of cycles
+ 649:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 650:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 651:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 652:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if (PORT_SUPPORTS_RT == TRUE) || defined(__DOXYGEN__)
+ 653:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysPolledDelayX(rtcnt_t cycles) {
+ 654:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 655:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysPolledDelayX(cycles);
+ 656:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 657:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 658:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 659:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 660:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Systick callback for the underlying OS.
+ 661:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This callback is only defined if the OSAL requires such a
+ 662:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          service from the HAL.
+ 663:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 664:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #if (OSAL_ST_MODE != OSAL_ST_MODE_NONE) || defined(__DOXYGEN__)
+ 665:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalOsTimerHandlerI(void) {
+ 666:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 667:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysTimerHandlerI();
+ 668:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 669:./lib/chibios/os/hal/osal/rt-nil/osal.h **** #endif
+ 670:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 671:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 672:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Checks if a reschedule is required and performs it.
+ 673:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    I-Class functions invoked from thread context must not reschedule
+ 674:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          by themselves, an explicit reschedule using this function is
+ 675:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          required in this scenario.
+ 676:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    Not implemented in this simplified OSAL.
+ 677:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 678:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @sclass
+ 679:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 680:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalOsRescheduleS(void) {
+ 681:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 682:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSchRescheduleS();
+ 683:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 684:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 685:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 686:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Current system time.
+ 687:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details Returns the number of system ticks since the @p osalInit()
+ 688:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          invocation.
+ 689:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    The counter can reach its maximum and then restart from zero.
+ 690:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function can be called from any context but its atomicity
+ 691:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          is not guaranteed on architectures whose word size is less than
+ 692:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          @p systime_t size.
+ 693:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 694:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The system time in ticks.
+ 695:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 696:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 697:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 698:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline systime_t osalOsGetSystemTimeX(void) {
+ 699:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 700:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chVTGetSystemTimeX();
+ 701:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 702:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 703:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 704:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Adds an interval to a system time returning a system time.
+ 705:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 706:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] systime   base system time
+ 707:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] interval  interval to be added
+ 708:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The new system time.
+ 709:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 710:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 711:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 712:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline systime_t osalTimeAddX(systime_t systime,
+ 713:./lib/chibios/os/hal/osal/rt-nil/osal.h ****                                      sysinterval_t interval) {
+ 714:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 715:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chTimeAddX(systime, interval);
+ 716:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 717:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 718:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 719:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Subtracts two system times returning an interval.
+ 720:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 721:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] start     first system time
+ 722:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] end       second system time
+ 723:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The interval representing the time difference.
+ 724:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 725:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 726:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 727:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline sysinterval_t osalTimeDiffX(systime_t start, systime_t end) {
+ 728:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 729:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chTimeDiffX(start, end);
+ 730:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 731:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 732:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 733:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Checks if the specified time is within the specified time window.
+ 734:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    When start==end then the function returns always true because the
+ 735:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          whole time range is specified.
+ 736:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function can be called from any context.
+ 737:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 738:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] time      the time to be verified
+ 739:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] start     the start of the time window (inclusive)
+ 740:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] end       the end of the time window (non inclusive)
+ 741:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @retval true         current time within the specified time window.
+ 742:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @retval false        current time not within the specified time window.
+ 743:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 744:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @xclass
+ 745:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 746:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline bool osalTimeIsInRangeX(systime_t time,
+ 747:./lib/chibios/os/hal/osal/rt-nil/osal.h ****                                       systime_t start,
+ 748:./lib/chibios/os/hal/osal/rt-nil/osal.h ****                                       systime_t end) {
+ 749:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 750:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chTimeIsInRangeX(time, start, end);
+ 751:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 752:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 753:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 754:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Suspends the invoking thread for the specified time.
+ 755:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 756:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] delay     the delay in system ticks, the special values are
+ 757:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      handled as follow:
+ 758:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_INFINITE is allowed but interpreted as a
+ 759:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        normal time specification.
+ 760:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_IMMEDIATE this value is not allowed.
+ 761:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      .
+ 762:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 763:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @sclass
+ 764:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 765:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadSleepS(sysinterval_t delay) {
+ 766:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 767:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdSleepS(delay);
+ 768:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 769:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 770:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 771:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Suspends the invoking thread for the specified time.
+ 772:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 773:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] delay     the delay in system ticks, the special values are
+ 774:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      handled as follow:
+ 775:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_INFINITE is allowed but interpreted as a
+ 776:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        normal time specification.
+ 777:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_IMMEDIATE this value is not allowed.
+ 778:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      .
+ 779:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 780:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @api
+ 781:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 782:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadSleep(sysinterval_t delay) {
+ 783:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 784:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdSleep(delay);
+ 785:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 786:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 787:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 788:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Sends the current thread sleeping and sets a reference variable.
+ 789:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function must reschedule, it can only be called from thread
+ 790:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          context.
+ 791:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 792:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] trp       a pointer to a thread reference object
+ 793:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The wake up message.
+ 794:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 795:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @sclass
+ 796:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 797:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline msg_t osalThreadSuspendS(thread_reference_t *trp) {
+ 798:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 799:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chThdSuspendTimeoutS(trp, TIME_INFINITE);
+ 800:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 801:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 802:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 803:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Sends the current thread sleeping and sets a reference variable.
+ 804:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function must reschedule, it can only be called from thread
+ 805:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          context.
+ 806:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 807:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] trp       a pointer to a thread reference object
+ 808:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] timeout   the timeout in system ticks, the special values are
+ 809:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      handled as follow:
+ 810:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_INFINITE the thread enters an infinite sleep
+ 811:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        state.
+ 812:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_IMMEDIATE the thread is not enqueued and
+ 813:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        the function returns @p MSG_TIMEOUT as if a timeout
+ 814:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        occurred.
+ 815:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      .
+ 816:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The wake up message.
+ 817:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @retval MSG_TIMEOUT  if the operation timed out.
+ 818:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 819:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @sclass
+ 820:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 821:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp,
+ 822:./lib/chibios/os/hal/osal/rt-nil/osal.h ****                                               sysinterval_t timeout) {
+ 823:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 824:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chThdSuspendTimeoutS(trp, timeout);
+ 825:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 826:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 827:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 828:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Wakes up a thread waiting on a thread reference object.
+ 829:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function must not reschedule because it can be called from
+ 830:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          ISR context.
+ 831:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 832:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] trp       a pointer to a thread reference object
+ 833:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msg       the message code
+ 834:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 835:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @iclass
+ 836:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 837:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadResumeI(thread_reference_t *trp, msg_t msg) {
+ 838:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 839:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdResumeI(trp, msg);
+ 840:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 841:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 842:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 843:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Wakes up a thread waiting on a thread reference object.
+ 844:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @note    This function must reschedule, it can only be called from thread
+ 845:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          context.
+ 846:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 847:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] trp       a pointer to a thread reference object
+ 848:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msg       the message code
+ 849:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 850:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @iclass
+ 851:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 852:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadResumeS(thread_reference_t *trp, msg_t msg) {
+ 853:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 854:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdResumeS(trp, msg);
+ 855:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 856:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 857:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 858:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Initializes a threads queue object.
+ 859:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 860:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[out] tqp      pointer to the threads queue object
+ 861:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 862:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @init
+ 863:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 864:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadQueueObjectInit(threads_queue_t *tqp) {
+  50              		.loc 2 864 20 discriminator 3 view .LVU8
+ 865:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 866:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdQueueObjectInit(tqp);
+  51              		.loc 2 866 3 discriminator 3 view .LVU9
+  52              	.LBB18:
+  53              	.LBI18:
+  54              		.file 3 "./lib/chibios/os/rt/include/chthreads.h"
+   1:./lib/chibios/os/rt/include/chthreads.h **** /*
+   2:./lib/chibios/os/rt/include/chthreads.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/rt/include/chthreads.h **** 
+   4:./lib/chibios/os/rt/include/chthreads.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/rt/include/chthreads.h **** 
+   6:./lib/chibios/os/rt/include/chthreads.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/rt/include/chthreads.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/rt/include/chthreads.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/rt/include/chthreads.h ****     (at your option) any later version.
+  10:./lib/chibios/os/rt/include/chthreads.h **** 
+  11:./lib/chibios/os/rt/include/chthreads.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/rt/include/chthreads.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/rt/include/chthreads.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/rt/include/chthreads.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/rt/include/chthreads.h **** 
+  16:./lib/chibios/os/rt/include/chthreads.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/rt/include/chthreads.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/rt/include/chthreads.h **** */
+  19:./lib/chibios/os/rt/include/chthreads.h **** 
+  20:./lib/chibios/os/rt/include/chthreads.h **** /**
+  21:./lib/chibios/os/rt/include/chthreads.h ****  * @file    rt/include/chthreads.h
+  22:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Threads module macros and structures.
+  23:./lib/chibios/os/rt/include/chthreads.h ****  *
+  24:./lib/chibios/os/rt/include/chthreads.h ****  * @addtogroup threads
+  25:./lib/chibios/os/rt/include/chthreads.h ****  * @{
+  26:./lib/chibios/os/rt/include/chthreads.h ****  */
+  27:./lib/chibios/os/rt/include/chthreads.h **** 
+  28:./lib/chibios/os/rt/include/chthreads.h **** #ifndef CHTHREADS_H
+  29:./lib/chibios/os/rt/include/chthreads.h **** #define CHTHREADS_H
+  30:./lib/chibios/os/rt/include/chthreads.h **** 
+  31:./lib/chibios/os/rt/include/chthreads.h **** /*lint -sem(chThdExit, r_no) -sem(chThdExitS, r_no)*/
+  32:./lib/chibios/os/rt/include/chthreads.h **** 
+  33:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  34:./lib/chibios/os/rt/include/chthreads.h **** /* Module constants.                                                         */
+  35:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  36:./lib/chibios/os/rt/include/chthreads.h **** 
+  37:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  38:./lib/chibios/os/rt/include/chthreads.h **** /* Module pre-compile time settings.                                         */
+  39:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  40:./lib/chibios/os/rt/include/chthreads.h **** 
+  41:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  42:./lib/chibios/os/rt/include/chthreads.h **** /* Derived constants and error checks.                                       */
+  43:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  44:./lib/chibios/os/rt/include/chthreads.h **** 
+  45:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  46:./lib/chibios/os/rt/include/chthreads.h **** /* Module data structures and types.                                         */
+  47:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  48:./lib/chibios/os/rt/include/chthreads.h **** 
+  49:./lib/chibios/os/rt/include/chthreads.h **** /**
+  50:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Thread function.
+  51:./lib/chibios/os/rt/include/chthreads.h ****  */
+  52:./lib/chibios/os/rt/include/chthreads.h **** typedef void (*tfunc_t)(void *p);
+  53:./lib/chibios/os/rt/include/chthreads.h **** 
+  54:./lib/chibios/os/rt/include/chthreads.h **** /**
+  55:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Type of a thread descriptor.
+  56:./lib/chibios/os/rt/include/chthreads.h ****  */
+  57:./lib/chibios/os/rt/include/chthreads.h **** typedef struct {
+  58:./lib/chibios/os/rt/include/chthreads.h ****   /**
+  59:./lib/chibios/os/rt/include/chthreads.h ****    * @brief   Thread name.
+  60:./lib/chibios/os/rt/include/chthreads.h ****    */
+  61:./lib/chibios/os/rt/include/chthreads.h ****   const char        *name;
+  62:./lib/chibios/os/rt/include/chthreads.h ****   /**
+  63:./lib/chibios/os/rt/include/chthreads.h ****    * @brief   Pointer to the working area base.
+  64:./lib/chibios/os/rt/include/chthreads.h ****    */
+  65:./lib/chibios/os/rt/include/chthreads.h ****   stkalign_t        *wbase;
+  66:./lib/chibios/os/rt/include/chthreads.h ****   /**
+  67:./lib/chibios/os/rt/include/chthreads.h ****    * @brief   End of the working area.
+  68:./lib/chibios/os/rt/include/chthreads.h ****    */
+  69:./lib/chibios/os/rt/include/chthreads.h ****   stkalign_t        *wend;
+  70:./lib/chibios/os/rt/include/chthreads.h ****   /**
+  71:./lib/chibios/os/rt/include/chthreads.h ****    * @brief   Thread priority.
+  72:./lib/chibios/os/rt/include/chthreads.h ****    */
+  73:./lib/chibios/os/rt/include/chthreads.h ****   tprio_t           prio;
+  74:./lib/chibios/os/rt/include/chthreads.h ****   /**
+  75:./lib/chibios/os/rt/include/chthreads.h ****    * @brief   Thread function pointer.
+  76:./lib/chibios/os/rt/include/chthreads.h ****    */
+  77:./lib/chibios/os/rt/include/chthreads.h ****   tfunc_t           funcp;
+  78:./lib/chibios/os/rt/include/chthreads.h ****   /**
+  79:./lib/chibios/os/rt/include/chthreads.h ****    * @brief   Thread argument.
+  80:./lib/chibios/os/rt/include/chthreads.h ****    */
+  81:./lib/chibios/os/rt/include/chthreads.h ****   void              *arg;
+  82:./lib/chibios/os/rt/include/chthreads.h **** } thread_descriptor_t;
+  83:./lib/chibios/os/rt/include/chthreads.h **** 
+  84:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  85:./lib/chibios/os/rt/include/chthreads.h **** /* Module macros.                                                            */
+  86:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+  87:./lib/chibios/os/rt/include/chthreads.h **** 
+  88:./lib/chibios/os/rt/include/chthreads.h **** /**
+  89:./lib/chibios/os/rt/include/chthreads.h ****  * @name    Threads queues
+  90:./lib/chibios/os/rt/include/chthreads.h ****  * @{
+  91:./lib/chibios/os/rt/include/chthreads.h ****  */
+  92:./lib/chibios/os/rt/include/chthreads.h **** /**
+  93:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Data part of a static threads queue object initializer.
+  94:./lib/chibios/os/rt/include/chthreads.h ****  * @details This macro should be used when statically initializing a threads
+  95:./lib/chibios/os/rt/include/chthreads.h ****  *          queue that is part of a bigger structure.
+  96:./lib/chibios/os/rt/include/chthreads.h ****  *
+  97:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] name      the name of the threads queue variable
+  98:./lib/chibios/os/rt/include/chthreads.h ****  */
+  99:./lib/chibios/os/rt/include/chthreads.h **** #define _THREADS_QUEUE_DATA(name) {_CH_QUEUE_DATA(name)}
+ 100:./lib/chibios/os/rt/include/chthreads.h **** 
+ 101:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 102:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Static threads queue object initializer.
+ 103:./lib/chibios/os/rt/include/chthreads.h ****  * @details Statically initialized threads queues require no explicit
+ 104:./lib/chibios/os/rt/include/chthreads.h ****  *          initialization using @p queue_init().
+ 105:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 106:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] name      the name of the threads queue variable
+ 107:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 108:./lib/chibios/os/rt/include/chthreads.h **** #define THREADS_QUEUE_DECL(name)                                            \
+ 109:./lib/chibios/os/rt/include/chthreads.h ****   threads_queue_t name = _THREADS_QUEUE_DATA(name)
+ 110:./lib/chibios/os/rt/include/chthreads.h **** /** @} */
+ 111:./lib/chibios/os/rt/include/chthreads.h **** 
+ 112:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 113:./lib/chibios/os/rt/include/chthreads.h ****  * @name    Working Areas
+ 114:./lib/chibios/os/rt/include/chthreads.h ****  * @{
+ 115:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 116:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 117:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Calculates the total Working Area size.
+ 118:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 119:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] n         the stack size to be assigned to the thread
+ 120:./lib/chibios/os/rt/include/chthreads.h ****  * @return              The total used memory in bytes.
+ 121:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 122:./lib/chibios/os/rt/include/chthreads.h ****  * @api
+ 123:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 124:./lib/chibios/os/rt/include/chthreads.h **** #define THD_WORKING_AREA_SIZE(n)                                            \
+ 125:./lib/chibios/os/rt/include/chthreads.h ****   MEM_ALIGN_NEXT(sizeof(thread_t) + PORT_WA_SIZE(n), PORT_STACK_ALIGN)
+ 126:./lib/chibios/os/rt/include/chthreads.h **** 
+ 127:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 128:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Static working area allocation.
+ 129:./lib/chibios/os/rt/include/chthreads.h ****  * @details This macro is used to allocate a static thread working area
+ 130:./lib/chibios/os/rt/include/chthreads.h ****  *          aligned as both position and size.
+ 131:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 132:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] s         the name to be assigned to the stack array
+ 133:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] n         the stack size to be assigned to the thread
+ 134:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 135:./lib/chibios/os/rt/include/chthreads.h ****  * @api
+ 136:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 137:./lib/chibios/os/rt/include/chthreads.h **** #define THD_WORKING_AREA(s, n) PORT_WORKING_AREA(s, n)
+ 138:./lib/chibios/os/rt/include/chthreads.h **** 
+ 139:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 140:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Base of a working area casted to the correct type.
+ 141:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 142:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] s         name of the working area
+ 143:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 144:./lib/chibios/os/rt/include/chthreads.h **** #define THD_WORKING_AREA_BASE(s) ((stkalign_t *)(s))
+ 145:./lib/chibios/os/rt/include/chthreads.h **** 
+ 146:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 147:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   End of a working area casted to the correct type.
+ 148:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 149:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] s         name of the working area
+ 150:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 151:./lib/chibios/os/rt/include/chthreads.h **** #define THD_WORKING_AREA_END(s) (THD_WORKING_AREA_BASE(s) +                 \
+ 152:./lib/chibios/os/rt/include/chthreads.h ****                                  (sizeof (s) / sizeof (stkalign_t)))
+ 153:./lib/chibios/os/rt/include/chthreads.h **** /** @} */
+ 154:./lib/chibios/os/rt/include/chthreads.h **** 
+ 155:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 156:./lib/chibios/os/rt/include/chthreads.h ****  * @name    Threads abstraction macros
+ 157:./lib/chibios/os/rt/include/chthreads.h ****  * @{
+ 158:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 159:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 160:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Thread declaration macro.
+ 161:./lib/chibios/os/rt/include/chthreads.h ****  * @note    Thread declarations should be performed using this macro because
+ 162:./lib/chibios/os/rt/include/chthreads.h ****  *          the port layer could define optimizations for thread functions.
+ 163:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 164:./lib/chibios/os/rt/include/chthreads.h **** #define THD_FUNCTION(tname, arg) PORT_THD_FUNCTION(tname, arg)
+ 165:./lib/chibios/os/rt/include/chthreads.h **** /** @} */
+ 166:./lib/chibios/os/rt/include/chthreads.h **** 
+ 167:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 168:./lib/chibios/os/rt/include/chthreads.h ****  * @name    Macro Functions
+ 169:./lib/chibios/os/rt/include/chthreads.h ****  * @{
+ 170:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 171:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 172:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Delays the invoking thread for the specified number of seconds.
+ 173:./lib/chibios/os/rt/include/chthreads.h ****  * @note    The specified time is rounded up to a value allowed by the real
+ 174:./lib/chibios/os/rt/include/chthreads.h ****  *          system tick clock.
+ 175:./lib/chibios/os/rt/include/chthreads.h ****  * @note    The maximum specifiable value is implementation dependent.
+ 176:./lib/chibios/os/rt/include/chthreads.h ****  * @note    Use of this macro for large values is not secure because
+ 177:./lib/chibios/os/rt/include/chthreads.h ****  *          integer overflows, make sure your value can be correctly
+ 178:./lib/chibios/os/rt/include/chthreads.h ****  *          converted.
+ 179:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 180:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] sec       time in seconds, must be different from zero
+ 181:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 182:./lib/chibios/os/rt/include/chthreads.h ****  * @api
+ 183:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 184:./lib/chibios/os/rt/include/chthreads.h **** #define chThdSleepSeconds(sec) chThdSleep(TIME_S2I(sec))
+ 185:./lib/chibios/os/rt/include/chthreads.h **** 
+ 186:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 187:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Delays the invoking thread for the specified number of
+ 188:./lib/chibios/os/rt/include/chthreads.h ****  *          milliseconds.
+ 189:./lib/chibios/os/rt/include/chthreads.h ****  * @note    The specified time is rounded up to a value allowed by the real
+ 190:./lib/chibios/os/rt/include/chthreads.h ****  *          system tick clock.
+ 191:./lib/chibios/os/rt/include/chthreads.h ****  * @note    The maximum specifiable value is implementation dependent.
+ 192:./lib/chibios/os/rt/include/chthreads.h ****  * @note    Use of this macro for large values is not secure because
+ 193:./lib/chibios/os/rt/include/chthreads.h ****  *          integer overflows, make sure your value can be correctly
+ 194:./lib/chibios/os/rt/include/chthreads.h ****  *          converted.
+ 195:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 196:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] msec      time in milliseconds, must be different from zero
+ 197:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 198:./lib/chibios/os/rt/include/chthreads.h ****  * @api
+ 199:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 200:./lib/chibios/os/rt/include/chthreads.h **** #define chThdSleepMilliseconds(msec) chThdSleep(TIME_MS2I(msec))
+ 201:./lib/chibios/os/rt/include/chthreads.h **** 
+ 202:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 203:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Delays the invoking thread for the specified number of
+ 204:./lib/chibios/os/rt/include/chthreads.h ****  *          microseconds.
+ 205:./lib/chibios/os/rt/include/chthreads.h ****  * @note    The specified time is rounded up to a value allowed by the real
+ 206:./lib/chibios/os/rt/include/chthreads.h ****  *          system tick clock.
+ 207:./lib/chibios/os/rt/include/chthreads.h ****  * @note    The maximum specifiable value is implementation dependent.
+ 208:./lib/chibios/os/rt/include/chthreads.h ****  * @note    Use of this macro for large values is not secure because
+ 209:./lib/chibios/os/rt/include/chthreads.h ****  *          integer overflows, make sure your value can be correctly
+ 210:./lib/chibios/os/rt/include/chthreads.h ****  *          converted.
+ 211:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 212:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] usec      time in microseconds, must be different from zero
+ 213:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 214:./lib/chibios/os/rt/include/chthreads.h ****  * @api
+ 215:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 216:./lib/chibios/os/rt/include/chthreads.h **** #define chThdSleepMicroseconds(usec) chThdSleep(TIME_US2I(usec))
+ 217:./lib/chibios/os/rt/include/chthreads.h **** /** @} */
+ 218:./lib/chibios/os/rt/include/chthreads.h **** 
+ 219:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+ 220:./lib/chibios/os/rt/include/chthreads.h **** /* External declarations.                                                    */
+ 221:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+ 222:./lib/chibios/os/rt/include/chthreads.h **** 
+ 223:./lib/chibios/os/rt/include/chthreads.h **** #ifdef __cplusplus
+ 224:./lib/chibios/os/rt/include/chthreads.h **** extern "C" {
+ 225:./lib/chibios/os/rt/include/chthreads.h **** #endif
+ 226:./lib/chibios/os/rt/include/chthreads.h ****    thread_t *_thread_init(thread_t *tp, const char *name, tprio_t prio);
+ 227:./lib/chibios/os/rt/include/chthreads.h **** #if CH_DBG_FILL_THREADS == TRUE
+ 228:./lib/chibios/os/rt/include/chthreads.h ****   void _thread_memfill(uint8_t *startp, uint8_t *endp, uint8_t v);
+ 229:./lib/chibios/os/rt/include/chthreads.h **** #endif
+ 230:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdCreateSuspendedI(const thread_descriptor_t *tdp);
+ 231:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdCreateSuspended(const thread_descriptor_t *tdp);
+ 232:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdCreateI(const thread_descriptor_t *tdp);
+ 233:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdCreate(const thread_descriptor_t *tdp);
+ 234:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdCreateStatic(void *wsp, size_t size,
+ 235:./lib/chibios/os/rt/include/chthreads.h ****                               tprio_t prio, tfunc_t pf, void *arg);
+ 236:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdStart(thread_t *tp);
+ 237:./lib/chibios/os/rt/include/chthreads.h **** #if CH_CFG_USE_REGISTRY == TRUE
+ 238:./lib/chibios/os/rt/include/chthreads.h ****   thread_t *chThdAddRef(thread_t *tp);
+ 239:./lib/chibios/os/rt/include/chthreads.h ****   void chThdRelease(thread_t *tp);
+ 240:./lib/chibios/os/rt/include/chthreads.h **** #endif
+ 241:./lib/chibios/os/rt/include/chthreads.h ****   void chThdExit(msg_t msg);
+ 242:./lib/chibios/os/rt/include/chthreads.h ****   void chThdExitS(msg_t msg);
+ 243:./lib/chibios/os/rt/include/chthreads.h **** #if CH_CFG_USE_WAITEXIT == TRUE
+ 244:./lib/chibios/os/rt/include/chthreads.h ****   msg_t chThdWait(thread_t *tp);
+ 245:./lib/chibios/os/rt/include/chthreads.h **** #endif
+ 246:./lib/chibios/os/rt/include/chthreads.h ****   tprio_t chThdSetPriority(tprio_t newprio);
+ 247:./lib/chibios/os/rt/include/chthreads.h ****   void chThdTerminate(thread_t *tp);
+ 248:./lib/chibios/os/rt/include/chthreads.h ****   msg_t chThdSuspendS(thread_reference_t *trp);
+ 249:./lib/chibios/os/rt/include/chthreads.h ****   msg_t chThdSuspendTimeoutS(thread_reference_t *trp, sysinterval_t timeout);
+ 250:./lib/chibios/os/rt/include/chthreads.h ****   void chThdResumeI(thread_reference_t *trp, msg_t msg);
+ 251:./lib/chibios/os/rt/include/chthreads.h ****   void chThdResumeS(thread_reference_t *trp, msg_t msg);
+ 252:./lib/chibios/os/rt/include/chthreads.h ****   void chThdResume(thread_reference_t *trp, msg_t msg);
+ 253:./lib/chibios/os/rt/include/chthreads.h ****   msg_t chThdEnqueueTimeoutS(threads_queue_t *tqp, sysinterval_t timeout);
+ 254:./lib/chibios/os/rt/include/chthreads.h ****   void chThdDequeueNextI(threads_queue_t *tqp, msg_t msg);
+ 255:./lib/chibios/os/rt/include/chthreads.h ****   void chThdDequeueAllI(threads_queue_t *tqp, msg_t msg);
+ 256:./lib/chibios/os/rt/include/chthreads.h ****   void chThdSleep(sysinterval_t time);
+ 257:./lib/chibios/os/rt/include/chthreads.h ****   void chThdSleepUntil(systime_t time);
+ 258:./lib/chibios/os/rt/include/chthreads.h ****   systime_t chThdSleepUntilWindowed(systime_t prev, systime_t next);
+ 259:./lib/chibios/os/rt/include/chthreads.h ****   void chThdYield(void);
+ 260:./lib/chibios/os/rt/include/chthreads.h **** #ifdef __cplusplus
+ 261:./lib/chibios/os/rt/include/chthreads.h **** }
+ 262:./lib/chibios/os/rt/include/chthreads.h **** #endif
+ 263:./lib/chibios/os/rt/include/chthreads.h **** 
+ 264:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+ 265:./lib/chibios/os/rt/include/chthreads.h **** /* Module inline functions.                                                  */
+ 266:./lib/chibios/os/rt/include/chthreads.h **** /*===========================================================================*/
+ 267:./lib/chibios/os/rt/include/chthreads.h **** 
+ 268:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 269:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Returns a pointer to the current @p thread_t.
+ 270:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 271:./lib/chibios/os/rt/include/chthreads.h ****  * @return              A pointer to the current thread.
+ 272:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 273:./lib/chibios/os/rt/include/chthreads.h ****  * @xclass
+ 274:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 275:./lib/chibios/os/rt/include/chthreads.h **** static inline thread_t *chThdGetSelfX(void) {
+ 276:./lib/chibios/os/rt/include/chthreads.h **** 
+ 277:./lib/chibios/os/rt/include/chthreads.h ****   return ch.rlist.current;
+ 278:./lib/chibios/os/rt/include/chthreads.h **** }
+ 279:./lib/chibios/os/rt/include/chthreads.h **** 
+ 280:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 281:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Returns the current thread priority.
+ 282:./lib/chibios/os/rt/include/chthreads.h ****  * @note    Can be invoked in any context.
+ 283:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 284:./lib/chibios/os/rt/include/chthreads.h ****  * @return              The current thread priority.
+ 285:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 286:./lib/chibios/os/rt/include/chthreads.h ****  * @xclass
+ 287:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 288:./lib/chibios/os/rt/include/chthreads.h **** static inline tprio_t chThdGetPriorityX(void) {
+ 289:./lib/chibios/os/rt/include/chthreads.h **** 
+ 290:./lib/chibios/os/rt/include/chthreads.h ****   return chThdGetSelfX()->hdr.pqueue.prio;
+ 291:./lib/chibios/os/rt/include/chthreads.h **** }
+ 292:./lib/chibios/os/rt/include/chthreads.h **** 
+ 293:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 294:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Returns the number of ticks consumed by the specified thread.
+ 295:./lib/chibios/os/rt/include/chthreads.h ****  * @note    This function is only available when the
+ 296:./lib/chibios/os/rt/include/chthreads.h ****  *          @p CH_DBG_THREADS_PROFILING configuration option is enabled.
+ 297:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 298:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] tp        pointer to the thread
+ 299:./lib/chibios/os/rt/include/chthreads.h ****  * @return              The number of consumed system ticks.
+ 300:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 301:./lib/chibios/os/rt/include/chthreads.h ****  * @xclass
+ 302:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 303:./lib/chibios/os/rt/include/chthreads.h **** #if (CH_DBG_THREADS_PROFILING == TRUE) || defined(__DOXYGEN__)
+ 304:./lib/chibios/os/rt/include/chthreads.h **** static inline systime_t chThdGetTicksX(thread_t *tp) {
+ 305:./lib/chibios/os/rt/include/chthreads.h **** 
+ 306:./lib/chibios/os/rt/include/chthreads.h ****   return tp->time;
+ 307:./lib/chibios/os/rt/include/chthreads.h **** }
+ 308:./lib/chibios/os/rt/include/chthreads.h **** #endif
+ 309:./lib/chibios/os/rt/include/chthreads.h **** 
+ 310:./lib/chibios/os/rt/include/chthreads.h **** #if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE) ||  \
+ 311:./lib/chibios/os/rt/include/chthreads.h ****     defined(__DOXYGEN__)
+ 312:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 313:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Returns the working area base of the specified thread.
+ 314:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 315:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] tp        pointer to the thread
+ 316:./lib/chibios/os/rt/include/chthreads.h ****  * @return              The working area base pointer.
+ 317:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 318:./lib/chibios/os/rt/include/chthreads.h ****  * @xclass
+ 319:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 320:./lib/chibios/os/rt/include/chthreads.h **** static inline stkalign_t *chThdGetWorkingAreaX(thread_t *tp) {
+ 321:./lib/chibios/os/rt/include/chthreads.h **** 
+ 322:./lib/chibios/os/rt/include/chthreads.h ****   return tp->wabase;
+ 323:./lib/chibios/os/rt/include/chthreads.h **** }
+ 324:./lib/chibios/os/rt/include/chthreads.h **** #endif /* CH_DBG_ENABLE_STACK_CHECK == TRUE */
+ 325:./lib/chibios/os/rt/include/chthreads.h **** 
+ 326:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 327:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Verifies if the specified thread is in the @p CH_STATE_FINAL state.
+ 328:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 329:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] tp        pointer to the thread
+ 330:./lib/chibios/os/rt/include/chthreads.h ****  * @retval true         thread terminated.
+ 331:./lib/chibios/os/rt/include/chthreads.h ****  * @retval false        thread not terminated.
+ 332:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 333:./lib/chibios/os/rt/include/chthreads.h ****  * @xclass
+ 334:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 335:./lib/chibios/os/rt/include/chthreads.h **** static inline bool chThdTerminatedX(thread_t *tp) {
+ 336:./lib/chibios/os/rt/include/chthreads.h **** 
+ 337:./lib/chibios/os/rt/include/chthreads.h ****   return (bool)(tp->state == CH_STATE_FINAL);
+ 338:./lib/chibios/os/rt/include/chthreads.h **** }
+ 339:./lib/chibios/os/rt/include/chthreads.h **** 
+ 340:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 341:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Verifies if the current thread has a termination request pending.
+ 342:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 343:./lib/chibios/os/rt/include/chthreads.h ****  * @retval true         termination request pending.
+ 344:./lib/chibios/os/rt/include/chthreads.h ****  * @retval false        termination request not pending.
+ 345:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 346:./lib/chibios/os/rt/include/chthreads.h ****  * @xclass
+ 347:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 348:./lib/chibios/os/rt/include/chthreads.h **** static inline bool chThdShouldTerminateX(void) {
+ 349:./lib/chibios/os/rt/include/chthreads.h **** 
+ 350:./lib/chibios/os/rt/include/chthreads.h ****   return (bool)((chThdGetSelfX()->flags & CH_FLAG_TERMINATE) != (tmode_t)0);
+ 351:./lib/chibios/os/rt/include/chthreads.h **** }
+ 352:./lib/chibios/os/rt/include/chthreads.h **** 
+ 353:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 354:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Resumes a thread created with @p chThdCreateI().
+ 355:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 356:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] tp        pointer to the thread
+ 357:./lib/chibios/os/rt/include/chthreads.h ****  * @return              The pointer to the @p thread_t structure allocated for
+ 358:./lib/chibios/os/rt/include/chthreads.h ****  *                      the thread into the working space area.
+ 359:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 360:./lib/chibios/os/rt/include/chthreads.h ****  * @iclass
+ 361:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 362:./lib/chibios/os/rt/include/chthreads.h **** static inline thread_t *chThdStartI(thread_t *tp) {
+ 363:./lib/chibios/os/rt/include/chthreads.h **** 
+ 364:./lib/chibios/os/rt/include/chthreads.h ****   chDbgAssert(tp->state == CH_STATE_WTSTART, "wrong state");
+ 365:./lib/chibios/os/rt/include/chthreads.h **** 
+ 366:./lib/chibios/os/rt/include/chthreads.h ****   return chSchReadyI(tp);
+ 367:./lib/chibios/os/rt/include/chthreads.h **** }
+ 368:./lib/chibios/os/rt/include/chthreads.h **** 
+ 369:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 370:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Suspends the invoking thread for the specified number of ticks.
+ 371:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 372:./lib/chibios/os/rt/include/chthreads.h ****  * @param[in] ticks     the delay in system ticks, the special values are
+ 373:./lib/chibios/os/rt/include/chthreads.h ****  *                      handled as follow:
+ 374:./lib/chibios/os/rt/include/chthreads.h ****  *                      - @a TIME_INFINITE the thread enters an infinite sleep
+ 375:./lib/chibios/os/rt/include/chthreads.h ****  *                        state.
+ 376:./lib/chibios/os/rt/include/chthreads.h ****  *                      - @a TIME_IMMEDIATE this value is not allowed.
+ 377:./lib/chibios/os/rt/include/chthreads.h ****  *                      .
+ 378:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 379:./lib/chibios/os/rt/include/chthreads.h ****  * @sclass
+ 380:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 381:./lib/chibios/os/rt/include/chthreads.h **** static inline void chThdSleepS(sysinterval_t ticks) {
+ 382:./lib/chibios/os/rt/include/chthreads.h **** 
+ 383:./lib/chibios/os/rt/include/chthreads.h ****   chDbgCheck(ticks != TIME_IMMEDIATE);
+ 384:./lib/chibios/os/rt/include/chthreads.h **** 
+ 385:./lib/chibios/os/rt/include/chthreads.h ****   (void) chSchGoSleepTimeoutS(CH_STATE_SLEEPING, ticks);
+ 386:./lib/chibios/os/rt/include/chthreads.h **** }
+ 387:./lib/chibios/os/rt/include/chthreads.h **** 
+ 388:./lib/chibios/os/rt/include/chthreads.h **** /**
+ 389:./lib/chibios/os/rt/include/chthreads.h ****  * @brief   Initializes a threads queue object.
+ 390:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 391:./lib/chibios/os/rt/include/chthreads.h ****  * @param[out] tqp      pointer to the threads queue object
+ 392:./lib/chibios/os/rt/include/chthreads.h ****  *
+ 393:./lib/chibios/os/rt/include/chthreads.h ****  * @init
+ 394:./lib/chibios/os/rt/include/chthreads.h ****  */
+ 395:./lib/chibios/os/rt/include/chthreads.h **** static inline void chThdQueueObjectInit(threads_queue_t *tqp) {
+  55              		.loc 3 395 20 discriminator 3 view .LVU10
+ 396:./lib/chibios/os/rt/include/chthreads.h **** 
+ 397:./lib/chibios/os/rt/include/chthreads.h ****   ch_queue_init(&tqp->queue);
+  56              		.loc 3 397 3 discriminator 3 view .LVU11
+  57              	.LBB19:
+  58              	.LBI19:
+  59              		.file 4 "./lib/chibios/os/rt/include/chlists.h"
+   1:./lib/chibios/os/rt/include/chlists.h **** /*
+   2:./lib/chibios/os/rt/include/chlists.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/rt/include/chlists.h **** 
+   4:./lib/chibios/os/rt/include/chlists.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/rt/include/chlists.h **** 
+   6:./lib/chibios/os/rt/include/chlists.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/rt/include/chlists.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/rt/include/chlists.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/rt/include/chlists.h ****     (at your option) any later version.
+  10:./lib/chibios/os/rt/include/chlists.h **** 
+  11:./lib/chibios/os/rt/include/chlists.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/rt/include/chlists.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/rt/include/chlists.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/rt/include/chlists.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/rt/include/chlists.h **** 
+  16:./lib/chibios/os/rt/include/chlists.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/rt/include/chlists.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/rt/include/chlists.h **** */
+  19:./lib/chibios/os/rt/include/chlists.h **** 
+  20:./lib/chibios/os/rt/include/chlists.h **** /**
+  21:./lib/chibios/os/rt/include/chlists.h ****  * @file    chlists.h
+  22:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Lists and Queues header.
+  23:./lib/chibios/os/rt/include/chlists.h ****  *
+  24:./lib/chibios/os/rt/include/chlists.h ****  * @addtogroup os_lists
+  25:./lib/chibios/os/rt/include/chlists.h ****  * @{
+  26:./lib/chibios/os/rt/include/chlists.h ****  */
+  27:./lib/chibios/os/rt/include/chlists.h **** 
+  28:./lib/chibios/os/rt/include/chlists.h **** #ifndef CHLISTS_H
+  29:./lib/chibios/os/rt/include/chlists.h **** #define CHLISTS_H
+  30:./lib/chibios/os/rt/include/chlists.h **** 
+  31:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  32:./lib/chibios/os/rt/include/chlists.h **** /* Module constants.                                                         */
+  33:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  34:./lib/chibios/os/rt/include/chlists.h **** 
+  35:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  36:./lib/chibios/os/rt/include/chlists.h **** /* Module pre-compile time settings.                                         */
+  37:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  38:./lib/chibios/os/rt/include/chlists.h **** 
+  39:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  40:./lib/chibios/os/rt/include/chlists.h **** /* Derived constants and error checks.                                       */
+  41:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  42:./lib/chibios/os/rt/include/chlists.h **** 
+  43:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  44:./lib/chibios/os/rt/include/chlists.h **** /* Module data structures and types.                                         */
+  45:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  46:./lib/chibios/os/rt/include/chlists.h **** 
+  47:./lib/chibios/os/rt/include/chlists.h **** /**
+  48:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Type of a generic single link list header and element.
+  49:./lib/chibios/os/rt/include/chlists.h ****  */
+  50:./lib/chibios/os/rt/include/chlists.h **** typedef struct ch_list ch_list_t;
+  51:./lib/chibios/os/rt/include/chlists.h **** 
+  52:./lib/chibios/os/rt/include/chlists.h **** /**
+  53:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Structure representing a generic single link list header
+  54:./lib/chibios/os/rt/include/chlists.h ****  *          and element.
+  55:./lib/chibios/os/rt/include/chlists.h ****  */
+  56:./lib/chibios/os/rt/include/chlists.h **** struct ch_list {
+  57:./lib/chibios/os/rt/include/chlists.h ****   ch_list_t             *next;      /**< @brief Next in the list/queue.     */
+  58:./lib/chibios/os/rt/include/chlists.h **** };
+  59:./lib/chibios/os/rt/include/chlists.h **** 
+  60:./lib/chibios/os/rt/include/chlists.h **** /**
+  61:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Type of a generic bidirectional linked list header and element.
+  62:./lib/chibios/os/rt/include/chlists.h ****  */
+  63:./lib/chibios/os/rt/include/chlists.h **** typedef struct ch_queue ch_queue_t;
+  64:./lib/chibios/os/rt/include/chlists.h **** 
+  65:./lib/chibios/os/rt/include/chlists.h **** /**
+  66:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Structure representing a generic bidirectional linked list header
+  67:./lib/chibios/os/rt/include/chlists.h ****  *          and element.
+  68:./lib/chibios/os/rt/include/chlists.h ****  */
+  69:./lib/chibios/os/rt/include/chlists.h **** struct ch_queue {
+  70:./lib/chibios/os/rt/include/chlists.h ****   ch_queue_t            *next;      /**< @brief Next in the list/queue.     */
+  71:./lib/chibios/os/rt/include/chlists.h ****   ch_queue_t            *prev;      /**< @brief Previous in the queue.      */
+  72:./lib/chibios/os/rt/include/chlists.h **** };
+  73:./lib/chibios/os/rt/include/chlists.h **** 
+  74:./lib/chibios/os/rt/include/chlists.h **** /**
+  75:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Type of a generic priority-ordered bidirectional linked list
+  76:./lib/chibios/os/rt/include/chlists.h ****  *          header and element.
+  77:./lib/chibios/os/rt/include/chlists.h ****  */
+  78:./lib/chibios/os/rt/include/chlists.h **** typedef struct ch_priority_queue ch_priority_queue_t;
+  79:./lib/chibios/os/rt/include/chlists.h **** 
+  80:./lib/chibios/os/rt/include/chlists.h **** /**
+  81:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Structure representing a generic priority-ordered bidirectional
+  82:./lib/chibios/os/rt/include/chlists.h ****  *          linked list header and element.
+  83:./lib/chibios/os/rt/include/chlists.h ****  * @note    Link fields are void pointers in order to avoid aliasing issues.
+  84:./lib/chibios/os/rt/include/chlists.h ****  */
+  85:./lib/chibios/os/rt/include/chlists.h **** struct ch_priority_queue {
+  86:./lib/chibios/os/rt/include/chlists.h ****   ch_priority_queue_t   *next;      /**< @brief Next in the list/queue.     */
+  87:./lib/chibios/os/rt/include/chlists.h ****   ch_priority_queue_t   *prev;      /**< @brief Previous in the queue.      */
+  88:./lib/chibios/os/rt/include/chlists.h ****   tprio_t               prio;
+  89:./lib/chibios/os/rt/include/chlists.h **** };
+  90:./lib/chibios/os/rt/include/chlists.h **** 
+  91:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  92:./lib/chibios/os/rt/include/chlists.h **** /* Module macros.                                                            */
+  93:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+  94:./lib/chibios/os/rt/include/chlists.h **** 
+  95:./lib/chibios/os/rt/include/chlists.h **** /**
+  96:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Data part of a static queue object initializer.
+  97:./lib/chibios/os/rt/include/chlists.h ****  * @details This macro should be used when statically initializing a
+  98:./lib/chibios/os/rt/include/chlists.h ****  *          queue that is part of a bigger structure.
+  99:./lib/chibios/os/rt/include/chlists.h ****  *
+ 100:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] name      the name of the queue variable
+ 101:./lib/chibios/os/rt/include/chlists.h ****  */
+ 102:./lib/chibios/os/rt/include/chlists.h **** #define _CH_QUEUE_DATA(name) {(ch_queue_t *)&name, (ch_queue_t *)&name}
+ 103:./lib/chibios/os/rt/include/chlists.h **** 
+ 104:./lib/chibios/os/rt/include/chlists.h **** /**
+ 105:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Static queue object initializer.
+ 106:./lib/chibios/os/rt/include/chlists.h ****  * @details Statically initialized queues require no explicit
+ 107:./lib/chibios/os/rt/include/chlists.h ****  *          initialization using @p queue_init().
+ 108:./lib/chibios/os/rt/include/chlists.h ****  *
+ 109:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] name      the name of the queue variable
+ 110:./lib/chibios/os/rt/include/chlists.h ****  */
+ 111:./lib/chibios/os/rt/include/chlists.h **** #define CH_QUEUE_DECL(name)                                                 \
+ 112:./lib/chibios/os/rt/include/chlists.h ****     ch_queue_t name = _CH_QUEUE_DATA(name)
+ 113:./lib/chibios/os/rt/include/chlists.h **** 
+ 114:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+ 115:./lib/chibios/os/rt/include/chlists.h **** /* External declarations.                                                    */
+ 116:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+ 117:./lib/chibios/os/rt/include/chlists.h **** 
+ 118:./lib/chibios/os/rt/include/chlists.h **** /* Early function prototypes required by the following headers.*/
+ 119:./lib/chibios/os/rt/include/chlists.h **** #ifdef __cplusplus
+ 120:./lib/chibios/os/rt/include/chlists.h **** extern "C" {
+ 121:./lib/chibios/os/rt/include/chlists.h **** #endif
+ 122:./lib/chibios/os/rt/include/chlists.h **** 
+ 123:./lib/chibios/os/rt/include/chlists.h **** #ifdef __cplusplus
+ 124:./lib/chibios/os/rt/include/chlists.h **** }
+ 125:./lib/chibios/os/rt/include/chlists.h **** #endif
+ 126:./lib/chibios/os/rt/include/chlists.h **** 
+ 127:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+ 128:./lib/chibios/os/rt/include/chlists.h **** /* Module inline functions.                                                  */
+ 129:./lib/chibios/os/rt/include/chlists.h **** /*===========================================================================*/
+ 130:./lib/chibios/os/rt/include/chlists.h **** 
+ 131:./lib/chibios/os/rt/include/chlists.h **** /**
+ 132:./lib/chibios/os/rt/include/chlists.h ****  * @brief   List initialization.
+ 133:./lib/chibios/os/rt/include/chlists.h ****  *
+ 134:./lib/chibios/os/rt/include/chlists.h ****  * @param[out] lp       pointer to the list header
+ 135:./lib/chibios/os/rt/include/chlists.h ****  *
+ 136:./lib/chibios/os/rt/include/chlists.h ****  * @notapi
+ 137:./lib/chibios/os/rt/include/chlists.h ****  */
+ 138:./lib/chibios/os/rt/include/chlists.h **** static inline void ch_list_init(ch_list_t *lp) {
+ 139:./lib/chibios/os/rt/include/chlists.h **** 
+ 140:./lib/chibios/os/rt/include/chlists.h ****   lp->next = lp;
+ 141:./lib/chibios/os/rt/include/chlists.h **** }
+ 142:./lib/chibios/os/rt/include/chlists.h **** 
+ 143:./lib/chibios/os/rt/include/chlists.h **** /**
+ 144:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Evaluates to @p true if the specified list is empty.
+ 145:./lib/chibios/os/rt/include/chlists.h ****  *
+ 146:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] lp        pointer to the list header
+ 147:./lib/chibios/os/rt/include/chlists.h ****  * @return              The status of the list.
+ 148:./lib/chibios/os/rt/include/chlists.h ****  *
+ 149:./lib/chibios/os/rt/include/chlists.h ****  * @notapi
+ 150:./lib/chibios/os/rt/include/chlists.h ****  */
+ 151:./lib/chibios/os/rt/include/chlists.h **** static inline bool ch_list_isempty(ch_list_t *lp) {
+ 152:./lib/chibios/os/rt/include/chlists.h **** 
+ 153:./lib/chibios/os/rt/include/chlists.h ****   return (bool)(lp->next == lp);
+ 154:./lib/chibios/os/rt/include/chlists.h **** }
+ 155:./lib/chibios/os/rt/include/chlists.h **** 
+ 156:./lib/chibios/os/rt/include/chlists.h **** /**
+ 157:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Evaluates to @p true if the specified list is not empty.
+ 158:./lib/chibios/os/rt/include/chlists.h ****  *
+ 159:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] lp        pointer to the list header
+ 160:./lib/chibios/os/rt/include/chlists.h ****  * @return              The status of the list.
+ 161:./lib/chibios/os/rt/include/chlists.h ****  *
+ 162:./lib/chibios/os/rt/include/chlists.h ****  * @notapi
+ 163:./lib/chibios/os/rt/include/chlists.h ****  */
+ 164:./lib/chibios/os/rt/include/chlists.h **** static inline bool ch_list_notempty(ch_list_t *lp) {
+ 165:./lib/chibios/os/rt/include/chlists.h **** 
+ 166:./lib/chibios/os/rt/include/chlists.h ****   return (bool)(lp->next != lp);
+ 167:./lib/chibios/os/rt/include/chlists.h **** }
+ 168:./lib/chibios/os/rt/include/chlists.h **** 
+ 169:./lib/chibios/os/rt/include/chlists.h **** /**
+ 170:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Pushes an element on top of a stack list.
+ 171:./lib/chibios/os/rt/include/chlists.h ****  *
+ 172:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] p     the pointer to the element to be inserted in the list
+ 173:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] lp    the pointer to the list header
+ 174:./lib/chibios/os/rt/include/chlists.h ****  *
+ 175:./lib/chibios/os/rt/include/chlists.h ****  * @notapi
+ 176:./lib/chibios/os/rt/include/chlists.h ****  */
+ 177:./lib/chibios/os/rt/include/chlists.h **** static inline void ch_list_push(ch_list_t *p, ch_list_t *lp) {
+ 178:./lib/chibios/os/rt/include/chlists.h **** 
+ 179:./lib/chibios/os/rt/include/chlists.h ****   p->next = lp->next;
+ 180:./lib/chibios/os/rt/include/chlists.h ****   lp->next = p;
+ 181:./lib/chibios/os/rt/include/chlists.h **** }
+ 182:./lib/chibios/os/rt/include/chlists.h **** 
+ 183:./lib/chibios/os/rt/include/chlists.h **** /**
+ 184:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Pops an element from the top of a stack list and returns it.
+ 185:./lib/chibios/os/rt/include/chlists.h ****  * @pre     The list must be non-empty before calling this function.
+ 186:./lib/chibios/os/rt/include/chlists.h ****  *
+ 187:./lib/chibios/os/rt/include/chlists.h ****  * @param[in] lp        the pointer to the list header
+ 188:./lib/chibios/os/rt/include/chlists.h ****  * @return              The removed element pointer.
+ 189:./lib/chibios/os/rt/include/chlists.h ****  *
+ 190:./lib/chibios/os/rt/include/chlists.h ****  * @notapi
+ 191:./lib/chibios/os/rt/include/chlists.h ****  */
+ 192:./lib/chibios/os/rt/include/chlists.h **** static inline ch_list_t *ch_list_pop(ch_list_t *lp) {
+ 193:./lib/chibios/os/rt/include/chlists.h **** 
+ 194:./lib/chibios/os/rt/include/chlists.h ****   ch_list_t *p = lp->next;
+ 195:./lib/chibios/os/rt/include/chlists.h ****   lp->next = p->next;
+ 196:./lib/chibios/os/rt/include/chlists.h **** 
+ 197:./lib/chibios/os/rt/include/chlists.h ****   return p;
+ 198:./lib/chibios/os/rt/include/chlists.h **** }
+ 199:./lib/chibios/os/rt/include/chlists.h **** 
+ 200:./lib/chibios/os/rt/include/chlists.h **** /**
+ 201:./lib/chibios/os/rt/include/chlists.h ****  * @brief   Queue initialization.
+ 202:./lib/chibios/os/rt/include/chlists.h ****  *
+ 203:./lib/chibios/os/rt/include/chlists.h ****  * @param[out] qp       pointer to the queue header
+ 204:./lib/chibios/os/rt/include/chlists.h ****  *
+ 205:./lib/chibios/os/rt/include/chlists.h ****  * @notapi
+ 206:./lib/chibios/os/rt/include/chlists.h ****  */
+ 207:./lib/chibios/os/rt/include/chlists.h **** static inline void ch_queue_init(ch_queue_t *qp) {
+  60              		.loc 4 207 20 discriminator 3 view .LVU12
+  61              	.LBB20:
+ 208:./lib/chibios/os/rt/include/chlists.h **** 
+ 209:./lib/chibios/os/rt/include/chlists.h ****   qp->next = qp;
+  62              		.loc 4 209 3 discriminator 3 view .LVU13
+  63              	.LBE20:
+  64              	.LBE19:
+  65              	.LBE18:
+  66              	.LBE17:
+  70:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     _pal_init_event(i);
+  67              		.loc 1 70 24 is_stmt 0 discriminator 3 view .LVU14
+  68 0006 0132     		adds	r2, r2, #1
+  69              	.LVL2:
+  70:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     _pal_init_event(i);
+  70              		.loc 1 70 17 discriminator 3 view .LVU15
+  71 0008 102A     		cmp	r2, #16
+  72              	.LBB24:
+  73              	.LBB23:
+  74              	.LBB22:
+  75              	.LBB21:
+ 210:./lib/chibios/os/rt/include/chlists.h ****   qp->prev = qp;
+  76              		.loc 4 210 12 discriminator 3 view .LVU16
+  77 000a C3E90033 		strd	r3, r3, [r3]
+  78              	.LVL3:
+  79              		.loc 4 210 12 discriminator 3 view .LVU17
+  80              	.LBE21:
+  81              	.LBE22:
+  82              	.LBE23:
+  83              	.LBE24:
+  84              		.loc 1 71 5 is_stmt 1 discriminator 3 view .LVU18
+  85 000e C3E90211 		strd	r1, r1, [r3, #8]
+  86              		.loc 1 71 5 discriminator 3 view .LVU19
+  70:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     _pal_init_event(i);
+  87              		.loc 1 70 24 discriminator 3 view .LVU20
+  88              	.LVL4:
+  70:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     _pal_init_event(i);
+  89              		.loc 1 70 17 discriminator 3 view .LVU21
+  90 0012 03F11003 		add	r3, r3, #16
+  91 0016 F6D1     		bne	.L2
+  72:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   }
+  73:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+  74:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** }
+  92              		.loc 1 74 1 is_stmt 0 view .LVU22
+  93 0018 7047     		bx	lr
+  94              	.L5:
+  95 001a 00BF     		.align	2
+  96              	.L4:
+  97 001c 00000000 		.word	_pal_events
+  98              		.cfi_endproc
+  99              	.LFE328:
+ 101              		.section	.text._pal_lld_setgroupmode,"ax",%progbits
+ 102              		.align	1
+ 103              		.global	_pal_lld_setgroupmode
+ 104              		.syntax unified
+ 105              		.thumb
+ 106              		.thumb_func
+ 107              		.fpu fpv4-sp-d16
+ 109              	_pal_lld_setgroupmode:
+ 110              	.LVL5:
+ 111              	.LFB329:
+  75:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  76:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /**
+  77:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @brief   Pads mode setup.
+  78:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @details This function programs a pads group belonging to the same port
+  79:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *          with the specified mode.
+  80:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @note    @p PAL_MODE_UNCONNECTED is implemented as push pull at minimum
+  81:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *          speed.
+  82:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+  83:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] port      the port identifier
+  84:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] mask      the group mask
+  85:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] mode      the mode
+  86:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+  87:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @notapi
+  88:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  */
+  89:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** void _pal_lld_setgroupmode(ioportid_t port,
+  90:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****                            ioportmask_t mask,
+  91:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****                            iomode_t mode) {
+ 112              		.loc 1 91 43 is_stmt 1 view -0
+ 113              		.cfi_startproc
+ 114              		@ args = 0, pretend = 0, frame = 8
+ 115              		@ frame_needed = 0, uses_anonymous_args = 0
+  92:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+  93:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t moder   = (mode & PAL_STM32_MODE_MASK) >> 0;
+ 116              		.loc 1 93 3 view .LVU24
+  91:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 117              		.loc 1 91 43 is_stmt 0 view .LVU25
+ 118 0000 2DE9F74F 		push	{r0, r1, r2, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 119              		.cfi_def_cfa_offset 48
+ 120              		.cfi_offset 4, -36
+ 121              		.cfi_offset 5, -32
+ 122              		.cfi_offset 6, -28
+ 123              		.cfi_offset 7, -24
+ 124              		.cfi_offset 8, -20
+ 125              		.cfi_offset 9, -16
+ 126              		.cfi_offset 10, -12
+ 127              		.cfi_offset 11, -8
+ 128              		.cfi_offset 14, -4
+  94:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t otyper  = (mode & PAL_STM32_OTYPE_MASK) >> 2;
+  95:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t ospeedr = (mode & PAL_STM32_OSPEED_MASK) >> 3;
+  96:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t pupdr   = (mode & PAL_STM32_PUPDR_MASK) >> 5;
+  97:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t altr    = (mode & PAL_STM32_ALTERNATE_MASK) >> 7;
+ 129              		.loc 1 97 12 view .LVU26
+ 130 0004 C2F3C313 		ubfx	r3, r2, #7, #4
+  93:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t otyper  = (mode & PAL_STM32_OTYPE_MASK) >> 2;
+ 131              		.loc 1 93 12 view .LVU27
+ 132 0008 02F0030A 		and	r10, r2, #3
+ 133              	.LVL6:
+  94:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t otyper  = (mode & PAL_STM32_OTYPE_MASK) >> 2;
+ 134              		.loc 1 94 3 is_stmt 1 view .LVU28
+  94:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t otyper  = (mode & PAL_STM32_OTYPE_MASK) >> 2;
+ 135              		.loc 1 94 12 is_stmt 0 view .LVU29
+ 136 000c C2F38009 		ubfx	r9, r2, #2, #1
+ 137              	.LVL7:
+  95:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t pupdr   = (mode & PAL_STM32_PUPDR_MASK) >> 5;
+ 138              		.loc 1 95 3 is_stmt 1 view .LVU30
+  95:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t pupdr   = (mode & PAL_STM32_PUPDR_MASK) >> 5;
+ 139              		.loc 1 95 12 is_stmt 0 view .LVU31
+ 140 0010 C2F3C108 		ubfx	r8, r2, #3, #2
+ 141              	.LVL8:
+  96:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t altr    = (mode & PAL_STM32_ALTERNATE_MASK) >> 7;
+ 142              		.loc 1 96 3 is_stmt 1 view .LVU32
+  96:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t altr    = (mode & PAL_STM32_ALTERNATE_MASK) >> 7;
+ 143              		.loc 1 96 12 is_stmt 0 view .LVU33
+ 144 0014 C2F3411E 		ubfx	lr, r2, #5, #2
+ 145              	.LVL9:
+ 146              		.loc 1 97 3 is_stmt 1 view .LVU34
+ 147              		.loc 1 97 12 is_stmt 0 view .LVU35
+ 148 0018 0193     		str	r3, [sp, #4]
+ 149              	.LVL10:
+  98:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t bit     = 0;
+ 150              		.loc 1 98 3 is_stmt 1 view .LVU36
+  93:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t otyper  = (mode & PAL_STM32_OTYPE_MASK) >> 2;
+ 151              		.loc 1 93 12 is_stmt 0 view .LVU37
+ 152 001a 5746     		mov	r7, r10
+ 153              		.loc 1 98 12 view .LVU38
+ 154 001c 0022     		movs	r2, #0
+ 155              	.LVL11:
+ 156              	.LBB25:
+  99:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   while (true) {
+ 100:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     if ((mask & 1) != 0) {
+ 101:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       uint32_t altrmask, m1, m2, m4;
+ 102:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 103:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       altrmask = altr << ((bit & 7) * 4);
+ 104:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m1 = 1 << bit;
+ 105:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m2 = 3 << (bit * 2);
+ 106:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m4 = 15 << ((bit & 7) * 4);
+ 157              		.loc 1 106 15 view .LVU39
+ 158 001e 4FF00F0B 		mov	fp, #15
+ 159              	.LVL12:
+ 160              	.L13:
+ 161              		.loc 1 106 15 view .LVU40
+ 162              	.LBE25:
+  99:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   while (true) {
+ 163              		.loc 1 99 3 is_stmt 1 view .LVU41
+ 100:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       uint32_t altrmask, m1, m2, m4;
+ 164              		.loc 1 100 5 view .LVU42
+ 100:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       uint32_t altrmask, m1, m2, m4;
+ 165              		.loc 1 100 8 is_stmt 0 view .LVU43
+ 166 0022 CB07     		lsls	r3, r1, #31
+ 167 0024 37D5     		bpl	.L7
+ 168              	.LBB26:
+ 101:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 169              		.loc 1 101 7 is_stmt 1 view .LVU44
+ 103:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m1 = 1 << bit;
+ 170              		.loc 1 103 7 view .LVU45
+ 103:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m1 = 1 << bit;
+ 171              		.loc 1 103 16 is_stmt 0 view .LVU46
+ 172 0026 019C     		ldr	r4, [sp, #4]
+ 103:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m1 = 1 << bit;
+ 173              		.loc 1 103 32 view .LVU47
+ 174 0028 02F00703 		and	r3, r2, #7
+ 103:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m1 = 1 << bit;
+ 175              		.loc 1 103 37 view .LVU48
+ 176 002c 9B00     		lsls	r3, r3, #2
+ 103:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m1 = 1 << bit;
+ 177              		.loc 1 103 16 view .LVU49
+ 178 002e 04FA03FC 		lsl	ip, r4, r3
+ 179              	.LVL13:
+ 104:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m2 = 3 << (bit * 2);
+ 180              		.loc 1 104 7 is_stmt 1 view .LVU50
+ 105:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m4 = 15 << ((bit & 7) * 4);
+ 181              		.loc 1 105 7 view .LVU51
+ 182              		.loc 1 106 7 view .LVU52
+ 107:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       port->OTYPER  = (port->OTYPER & ~m1) | otyper;
+ 183              		.loc 1 107 7 view .LVU53
+ 104:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m2 = 3 << (bit * 2);
+ 184              		.loc 1 104 14 is_stmt 0 view .LVU54
+ 185 0032 0125     		movs	r5, #1
+ 186              		.loc 1 107 28 view .LVU55
+ 187 0034 4468     		ldr	r4, [r0, #4]
+ 104:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m2 = 3 << (bit * 2);
+ 188              		.loc 1 104 14 view .LVU56
+ 189 0036 9540     		lsls	r5, r5, r2
+ 190              	.LVL14:
+ 191              		.loc 1 107 37 view .LVU57
+ 192 0038 24EA0504 		bic	r4, r4, r5
+ 193              		.loc 1 107 44 view .LVU58
+ 194 003c 44EA0904 		orr	r4, r4, r9
+ 195              		.loc 1 107 21 view .LVU59
+ 196 0040 4460     		str	r4, [r0, #4]
+ 108:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       port->OSPEEDR = (port->OSPEEDR & ~m2) | ospeedr;
+ 197              		.loc 1 108 7 is_stmt 1 view .LVU60
+ 198              		.loc 1 108 28 is_stmt 0 view .LVU61
+ 199 0042 8568     		ldr	r5, [r0, #8]
+ 200              	.LVL15:
+ 105:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       m4 = 15 << ((bit & 7) * 4);
+ 201              		.loc 1 105 14 view .LVU62
+ 202 0044 0324     		movs	r4, #3
+ 203 0046 5600     		lsls	r6, r2, #1
+ 204 0048 04FA06F6 		lsl	r6, r4, r6
+ 205              	.LVL16:
+ 206              		.loc 1 108 38 view .LVU63
+ 207 004c 25EA0605 		bic	r5, r5, r6
+ 208              		.loc 1 108 45 view .LVU64
+ 209 0050 45EA0805 		orr	r5, r5, r8
+ 210              		.loc 1 108 21 view .LVU65
+ 211 0054 8560     		str	r5, [r0, #8]
+ 109:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       port->PUPDR   = (port->PUPDR & ~m2) | pupdr;
+ 212              		.loc 1 109 7 is_stmt 1 view .LVU66
+ 213              		.loc 1 109 28 is_stmt 0 view .LVU67
+ 214 0056 C568     		ldr	r5, [r0, #12]
+ 215              		.loc 1 109 36 view .LVU68
+ 216 0058 25EA0605 		bic	r5, r5, r6
+ 217              		.loc 1 109 43 view .LVU69
+ 218 005c 45EA0E05 		orr	r5, r5, lr
+ 106:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       port->OTYPER  = (port->OTYPER & ~m1) | otyper;
+ 219              		.loc 1 106 15 view .LVU70
+ 220 0060 0BFA03F3 		lsl	r3, fp, r3
+ 221              	.LVL17:
+ 110:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       if ((mode & PAL_STM32_MODE_MASK) == PAL_STM32_MODE_ALTERNATE) {
+ 222              		.loc 1 110 10 view .LVU71
+ 223 0064 BAF1020F 		cmp	r10, #2
+ 108:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       port->PUPDR   = (port->PUPDR & ~m2) | pupdr;
+ 224              		.loc 1 108 40 view .LVU72
+ 225 0068 6FEA0604 		mvn	r4, r6
+ 109:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       if ((mode & PAL_STM32_MODE_MASK) == PAL_STM32_MODE_ALTERNATE) {
+ 226              		.loc 1 109 21 view .LVU73
+ 227 006c C560     		str	r5, [r0, #12]
+ 228              		.loc 1 110 7 is_stmt 1 view .LVU74
+ 111:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         /* If going in alternate mode then the alternate number is set
+ 112:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****            before switching mode in order to avoid glitches.*/
+ 113:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 114:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRL = (port->AFRL & ~m4) | altrmask;
+ 229              		.loc 1 114 38 is_stmt 0 view .LVU75
+ 230 006e 6FEA0303 		mvn	r3, r3
+ 110:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         /* If going in alternate mode then the alternate number is set
+ 231              		.loc 1 110 10 view .LVU76
+ 232 0072 1BD1     		bne	.L8
+ 113:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRL = (port->AFRL & ~m4) | altrmask;
+ 233              		.loc 1 113 9 is_stmt 1 view .LVU77
+ 113:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRL = (port->AFRL & ~m4) | altrmask;
+ 234              		.loc 1 113 12 is_stmt 0 view .LVU78
+ 235 0074 072A     		cmp	r2, #7
+ 236              		.loc 1 114 11 is_stmt 1 view .LVU79
+ 237              		.loc 1 114 29 is_stmt 0 view .LVU80
+ 238 0076 95BF     		itete	ls
+ 239 0078 056A     		ldrls	r5, [r0, #32]
+ 115:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 116:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRH = (port->AFRH & ~m4) | altrmask;
+ 240              		.loc 1 116 29 view .LVU81
+ 241 007a 456A     		ldrhi	r5, [r0, #36]
+ 114:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 242              		.loc 1 114 36 view .LVU82
+ 243 007c 1D40     		andls	r5, r5, r3
+ 244              		.loc 1 116 36 view .LVU83
+ 245 007e 1D40     		andhi	r5, r5, r3
+ 114:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 246              		.loc 1 114 43 view .LVU84
+ 247 0080 95BF     		itete	ls
+ 248 0082 45EA0C05 		orrls	r5, r5, ip
+ 249              		.loc 1 116 43 view .LVU85
+ 250 0086 45EA0C05 		orrhi	r5, r5, ip
+ 114:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 251              		.loc 1 114 22 view .LVU86
+ 252 008a 0562     		strls	r5, [r0, #32]
+ 253              		.loc 1 116 11 is_stmt 1 view .LVU87
+ 254              		.loc 1 116 22 is_stmt 0 view .LVU88
+ 255 008c 4562     		strhi	r5, [r0, #36]
+ 117:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         port->MODER   = (port->MODER & ~m2) | moder;
+ 256              		.loc 1 117 9 is_stmt 1 view .LVU89
+ 257              		.loc 1 117 30 is_stmt 0 view .LVU90
+ 258 008e 0368     		ldr	r3, [r0]
+ 259              		.loc 1 117 38 view .LVU91
+ 260 0090 2340     		ands	r3, r3, r4
+ 261              		.loc 1 117 45 view .LVU92
+ 262 0092 3B43     		orrs	r3, r3, r7
+ 263              		.loc 1 117 23 view .LVU93
+ 264 0094 0360     		str	r3, [r0]
+ 265              	.LVL18:
+ 266              	.L7:
+ 267              		.loc 1 117 23 view .LVU94
+ 268              	.LBE26:
+ 118:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 119:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       else {
+ 120:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         /* If going into a non-alternate mode then the mode is switched
+ 121:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****            before setting the alternate mode in order to avoid glitches.*/
+ 122:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         port->MODER   = (port->MODER & ~m2) | moder;
+ 123:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 124:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRL = (port->AFRL & ~m4) | altrmask;
+ 125:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRH = (port->AFRH & ~m4) | altrmask;
+ 127:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 128:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     }
+ 129:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     mask >>= 1;
+ 269              		.loc 1 129 5 is_stmt 1 view .LVU95
+ 130:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     if (!mask)
+ 270              		.loc 1 130 5 view .LVU96
+ 271              		.loc 1 130 8 is_stmt 0 view .LVU97
+ 272 0096 4908     		lsrs	r1, r1, #1
+ 273              	.LVL19:
+ 274              		.loc 1 130 8 view .LVU98
+ 275 0098 1AD0     		beq	.L17
+ 131:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       return;
+ 132:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     otyper <<= 1;
+ 276              		.loc 1 132 5 is_stmt 1 view .LVU99
+ 277              		.loc 1 132 12 is_stmt 0 view .LVU100
+ 278 009a 4FEA4909 		lsl	r9, r9, #1
+ 279              	.LVL20:
+ 133:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     ospeedr <<= 2;
+ 280              		.loc 1 133 5 is_stmt 1 view .LVU101
+ 281              		.loc 1 133 13 is_stmt 0 view .LVU102
+ 282 009e 4FEA8808 		lsl	r8, r8, #2
+ 283              	.LVL21:
+ 134:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     pupdr <<= 2;
+ 284              		.loc 1 134 5 is_stmt 1 view .LVU103
+ 285              		.loc 1 134 11 is_stmt 0 view .LVU104
+ 286 00a2 4FEA8E0E 		lsl	lr, lr, #2
+ 287              	.LVL22:
+ 135:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     moder <<= 2;
+ 288              		.loc 1 135 5 is_stmt 1 view .LVU105
+ 289              		.loc 1 135 11 is_stmt 0 view .LVU106
+ 290 00a6 BF00     		lsls	r7, r7, #2
+ 291              	.LVL23:
+ 136:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     bit++;
+ 292              		.loc 1 136 5 is_stmt 1 view .LVU107
+ 293              		.loc 1 136 8 is_stmt 0 view .LVU108
+ 294 00a8 0132     		adds	r2, r2, #1
+ 295              	.LVL24:
+  99:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     if ((mask & 1) != 0) {
+ 296              		.loc 1 99 9 is_stmt 1 view .LVU109
+ 100:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       uint32_t altrmask, m1, m2, m4;
+ 297              		.loc 1 100 8 is_stmt 0 view .LVU110
+ 298 00aa BAE7     		b	.L13
+ 299              	.LVL25:
+ 300              	.L8:
+ 301              	.LBB27:
+ 122:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 302              		.loc 1 122 9 is_stmt 1 view .LVU111
+ 122:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 303              		.loc 1 122 30 is_stmt 0 view .LVU112
+ 304 00ac 0568     		ldr	r5, [r0]
+ 122:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 305              		.loc 1 122 38 view .LVU113
+ 306 00ae 2C40     		ands	r4, r4, r5
+ 122:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 307              		.loc 1 122 45 view .LVU114
+ 308 00b0 3C43     		orrs	r4, r4, r7
+ 122:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         if (bit < 8)
+ 309              		.loc 1 122 23 view .LVU115
+ 310 00b2 0460     		str	r4, [r0]
+ 123:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRL = (port->AFRL & ~m4) | altrmask;
+ 311              		.loc 1 123 9 is_stmt 1 view .LVU116
+ 123:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****           port->AFRL = (port->AFRL & ~m4) | altrmask;
+ 312              		.loc 1 123 12 is_stmt 0 view .LVU117
+ 313 00b4 072A     		cmp	r2, #7
+ 124:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 314              		.loc 1 124 11 is_stmt 1 view .LVU118
+ 124:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 315              		.loc 1 124 29 is_stmt 0 view .LVU119
+ 316 00b6 95BF     		itete	ls
+ 317 00b8 046A     		ldrls	r4, [r0, #32]
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 318              		.loc 1 126 29 view .LVU120
+ 319 00ba 446A     		ldrhi	r4, [r0, #36]
+ 124:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 320              		.loc 1 124 36 view .LVU121
+ 321 00bc 1C40     		andls	r4, r4, r3
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 322              		.loc 1 126 36 view .LVU122
+ 323 00be 1C40     		andhi	r4, r4, r3
+ 124:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 324              		.loc 1 124 43 view .LVU123
+ 325 00c0 95BF     		itete	ls
+ 326 00c2 44EA0C04 		orrls	r4, r4, ip
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 327              		.loc 1 126 43 view .LVU124
+ 328 00c6 44EA0C04 		orrhi	r4, r4, ip
+ 124:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****         else
+ 329              		.loc 1 124 22 view .LVU125
+ 330 00ca 0462     		strls	r4, [r0, #32]
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 331              		.loc 1 126 11 is_stmt 1 view .LVU126
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 332              		.loc 1 126 22 is_stmt 0 view .LVU127
+ 333 00cc 4462     		strhi	r4, [r0, #36]
+ 334 00ce E2E7     		b	.L7
+ 335              	.LVL26:
+ 336              	.L17:
+ 126:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****       }
+ 337              		.loc 1 126 22 view .LVU128
+ 338              	.LBE27:
+ 137:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   }
+ 138:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** }
+ 339              		.loc 1 138 1 view .LVU129
+ 340 00d0 03B0     		add	sp, sp, #12
+ 341              		.cfi_def_cfa_offset 36
+ 342              		@ sp needed
+ 343 00d2 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 344              		.loc 1 138 1 view .LVU130
+ 345              		.cfi_endproc
+ 346              	.LFE329:
+ 348              		.section	.text._pal_lld_enablepadevent,"ax",%progbits
+ 349              		.align	1
+ 350              		.global	_pal_lld_enablepadevent
+ 351              		.syntax unified
+ 352              		.thumb
+ 353              		.thumb_func
+ 354              		.fpu fpv4-sp-d16
+ 356              	_pal_lld_enablepadevent:
+ 357              	.LVL27:
+ 358              	.LFB330:
+ 139:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 140:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if PAL_USE_CALLBACKS || PAL_USE_WAIT || defined(__DOXYGEN__)
+ 141:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /**
+ 142:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @brief   Pad event enable.
+ 143:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @note    Programming an unknown or unsupported mode is silently ignored.
+ 144:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+ 145:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] port      port identifier
+ 146:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] pad       pad number within the port
+ 147:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] mode      pad event mode
+ 148:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+ 149:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @notapi
+ 150:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  */
+ 151:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** void _pal_lld_enablepadevent(ioportid_t port,
+ 152:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****                              iopadid_t pad,
+ 153:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****                              ioeventmode_t mode) {
+ 359              		.loc 1 153 50 is_stmt 1 view -0
+ 360              		.cfi_startproc
+ 361              		@ args = 0, pretend = 0, frame = 0
+ 362              		@ frame_needed = 0, uses_anonymous_args = 0
+ 154:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 155:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t padmask, cridx, croff, crmask, portidx;
+ 363              		.loc 1 155 3 view .LVU132
+ 156:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 157:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Mask of the pad.*/
+ 158:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   padmask = 1U << (uint32_t)pad;
+ 364              		.loc 1 158 3 view .LVU133
+ 153:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 365              		.loc 1 153 50 is_stmt 0 view .LVU134
+ 366 0000 70B5     		push	{r4, r5, r6, lr}
+ 367              		.cfi_def_cfa_offset 16
+ 368              		.cfi_offset 4, -16
+ 369              		.cfi_offset 5, -12
+ 370              		.cfi_offset 6, -8
+ 371              		.cfi_offset 14, -4
+ 372              		.loc 1 158 11 view .LVU135
+ 373 0002 0124     		movs	r4, #1
+ 374 0004 8C40     		lsls	r4, r4, r1
+ 375              	.LVL28:
+ 159:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 160:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Multiple channel setting of the same channel not allowed, first disable
+ 161:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****      it. This is done because on STM32 the same channel cannot be mapped on
+ 162:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****      multiple ports.*/
+ 163:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   osalDbgAssert(((EXTI->RTSR1 & padmask) == 0U) &&
+ 376              		.loc 1 163 3 is_stmt 1 view .LVU136
+ 377              		.loc 1 163 3 view .LVU137
+ 378              		.loc 1 163 3 view .LVU138
+ 164:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****                 ((EXTI->FTSR1 & padmask) == 0U), "channel already in use");
+ 165:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 166:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Port index is obtained assuming that GPIO ports are placed at regular
+ 167:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****      0x400 intervals in memory space. So far this is true for all devices.*/
+ 168:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   portidx = (((uint32_t)port - (uint32_t)GPIOA) >> 10U) & 0xFU;
+ 379              		.loc 1 168 3 view .LVU139
+ 169:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 170:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Index and mask of the CR register to be used.*/
+ 171:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   cridx  = (uint32_t)pad >> 2U;
+ 380              		.loc 1 171 3 view .LVU140
+ 172:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if STM32_EXTI_HAS_CR == FALSE
+ 173:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   croff  = ((uint32_t)pad & 3U) * 4U;
+ 381              		.loc 1 173 3 view .LVU141
+ 382              		.loc 1 173 27 is_stmt 0 view .LVU142
+ 383 0006 01F00303 		and	r3, r1, #3
+ 384 000a 21F00301 		bic	r1, r1, #3
+ 385              	.LVL29:
+ 386              		.loc 1 173 27 view .LVU143
+ 387 000e 01F18041 		add	r1, r1, #1073741824
+ 388 0012 01F58031 		add	r1, r1, #65536
+ 389              		.loc 1 173 10 view .LVU144
+ 390 0016 9B00     		lsls	r3, r3, #2
+ 391              	.LVL30:
+ 174:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   crmask = ~(0xFU << croff);
+ 392              		.loc 1 174 3 is_stmt 1 view .LVU145
+ 175:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   SYSCFG->EXTICR[cridx] = (SYSCFG->EXTICR[cridx] & crmask) | (portidx << croff);
+ 393              		.loc 1 175 3 view .LVU146
+ 394              		.loc 1 175 42 is_stmt 0 view .LVU147
+ 395 0018 8D68     		ldr	r5, [r1, #8]
+ 168:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 396              		.loc 1 168 11 view .LVU148
+ 397 001a C0F38320 		ubfx	r0, r0, #10, #4
+ 398              	.LVL31:
+ 174:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   crmask = ~(0xFU << croff);
+ 399              		.loc 1 174 19 view .LVU149
+ 400 001e 0F26     		movs	r6, #15
+ 401              		.loc 1 175 71 view .LVU150
+ 402 0020 9840     		lsls	r0, r0, r3
+ 174:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   crmask = ~(0xFU << croff);
+ 403              		.loc 1 174 19 view .LVU151
+ 404 0022 06FA03F3 		lsl	r3, r6, r3
+ 405              	.LVL32:
+ 406              		.loc 1 175 50 view .LVU152
+ 407 0026 25EA0305 		bic	r5, r5, r3
+ 408              		.loc 1 175 60 view .LVU153
+ 409 002a 2843     		orrs	r0, r0, r5
+ 410 002c 0B4B     		ldr	r3, .L25
+ 411              		.loc 1 175 25 view .LVU154
+ 412 002e 8860     		str	r0, [r1, #8]
+ 176:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 177:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   croff  = ((uint32_t)pad & 3U) * 8U;
+ 178:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   crmask = ~(0xFFU << croff);
+ 179:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   EXTI->EXTICR[cridx] = (EXTI->EXTICR[cridx] & crmask) | (portidx << croff);
+ 180:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+ 181:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 182:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Programming edge registers.*/
+ 183:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   if (mode & PAL_EVENT_MODE_RISING_EDGE)
+ 413              		.loc 1 183 3 is_stmt 1 view .LVU155
+ 184:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1 |= padmask;
+ 414              		.loc 1 184 17 is_stmt 0 view .LVU156
+ 415 0030 9868     		ldr	r0, [r3, #8]
+ 416              		.loc 1 184 5 is_stmt 1 view .LVU157
+ 185:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   else
+ 186:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1 &= ~padmask;
+ 417              		.loc 1 186 20 is_stmt 0 view .LVU158
+ 418 0032 E143     		mvns	r1, r4
+ 183:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1 |= padmask;
+ 419              		.loc 1 183 6 view .LVU159
+ 420 0034 12F0010F 		tst	r2, #1
+ 184:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1 |= padmask;
+ 421              		.loc 1 184 17 view .LVU160
+ 422 0038 14BF     		ite	ne
+ 423 003a 2043     		orrne	r0, r0, r4
+ 424              		.loc 1 186 5 is_stmt 1 view .LVU161
+ 425              		.loc 1 186 17 is_stmt 0 view .LVU162
+ 426 003c 0840     		andeq	r0, r0, r1
+ 427 003e 9860     		str	r0, [r3, #8]
+ 187:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   if (mode & PAL_EVENT_MODE_FALLING_EDGE)
+ 428              		.loc 1 187 3 is_stmt 1 view .LVU163
+ 429              		.loc 1 187 6 is_stmt 0 view .LVU164
+ 430 0040 12F0020F 		tst	r2, #2
+ 188:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FTSR1 |= padmask;
+ 431              		.loc 1 188 17 view .LVU165
+ 432 0044 DA68     		ldr	r2, [r3, #12]
+ 433              	.LVL33:
+ 434              		.loc 1 188 5 is_stmt 1 view .LVU166
+ 435              		.loc 1 188 17 is_stmt 0 view .LVU167
+ 436 0046 14BF     		ite	ne
+ 437 0048 2243     		orrne	r2, r2, r4
+ 189:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   else
+ 190:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FTSR1 &= ~padmask;
+ 438              		.loc 1 190 5 is_stmt 1 view .LVU168
+ 439              		.loc 1 190 17 is_stmt 0 view .LVU169
+ 440 004a 0A40     		andeq	r2, r2, r1
+ 441 004c DA60     		str	r2, [r3, #12]
+ 191:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 192:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Programming interrupt and event registers.*/
+ 193:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if defined(STM32_EXTI_ENHANCED)
+ 194:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   EXTI_D1->IMR1 |= padmask;
+ 195:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   EXTI_D1->EMR1 &= ~padmask;
+ 196:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 197:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   EXTI->IMR1 |= padmask;
+ 442              		.loc 1 197 3 is_stmt 1 view .LVU170
+ 443              		.loc 1 197 14 is_stmt 0 view .LVU171
+ 444 004e 1A68     		ldr	r2, [r3]
+ 445 0050 1443     		orrs	r4, r4, r2
+ 446              	.LVL34:
+ 447              		.loc 1 197 14 view .LVU172
+ 448 0052 1C60     		str	r4, [r3]
+ 198:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   EXTI->EMR1 &= ~padmask;
+ 449              		.loc 1 198 3 is_stmt 1 view .LVU173
+ 450              		.loc 1 198 14 is_stmt 0 view .LVU174
+ 451 0054 5A68     		ldr	r2, [r3, #4]
+ 452 0056 0A40     		ands	r2, r2, r1
+ 453 0058 5A60     		str	r2, [r3, #4]
+ 199:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+ 200:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** }
+ 454              		.loc 1 200 1 view .LVU175
+ 455 005a 70BD     		pop	{r4, r5, r6, pc}
+ 456              	.L26:
+ 457              		.align	2
+ 458              	.L25:
+ 459 005c 00040140 		.word	1073808384
+ 460              		.cfi_endproc
+ 461              	.LFE330:
+ 463              		.section	.text._pal_lld_disablepadevent,"ax",%progbits
+ 464              		.align	1
+ 465              		.global	_pal_lld_disablepadevent
+ 466              		.syntax unified
+ 467              		.thumb
+ 468              		.thumb_func
+ 469              		.fpu fpv4-sp-d16
+ 471              	_pal_lld_disablepadevent:
+ 472              	.LVL35:
+ 473              	.LFB331:
+ 201:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 202:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** /**
+ 203:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @brief   Pad event disable.
+ 204:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @details This function disables previously programmed event callbacks.
+ 205:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+ 206:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] port      port identifier
+ 207:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @param[in] pad       pad number within the port
+ 208:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  *
+ 209:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  * @notapi
+ 210:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****  */
+ 211:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** void _pal_lld_disablepadevent(ioportid_t port, iopadid_t pad) {
+ 474              		.loc 1 211 63 is_stmt 1 view -0
+ 475              		.cfi_startproc
+ 476              		@ args = 0, pretend = 0, frame = 0
+ 477              		@ frame_needed = 0, uses_anonymous_args = 0
+ 212:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t padmask, rtsr1, ftsr1;
+ 478              		.loc 1 212 3 view .LVU177
+ 213:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 214:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   rtsr1 = EXTI->RTSR1;
+ 479              		.loc 1 214 3 view .LVU178
+ 480              		.loc 1 214 9 is_stmt 0 view .LVU179
+ 481 0000 144B     		ldr	r3, .L32
+ 211:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   uint32_t padmask, rtsr1, ftsr1;
+ 482              		.loc 1 211 63 view .LVU180
+ 483 0002 70B5     		push	{r4, r5, r6, lr}
+ 484              		.cfi_def_cfa_offset 16
+ 485              		.cfi_offset 4, -16
+ 486              		.cfi_offset 5, -12
+ 487              		.cfi_offset 6, -8
+ 488              		.cfi_offset 14, -4
+ 489              		.loc 1 214 9 view .LVU181
+ 490 0004 9C68     		ldr	r4, [r3, #8]
+ 491              	.LVL36:
+ 215:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   ftsr1 = EXTI->FTSR1;
+ 492              		.loc 1 215 3 is_stmt 1 view .LVU182
+ 493              		.loc 1 215 9 is_stmt 0 view .LVU183
+ 494 0006 D868     		ldr	r0, [r3, #12]
+ 495              	.LVL37:
+ 216:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 217:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Mask of the pad.*/
+ 218:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   padmask = 1U << (uint32_t)pad;
+ 496              		.loc 1 218 3 is_stmt 1 view .LVU184
+ 497              		.loc 1 218 11 is_stmt 0 view .LVU185
+ 498 0008 0122     		movs	r2, #1
+ 499 000a 8A40     		lsls	r2, r2, r1
+ 500              	.LVL38:
+ 219:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 220:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* If either RTRS1 or FTSR1 is enabled then the channel is in use.*/
+ 221:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   if (((rtsr1 | ftsr1) & padmask) != 0U) {
+ 501              		.loc 1 221 3 is_stmt 1 view .LVU186
+ 502              		.loc 1 221 15 is_stmt 0 view .LVU187
+ 503 000c 44EA0005 		orr	r5, r4, r0
+ 504              		.loc 1 221 6 view .LVU188
+ 505 0010 1542     		tst	r5, r2
+ 506 0012 1ED0     		beq	.L27
+ 507              	.LBB28:
+ 222:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     uint32_t cridx, croff, crport, portidx;
+ 508              		.loc 1 222 5 is_stmt 1 view .LVU189
+ 223:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 224:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     /* Port index is obtained assuming that GPIO ports are placed at regular
+ 225:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****        0x400 intervals in memory space. So far this is true for all devices.*/
+ 226:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     portidx = (((uint32_t)port - (uint32_t)GPIOA) >> 10U) & 0xFU;
+ 509              		.loc 1 226 5 view .LVU190
+ 510              	.LVL39:
+ 227:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 228:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     /* Index and mask of the CR register to be used.*/
+ 229:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     cridx  = (uint32_t)pad >> 2U;
+ 511              		.loc 1 229 5 view .LVU191
+ 512              		.loc 1 229 12 is_stmt 0 view .LVU192
+ 513 0014 8D08     		lsrs	r5, r1, #2
+ 514              	.LVL40:
+ 230:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if STM32_EXTI_HAS_CR == FALSE
+ 231:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     croff  = ((uint32_t)pad & 3U) * 4U;
+ 515              		.loc 1 231 5 is_stmt 1 view .LVU193
+ 232:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     crport = (SYSCFG->EXTICR[cridx] >> croff) & 0xFU;
+ 516              		.loc 1 232 5 view .LVU194
+ 517              		.loc 1 232 29 is_stmt 0 view .LVU195
+ 518 0016 104E     		ldr	r6, .L32+4
+ 519 0018 0235     		adds	r5, r5, #2
+ 520              	.LVL41:
+ 233:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 234:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     croff  = ((uint32_t)pad & 3U) * 8U;
+ 235:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     crport = (EXTI->EXTICR[cridx] >> croff) & 0xFFU;
+ 236:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+ 237:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 238:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     osalDbgAssert(crport == portidx, "channel mapped on different port");
+ 239:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 240:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if defined(STM32_EXTI_ENHANCED)
+ 241:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     /* Disabling channel.*/
+ 242:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI_D1->IMR1  &= ~padmask;
+ 243:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI_D1->EMR1  &= ~padmask;
+ 244:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1     = rtsr1 & ~padmask;
+ 245:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FTSR1     = ftsr1 & ~padmask;
+ 246:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI_D1->PR1    = padmask;
+ 247:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 248:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     /* Disabling channel.*/
+ 249:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->IMR1  &= ~padmask;
+ 250:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->EMR1  &= ~padmask;
+ 251:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1  = rtsr1 & ~padmask;
+ 521              		.loc 1 251 26 view .LVU196
+ 522 001a 24EA0204 		bic	r4, r4, r2
+ 523              	.LVL42:
+ 232:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     crport = (SYSCFG->EXTICR[cridx] >> croff) & 0xFU;
+ 524              		.loc 1 232 29 view .LVU197
+ 525 001e 56F82550 		ldr	r5, [r6, r5, lsl #2]
+ 526              	.LVL43:
+ 238:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 527              		.loc 1 238 5 is_stmt 1 view .LVU198
+ 238:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 528              		.loc 1 238 5 view .LVU199
+ 238:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 529              		.loc 1 238 5 view .LVU200
+ 249:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->EMR1  &= ~padmask;
+ 530              		.loc 1 249 5 view .LVU201
+ 249:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->EMR1  &= ~padmask;
+ 531              		.loc 1 249 17 is_stmt 0 view .LVU202
+ 532 0022 1D68     		ldr	r5, [r3]
+ 533 0024 25EA0205 		bic	r5, r5, r2
+ 534 0028 1D60     		str	r5, [r3]
+ 250:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1  = rtsr1 & ~padmask;
+ 535              		.loc 1 250 5 is_stmt 1 view .LVU203
+ 250:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RTSR1  = rtsr1 & ~padmask;
+ 536              		.loc 1 250 17 is_stmt 0 view .LVU204
+ 537 002a 5D68     		ldr	r5, [r3, #4]
+ 538 002c 25EA0205 		bic	r5, r5, r2
+ 539 0030 5D60     		str	r5, [r3, #4]
+ 540              		.loc 1 251 5 is_stmt 1 view .LVU205
+ 541              		.loc 1 251 18 is_stmt 0 view .LVU206
+ 542 0032 9C60     		str	r4, [r3, #8]
+ 252:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FTSR1  = ftsr1 & ~padmask;
+ 543              		.loc 1 252 5 is_stmt 1 view .LVU207
+ 253:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if STM32_EXTI_SEPARATE_RF == FALSE
+ 254:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->PR1    = padmask;
+ 255:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 256:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->RPR1   = padmask;
+ 257:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FPR1   = padmask;
+ 258:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+ 259:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+ 260:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** 
+ 261:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #if PAL_USE_CALLBACKS || PAL_USE_WAIT
+ 262:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   /* Callback cleared and/or thread reset.*/
+ 263:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   _pal_clear_event(pad);
+ 544              		.loc 1 263 3 is_stmt 0 view .LVU208
+ 545 0034 094C     		ldr	r4, .L32+8
+ 252:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FTSR1  = ftsr1 & ~padmask;
+ 546              		.loc 1 252 26 view .LVU209
+ 547 0036 20EA0200 		bic	r0, r0, r2
+ 548              	.LVL44:
+ 549              		.loc 1 263 3 view .LVU210
+ 550 003a 04EB0114 		add	r4, r4, r1, lsl #4
+ 252:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****     EXTI->FTSR1  = ftsr1 & ~padmask;
+ 551              		.loc 1 252 18 view .LVU211
+ 552 003e D860     		str	r0, [r3, #12]
+ 254:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 553              		.loc 1 254 5 is_stmt 1 view .LVU212
+ 554              	.LBB29:
+ 555              	.LBB30:
+ 867:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 868:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 869:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 870:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Enqueues the caller thread.
+ 871:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @details The caller thread is enqueued and put to sleep until it is
+ 872:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *          dequeued or the specified timeouts expires.
+ 873:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 874:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] tqp       pointer to the threads queue object
+ 875:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] timeout   the timeout in system ticks, the special values are
+ 876:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      handled as follow:
+ 877:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_INFINITE the thread enters an infinite sleep
+ 878:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        state.
+ 879:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      - @a TIME_IMMEDIATE the thread is not enqueued and
+ 880:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        the function returns @p MSG_TIMEOUT as if a timeout
+ 881:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                        occurred.
+ 882:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      .
+ 883:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @return              The message from @p osalQueueWakeupOneI() or
+ 884:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      @p osalQueueWakeupAllI() functions.
+ 885:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @retval MSG_TIMEOUT  if the thread has not been dequeued within the
+ 886:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      specified timeout or if the function has been
+ 887:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      invoked with @p TIME_IMMEDIATE as timeout
+ 888:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *                      specification.
+ 889:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 890:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @sclass
+ 891:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 892:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp,
+ 893:./lib/chibios/os/hal/osal/rt-nil/osal.h ****                                               sysinterval_t timeout) {
+ 894:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 895:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   return chThdEnqueueTimeoutS(tqp, timeout);
+ 896:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 897:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 898:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 899:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Dequeues and wakes up one thread from the queue, if any.
+ 900:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 901:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] tqp       pointer to the threads queue object
+ 902:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msg       the message code
+ 903:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 904:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @iclass
+ 905:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 906:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadDequeueNextI(threads_queue_t *tqp, msg_t msg) {
+ 907:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 908:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdDequeueNextI(tqp, msg);
+ 909:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
+ 910:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 911:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
+ 912:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @brief   Dequeues and wakes up all threads from the queue.
+ 913:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 914:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] tqp       pointer to the threads queue object
+ 915:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @param[in] msg       the message code
+ 916:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  *
+ 917:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @iclass
+ 918:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
+ 919:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadDequeueAllI(threads_queue_t *tqp, msg_t msg) {
+ 920:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 921:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdDequeueAllI(tqp, msg);
+ 556              		.loc 2 921 3 is_stmt 0 view .LVU213
+ 557 0040 6FF00101 		mvn	r1, #1
+ 558              	.LVL45:
+ 559              		.loc 2 921 3 view .LVU214
+ 560              	.LBE30:
+ 561              	.LBE29:
+ 254:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #else
+ 562              		.loc 1 254 18 view .LVU215
+ 563 0044 5A61     		str	r2, [r3, #20]
+ 564              		.loc 1 263 3 is_stmt 1 view .LVU216
+ 565              		.loc 1 263 3 view .LVU217
+ 566              	.LVL46:
+ 567              	.LBB32:
+ 568              	.LBI29:
+ 919:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
+ 569              		.loc 2 919 20 view .LVU218
+ 570              	.LBB31:
+ 571              		.loc 2 921 3 view .LVU219
+ 572 0046 2046     		mov	r0, r4
+ 573 0048 FFF7FEFF 		bl	chThdDequeueAllI
+ 574              	.LVL47:
+ 575              		.loc 2 921 3 is_stmt 0 view .LVU220
+ 576              	.LBE31:
+ 577              	.LBE32:
+ 578              		.loc 1 263 3 is_stmt 1 view .LVU221
+ 579 004c 0023     		movs	r3, #0
+ 580 004e C4E90233 		strd	r3, r3, [r4, #8]
+ 581              		.loc 1 263 3 view .LVU222
+ 582              	.LVL48:
+ 583              	.L27:
+ 584              		.loc 1 263 3 is_stmt 0 view .LVU223
+ 585              	.LBE28:
+ 264:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** #endif
+ 265:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c ****   }
+ 266:lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.c **** }
+ 586              		.loc 1 266 1 view .LVU224
+ 587 0052 70BD     		pop	{r4, r5, r6, pc}
+ 588              	.L33:
+ 589              		.align	2
+ 590              	.L32:
+ 591 0054 00040140 		.word	1073808384
+ 592 0058 00000140 		.word	1073807360
+ 593 005c 00000000 		.word	_pal_events
+ 594              		.cfi_endproc
+ 595              	.LFE331:
+ 597              		.comm	_pal_events,256,4
+ 598              		.text
+ 599              	.Letext0:
+ 600              		.file 5 "/usr/lib/gcc/arm-none-eabi/11.2.0/include/stddef.h"
+ 601              		.file 6 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 602              		.file 7 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 603              		.file 8 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 604              		.file 9 "./lib/chibios/os/rt/include/chsystypes.h"
+ 605              		.file 10 "./lib/chibios/os/rt/include/chschd.h"
+ 606              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
+ 607              		.file 12 "./lib/chibios/os/hal/include/hal_pal.h"
+ 608              		.file 13 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 609              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 hal_pal_lld.c
+     /tmp/ccRkVgtr.s:18     .text._pal_lld_init:0000000000000000 $t
+     /tmp/ccRkVgtr.s:26     .text._pal_lld_init:0000000000000000 _pal_lld_init
+     /tmp/ccRkVgtr.s:97     .text._pal_lld_init:000000000000001c $d
+                            *COM*:0000000000000100 _pal_events
+     /tmp/ccRkVgtr.s:102    .text._pal_lld_setgroupmode:0000000000000000 $t
+     /tmp/ccRkVgtr.s:109    .text._pal_lld_setgroupmode:0000000000000000 _pal_lld_setgroupmode
+     /tmp/ccRkVgtr.s:349    .text._pal_lld_enablepadevent:0000000000000000 $t
+     /tmp/ccRkVgtr.s:356    .text._pal_lld_enablepadevent:0000000000000000 _pal_lld_enablepadevent
+     /tmp/ccRkVgtr.s:459    .text._pal_lld_enablepadevent:000000000000005c $d
+     /tmp/ccRkVgtr.s:464    .text._pal_lld_disablepadevent:0000000000000000 $t
+     /tmp/ccRkVgtr.s:471    .text._pal_lld_disablepadevent:0000000000000000 _pal_lld_disablepadevent
+     /tmp/ccRkVgtr.s:591    .text._pal_lld_disablepadevent:0000000000000054 $d
+
+UNDEFINED SYMBOLS
+chThdDequeueAllI

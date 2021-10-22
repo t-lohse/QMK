@@ -1,0 +1,659 @@
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 2
+  13              		.file	"flash_stm32.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.FLASH_GetStatus,"ax",%progbits
+  18              		.align	1
+  19              		.global	FLASH_GetStatus
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	FLASH_GetStatus:
+  27              	.LFB329:
+  28              		.file 1 "tmk_core/common/chibios/flash_stm32.c"
+   1:tmk_core/common/chibios/flash_stm32.c **** /*
+   2:tmk_core/common/chibios/flash_stm32.c ****  * This software is experimental and a work in progress.
+   3:tmk_core/common/chibios/flash_stm32.c ****  * Under no circumstances should these files be used in relation to any critical system(s).
+   4:tmk_core/common/chibios/flash_stm32.c ****  * Use of these files is at your own risk.
+   5:tmk_core/common/chibios/flash_stm32.c ****  *
+   6:tmk_core/common/chibios/flash_stm32.c ****  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   7:tmk_core/common/chibios/flash_stm32.c ****  * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+   8:tmk_core/common/chibios/flash_stm32.c ****  * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+   9:tmk_core/common/chibios/flash_stm32.c ****  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  10:tmk_core/common/chibios/flash_stm32.c ****  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  11:tmk_core/common/chibios/flash_stm32.c ****  * DEALINGS IN THE SOFTWARE.
+  12:tmk_core/common/chibios/flash_stm32.c ****  *
+  13:tmk_core/common/chibios/flash_stm32.c ****  * This files are free to use from https://github.com/rogerclarkmelbourne/Arduino_STM32 and
+  14:tmk_core/common/chibios/flash_stm32.c ****  * https://github.com/leaflabs/libmaple
+  15:tmk_core/common/chibios/flash_stm32.c ****  *
+  16:tmk_core/common/chibios/flash_stm32.c ****  * Modifications for QMK and STM32F303 by Yiancar
+  17:tmk_core/common/chibios/flash_stm32.c ****  */
+  18:tmk_core/common/chibios/flash_stm32.c **** 
+  19:tmk_core/common/chibios/flash_stm32.c **** #include <hal.h>
+  20:tmk_core/common/chibios/flash_stm32.c **** #include "flash_stm32.h"
+  21:tmk_core/common/chibios/flash_stm32.c **** 
+  22:tmk_core/common/chibios/flash_stm32.c **** #if defined(EEPROM_EMU_STM32F103xB)
+  23:tmk_core/common/chibios/flash_stm32.c **** #    define FLASH_SR_WRPERR FLASH_SR_WRPRTERR
+  24:tmk_core/common/chibios/flash_stm32.c **** #endif
+  25:tmk_core/common/chibios/flash_stm32.c **** 
+  26:tmk_core/common/chibios/flash_stm32.c **** /* Delay definition */
+  27:tmk_core/common/chibios/flash_stm32.c **** #define EraseTimeout ((uint32_t)0x00000FFF)
+  28:tmk_core/common/chibios/flash_stm32.c **** #define ProgramTimeout ((uint32_t)0x0000001F)
+  29:tmk_core/common/chibios/flash_stm32.c **** 
+  30:tmk_core/common/chibios/flash_stm32.c **** #define ASSERT(exp) (void)((0))
+  31:tmk_core/common/chibios/flash_stm32.c **** 
+  32:tmk_core/common/chibios/flash_stm32.c **** /**
+  33:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Inserts a time delay.
+  34:tmk_core/common/chibios/flash_stm32.c ****  * @param  None
+  35:tmk_core/common/chibios/flash_stm32.c ****  * @retval None
+  36:tmk_core/common/chibios/flash_stm32.c ****  */
+  37:tmk_core/common/chibios/flash_stm32.c **** static void delay(void) {
+  38:tmk_core/common/chibios/flash_stm32.c ****     __IO uint32_t i = 0;
+  39:tmk_core/common/chibios/flash_stm32.c ****     for (i = 0xFF; i != 0; i--) {
+  40:tmk_core/common/chibios/flash_stm32.c ****     }
+  41:tmk_core/common/chibios/flash_stm32.c **** }
+  42:tmk_core/common/chibios/flash_stm32.c **** 
+  43:tmk_core/common/chibios/flash_stm32.c **** /**
+  44:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Returns the FLASH Status.
+  45:tmk_core/common/chibios/flash_stm32.c ****  * @param  None
+  46:tmk_core/common/chibios/flash_stm32.c ****  * @retval FLASH Status: The returned value can be: FLASH_BUSY, FLASH_ERROR_PG,
+  47:tmk_core/common/chibios/flash_stm32.c ****  *   FLASH_ERROR_WRP or FLASH_COMPLETE
+  48:tmk_core/common/chibios/flash_stm32.c ****  */
+  49:tmk_core/common/chibios/flash_stm32.c **** FLASH_Status FLASH_GetStatus(void) {
+  29              		.loc 1 49 36 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  50:tmk_core/common/chibios/flash_stm32.c ****     if ((FLASH->SR & FLASH_SR_BSY) == FLASH_SR_BSY) return FLASH_BUSY;
+  34              		.loc 1 50 5 view .LVU1
+  35              		.loc 1 50 15 is_stmt 0 view .LVU2
+  36 0000 0B4B     		ldr	r3, .L6
+  37 0002 DA68     		ldr	r2, [r3, #12]
+  38              		.loc 1 50 8 view .LVU3
+  39 0004 D007     		lsls	r0, r2, #31
+  40 0006 0CD4     		bmi	.L3
+  51:tmk_core/common/chibios/flash_stm32.c **** 
+  52:tmk_core/common/chibios/flash_stm32.c ****     if ((FLASH->SR & FLASH_SR_PGERR) != 0) return FLASH_ERROR_PG;
+  41              		.loc 1 52 5 is_stmt 1 view .LVU4
+  42              		.loc 1 52 15 is_stmt 0 view .LVU5
+  43 0008 DA68     		ldr	r2, [r3, #12]
+  44              		.loc 1 52 8 view .LVU6
+  45 000a 5107     		lsls	r1, r2, #29
+  46 000c 0BD4     		bmi	.L4
+  53:tmk_core/common/chibios/flash_stm32.c **** 
+  54:tmk_core/common/chibios/flash_stm32.c ****     if ((FLASH->SR & FLASH_SR_WRPERR) != 0) return FLASH_ERROR_WRP;
+  47              		.loc 1 54 5 is_stmt 1 view .LVU7
+  48              		.loc 1 54 15 is_stmt 0 view .LVU8
+  49 000e DA68     		ldr	r2, [r3, #12]
+  50              		.loc 1 54 8 view .LVU9
+  51 0010 D206     		lsls	r2, r2, #27
+  52 0012 0AD4     		bmi	.L5
+  53              	.LBB4:
+  54              	.LBI4:
+  49:tmk_core/common/chibios/flash_stm32.c ****     if ((FLASH->SR & FLASH_SR_BSY) == FLASH_SR_BSY) return FLASH_BUSY;
+  55              		.loc 1 49 14 is_stmt 1 view .LVU10
+  56              	.LBB5:
+  55:tmk_core/common/chibios/flash_stm32.c **** 
+  56:tmk_core/common/chibios/flash_stm32.c ****     if ((FLASH->SR & FLASH_OBR_OPTERR) != 0) return FLASH_ERROR_OPT;
+  57              		.loc 1 56 5 view .LVU11
+  58              		.loc 1 56 15 is_stmt 0 view .LVU12
+  59 0014 D868     		ldr	r0, [r3, #12]
+  60              		.loc 1 56 20 view .LVU13
+  61 0016 00F00100 		and	r0, r0, #1
+  62              		.loc 1 56 8 view .LVU14
+  63 001a C0F10500 		rsb	r0, r0, #5
+  64 001e C0B2     		uxtb	r0, r0
+  65 0020 7047     		bx	lr
+  66              	.L3:
+  67              	.LBE5:
+  68              	.LBE4:
+  50:tmk_core/common/chibios/flash_stm32.c **** 
+  69              		.loc 1 50 60 view .LVU15
+  70 0022 0120     		movs	r0, #1
+  71 0024 7047     		bx	lr
+  72              	.L4:
+  52:tmk_core/common/chibios/flash_stm32.c **** 
+  73              		.loc 1 52 51 view .LVU16
+  74 0026 0220     		movs	r0, #2
+  75 0028 7047     		bx	lr
+  76              	.L5:
+  54:tmk_core/common/chibios/flash_stm32.c **** 
+  77              		.loc 1 54 52 view .LVU17
+  78 002a 0320     		movs	r0, #3
+  57:tmk_core/common/chibios/flash_stm32.c **** 
+  58:tmk_core/common/chibios/flash_stm32.c ****     return FLASH_COMPLETE;
+  59:tmk_core/common/chibios/flash_stm32.c **** }
+  79              		.loc 1 59 1 view .LVU18
+  80 002c 7047     		bx	lr
+  81              	.L7:
+  82 002e 00BF     		.align	2
+  83              	.L6:
+  84 0030 00200240 		.word	1073881088
+  85              		.cfi_endproc
+  86              	.LFE329:
+  88              		.section	.text.FLASH_WaitForLastOperation,"ax",%progbits
+  89              		.align	1
+  90              		.global	FLASH_WaitForLastOperation
+  91              		.syntax unified
+  92              		.thumb
+  93              		.thumb_func
+  94              		.fpu fpv4-sp-d16
+  96              	FLASH_WaitForLastOperation:
+  97              	.LVL0:
+  98              	.LFB330:
+  60:tmk_core/common/chibios/flash_stm32.c **** 
+  61:tmk_core/common/chibios/flash_stm32.c **** /**
+  62:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Waits for a Flash operation to complete or a TIMEOUT to occur.
+  63:tmk_core/common/chibios/flash_stm32.c ****  * @param  Timeout: FLASH progamming Timeout
+  64:tmk_core/common/chibios/flash_stm32.c ****  * @retval FLASH Status: The returned value can be: FLASH_ERROR_PG,
+  65:tmk_core/common/chibios/flash_stm32.c ****  *   FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
+  66:tmk_core/common/chibios/flash_stm32.c ****  */
+  67:tmk_core/common/chibios/flash_stm32.c **** FLASH_Status FLASH_WaitForLastOperation(uint32_t Timeout) {
+  99              		.loc 1 67 59 is_stmt 1 view -0
+ 100              		.cfi_startproc
+ 101              		@ args = 0, pretend = 0, frame = 8
+ 102              		@ frame_needed = 0, uses_anonymous_args = 0
+  68:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status;
+ 103              		.loc 1 68 5 view .LVU20
+  69:tmk_core/common/chibios/flash_stm32.c **** 
+  70:tmk_core/common/chibios/flash_stm32.c ****     /* Check for the Flash Status */
+  71:tmk_core/common/chibios/flash_stm32.c ****     status = FLASH_GetStatus();
+ 104              		.loc 1 71 5 view .LVU21
+  67:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status;
+ 105              		.loc 1 67 59 is_stmt 0 view .LVU22
+ 106 0000 73B5     		push	{r0, r1, r4, r5, r6, lr}
+ 107              		.cfi_def_cfa_offset 24
+ 108              		.cfi_offset 4, -16
+ 109              		.cfi_offset 5, -12
+ 110              		.cfi_offset 6, -8
+ 111              		.cfi_offset 14, -4
+  67:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status;
+ 112              		.loc 1 67 59 view .LVU23
+ 113 0002 0446     		mov	r4, r0
+ 114              		.loc 1 71 14 view .LVU24
+ 115 0004 FFF7FEFF 		bl	FLASH_GetStatus
+ 116              	.LVL1:
+  72:tmk_core/common/chibios/flash_stm32.c ****     /* Wait for a Flash operation to complete or a TIMEOUT to occur */
+  73:tmk_core/common/chibios/flash_stm32.c ****     while ((status == FLASH_BUSY) && (Timeout != 0x00)) {
+ 117              		.loc 1 73 5 is_stmt 1 view .LVU25
+ 118              	.LBB8:
+ 119              	.LBB9:
+  38:tmk_core/common/chibios/flash_stm32.c ****     for (i = 0xFF; i != 0; i--) {
+ 120              		.loc 1 38 19 is_stmt 0 view .LVU26
+ 121 0008 0025     		movs	r5, #0
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 122              		.loc 1 39 12 view .LVU27
+ 123 000a FF26     		movs	r6, #255
+ 124              	.L9:
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 125              		.loc 1 39 12 view .LVU28
+ 126              	.LBE9:
+ 127              	.LBE8:
+ 128              		.loc 1 73 35 is_stmt 1 view .LVU29
+ 129 000c 0128     		cmp	r0, #1
+ 130 000e 0FD1     		bne	.L12
+ 131              		.loc 1 73 35 is_stmt 0 discriminator 1 view .LVU30
+ 132 0010 14B9     		cbnz	r4, .L13
+  74:tmk_core/common/chibios/flash_stm32.c ****         delay();
+  75:tmk_core/common/chibios/flash_stm32.c ****         status = FLASH_GetStatus();
+  76:tmk_core/common/chibios/flash_stm32.c ****         Timeout--;
+  77:tmk_core/common/chibios/flash_stm32.c ****     }
+  78:tmk_core/common/chibios/flash_stm32.c ****     if (Timeout == 0) status = FLASH_TIMEOUT;
+ 133              		.loc 1 78 30 view .LVU31
+ 134 0012 0620     		movs	r0, #6
+ 135              	.LVL2:
+ 136              	.L14:
+  79:tmk_core/common/chibios/flash_stm32.c ****     /* Return the operation status */
+  80:tmk_core/common/chibios/flash_stm32.c ****     return status;
+ 137              		.loc 1 80 5 is_stmt 1 view .LVU32
+  81:tmk_core/common/chibios/flash_stm32.c **** }
+ 138              		.loc 1 81 1 is_stmt 0 view .LVU33
+ 139 0014 02B0     		add	sp, sp, #8
+ 140              		.cfi_remember_state
+ 141              		.cfi_def_cfa_offset 16
+ 142              		@ sp needed
+ 143 0016 70BD     		pop	{r4, r5, r6, pc}
+ 144              	.LVL3:
+ 145              	.L13:
+ 146              		.cfi_restore_state
+  74:tmk_core/common/chibios/flash_stm32.c ****         delay();
+ 147              		.loc 1 74 9 is_stmt 1 view .LVU34
+ 148              	.LBB12:
+ 149              	.LBI8:
+  37:tmk_core/common/chibios/flash_stm32.c ****     __IO uint32_t i = 0;
+ 150              		.loc 1 37 13 view .LVU35
+ 151              	.LBB10:
+  38:tmk_core/common/chibios/flash_stm32.c ****     for (i = 0xFF; i != 0; i--) {
+ 152              		.loc 1 38 5 view .LVU36
+  38:tmk_core/common/chibios/flash_stm32.c ****     for (i = 0xFF; i != 0; i--) {
+ 153              		.loc 1 38 19 is_stmt 0 view .LVU37
+ 154 0018 0195     		str	r5, [sp, #4]
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 155              		.loc 1 39 5 is_stmt 1 view .LVU38
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 156              		.loc 1 39 12 is_stmt 0 view .LVU39
+ 157 001a 0196     		str	r6, [sp, #4]
+ 158              	.L10:
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 159              		.loc 1 39 22 is_stmt 1 view .LVU40
+ 160 001c 019B     		ldr	r3, [sp, #4]
+ 161 001e 1BB9     		cbnz	r3, .L11
+ 162              	.LBE10:
+ 163              	.LBE12:
+  75:tmk_core/common/chibios/flash_stm32.c ****         Timeout--;
+ 164              		.loc 1 75 9 view .LVU41
+  75:tmk_core/common/chibios/flash_stm32.c ****         Timeout--;
+ 165              		.loc 1 75 18 is_stmt 0 view .LVU42
+ 166 0020 FFF7FEFF 		bl	FLASH_GetStatus
+ 167              	.LVL4:
+  76:tmk_core/common/chibios/flash_stm32.c ****     }
+ 168              		.loc 1 76 9 is_stmt 1 view .LVU43
+  76:tmk_core/common/chibios/flash_stm32.c ****     }
+ 169              		.loc 1 76 16 is_stmt 0 view .LVU44
+ 170 0024 013C     		subs	r4, r4, #1
+ 171              	.LVL5:
+  76:tmk_core/common/chibios/flash_stm32.c ****     }
+ 172              		.loc 1 76 16 view .LVU45
+ 173 0026 F1E7     		b	.L9
+ 174              	.L11:
+ 175              	.LBB13:
+ 176              	.LBB11:
+  40:tmk_core/common/chibios/flash_stm32.c **** }
+ 177              		.loc 1 40 5 is_stmt 1 view .LVU46
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 178              		.loc 1 39 29 view .LVU47
+ 179 0028 019B     		ldr	r3, [sp, #4]
+ 180 002a 013B     		subs	r3, r3, #1
+ 181 002c 0193     		str	r3, [sp, #4]
+ 182 002e F5E7     		b	.L10
+ 183              	.L12:
+  39:tmk_core/common/chibios/flash_stm32.c ****     }
+ 184              		.loc 1 39 29 is_stmt 0 view .LVU48
+ 185              	.LBE11:
+ 186              	.LBE13:
+  78:tmk_core/common/chibios/flash_stm32.c ****     /* Return the operation status */
+ 187              		.loc 1 78 5 is_stmt 1 view .LVU49
+  78:tmk_core/common/chibios/flash_stm32.c ****     /* Return the operation status */
+ 188              		.loc 1 78 30 is_stmt 0 view .LVU50
+ 189 0030 002C     		cmp	r4, #0
+ 190 0032 08BF     		it	eq
+ 191 0034 0620     		moveq	r0, #6
+ 192              	.LVL6:
+  78:tmk_core/common/chibios/flash_stm32.c ****     /* Return the operation status */
+ 193              		.loc 1 78 30 view .LVU51
+ 194 0036 EDE7     		b	.L14
+ 195              		.cfi_endproc
+ 196              	.LFE330:
+ 198              		.section	.text.FLASH_ErasePage,"ax",%progbits
+ 199              		.align	1
+ 200              		.global	FLASH_ErasePage
+ 201              		.syntax unified
+ 202              		.thumb
+ 203              		.thumb_func
+ 204              		.fpu fpv4-sp-d16
+ 206              	FLASH_ErasePage:
+ 207              	.LVL7:
+ 208              	.LFB331:
+  82:tmk_core/common/chibios/flash_stm32.c **** 
+  83:tmk_core/common/chibios/flash_stm32.c **** /**
+  84:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Erases a specified FLASH page.
+  85:tmk_core/common/chibios/flash_stm32.c ****  * @param  Page_Address: The page address to be erased.
+  86:tmk_core/common/chibios/flash_stm32.c ****  * @retval FLASH Status: The returned value can be: FLASH_BUSY, FLASH_ERROR_PG,
+  87:tmk_core/common/chibios/flash_stm32.c ****  *   FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
+  88:tmk_core/common/chibios/flash_stm32.c ****  */
+  89:tmk_core/common/chibios/flash_stm32.c **** FLASH_Status FLASH_ErasePage(uint32_t Page_Address) {
+ 209              		.loc 1 89 53 is_stmt 1 view -0
+ 210              		.cfi_startproc
+ 211              		@ args = 0, pretend = 0, frame = 0
+ 212              		@ frame_needed = 0, uses_anonymous_args = 0
+  90:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status = FLASH_COMPLETE;
+ 213              		.loc 1 90 5 view .LVU53
+  91:tmk_core/common/chibios/flash_stm32.c ****     /* Check the parameters */
+  92:tmk_core/common/chibios/flash_stm32.c ****     ASSERT(IS_FLASH_ADDRESS(Page_Address));
+ 214              		.loc 1 92 5 view .LVU54
+  93:tmk_core/common/chibios/flash_stm32.c ****     /* Wait for last operation to be completed */
+  94:tmk_core/common/chibios/flash_stm32.c ****     status = FLASH_WaitForLastOperation(EraseTimeout);
+ 215              		.loc 1 94 5 view .LVU55
+  89:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status = FLASH_COMPLETE;
+ 216              		.loc 1 89 53 is_stmt 0 view .LVU56
+ 217 0000 38B5     		push	{r3, r4, r5, lr}
+ 218              		.cfi_def_cfa_offset 16
+ 219              		.cfi_offset 3, -16
+ 220              		.cfi_offset 4, -12
+ 221              		.cfi_offset 5, -8
+ 222              		.cfi_offset 14, -4
+  89:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status = FLASH_COMPLETE;
+ 223              		.loc 1 89 53 view .LVU57
+ 224 0002 0546     		mov	r5, r0
+ 225              		.loc 1 94 14 view .LVU58
+ 226 0004 40F6FF70 		movw	r0, #4095
+ 227              	.LVL8:
+ 228              		.loc 1 94 14 view .LVU59
+ 229 0008 FFF7FEFF 		bl	FLASH_WaitForLastOperation
+ 230              	.LVL9:
+  95:tmk_core/common/chibios/flash_stm32.c **** 
+  96:tmk_core/common/chibios/flash_stm32.c ****     if (status == FLASH_COMPLETE) {
+ 231              		.loc 1 96 5 is_stmt 1 view .LVU60
+ 232              		.loc 1 96 8 is_stmt 0 view .LVU61
+ 233 000c 0528     		cmp	r0, #5
+ 234 000e 15D1     		bne	.L17
+  97:tmk_core/common/chibios/flash_stm32.c ****         /* if the previous operation is completed, proceed to erase the page */
+  98:tmk_core/common/chibios/flash_stm32.c ****         FLASH->CR |= FLASH_CR_PER;
+ 235              		.loc 1 98 9 is_stmt 1 view .LVU62
+ 236              		.loc 1 98 19 is_stmt 0 view .LVU63
+ 237 0010 0B4C     		ldr	r4, .L22
+ 238 0012 2369     		ldr	r3, [r4, #16]
+ 239 0014 43F00203 		orr	r3, r3, #2
+ 240 0018 2361     		str	r3, [r4, #16]
+  99:tmk_core/common/chibios/flash_stm32.c ****         FLASH->AR = Page_Address;
+ 241              		.loc 1 99 9 is_stmt 1 view .LVU64
+ 242              		.loc 1 99 19 is_stmt 0 view .LVU65
+ 243 001a 6561     		str	r5, [r4, #20]
+ 100:tmk_core/common/chibios/flash_stm32.c ****         FLASH->CR |= FLASH_CR_STRT;
+ 244              		.loc 1 100 9 is_stmt 1 view .LVU66
+ 245              		.loc 1 100 19 is_stmt 0 view .LVU67
+ 246 001c 2369     		ldr	r3, [r4, #16]
+ 247 001e 43F04003 		orr	r3, r3, #64
+ 248 0022 2361     		str	r3, [r4, #16]
+ 101:tmk_core/common/chibios/flash_stm32.c **** 
+ 102:tmk_core/common/chibios/flash_stm32.c ****         /* Wait for last operation to be completed */
+ 103:tmk_core/common/chibios/flash_stm32.c ****         status = FLASH_WaitForLastOperation(EraseTimeout);
+ 249              		.loc 1 103 9 is_stmt 1 view .LVU68
+ 250              		.loc 1 103 18 is_stmt 0 view .LVU69
+ 251 0024 40F6FF70 		movw	r0, #4095
+ 252              	.LVL10:
+ 253              		.loc 1 103 18 view .LVU70
+ 254 0028 FFF7FEFF 		bl	FLASH_WaitForLastOperation
+ 255              	.LVL11:
+ 104:tmk_core/common/chibios/flash_stm32.c ****         if (status != FLASH_TIMEOUT) {
+ 256              		.loc 1 104 9 is_stmt 1 view .LVU71
+ 257              		.loc 1 104 12 is_stmt 0 view .LVU72
+ 258 002c 0628     		cmp	r0, #6
+ 105:tmk_core/common/chibios/flash_stm32.c ****             /* if the erase operation is completed, disable the PER Bit */
+ 106:tmk_core/common/chibios/flash_stm32.c ****             FLASH->CR &= ~FLASH_CR_PER;
+ 259              		.loc 1 106 13 is_stmt 1 view .LVU73
+ 260              		.loc 1 106 23 is_stmt 0 view .LVU74
+ 261 002e 1EBF     		ittt	ne
+ 262 0030 2369     		ldrne	r3, [r4, #16]
+ 263 0032 23F00203 		bicne	r3, r3, #2
+ 264 0036 2361     		strne	r3, [r4, #16]
+ 107:tmk_core/common/chibios/flash_stm32.c ****         }
+ 108:tmk_core/common/chibios/flash_stm32.c ****         FLASH->SR = (FLASH_SR_EOP | FLASH_SR_PGERR | FLASH_SR_WRPERR);
+ 265              		.loc 1 108 9 is_stmt 1 view .LVU75
+ 266              		.loc 1 108 19 is_stmt 0 view .LVU76
+ 267 0038 3423     		movs	r3, #52
+ 268 003a E360     		str	r3, [r4, #12]
+ 269              	.L17:
+ 109:tmk_core/common/chibios/flash_stm32.c ****     }
+ 110:tmk_core/common/chibios/flash_stm32.c ****     /* Return the Erase Status */
+ 111:tmk_core/common/chibios/flash_stm32.c ****     return status;
+ 270              		.loc 1 111 5 is_stmt 1 view .LVU77
+ 112:tmk_core/common/chibios/flash_stm32.c **** }
+ 271              		.loc 1 112 1 is_stmt 0 view .LVU78
+ 272 003c 38BD     		pop	{r3, r4, r5, pc}
+ 273              	.LVL12:
+ 274              	.L23:
+ 275              		.loc 1 112 1 view .LVU79
+ 276 003e 00BF     		.align	2
+ 277              	.L22:
+ 278 0040 00200240 		.word	1073881088
+ 279              		.cfi_endproc
+ 280              	.LFE331:
+ 282              		.section	.text.FLASH_ProgramHalfWord,"ax",%progbits
+ 283              		.align	1
+ 284              		.global	FLASH_ProgramHalfWord
+ 285              		.syntax unified
+ 286              		.thumb
+ 287              		.thumb_func
+ 288              		.fpu fpv4-sp-d16
+ 290              	FLASH_ProgramHalfWord:
+ 291              	.LVL13:
+ 292              	.LFB332:
+ 113:tmk_core/common/chibios/flash_stm32.c **** 
+ 114:tmk_core/common/chibios/flash_stm32.c **** /**
+ 115:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Programs a half word at a specified address.
+ 116:tmk_core/common/chibios/flash_stm32.c ****  * @param  Address: specifies the address to be programmed.
+ 117:tmk_core/common/chibios/flash_stm32.c ****  * @param  Data: specifies the data to be programmed.
+ 118:tmk_core/common/chibios/flash_stm32.c ****  * @retval FLASH Status: The returned value can be: FLASH_ERROR_PG,
+ 119:tmk_core/common/chibios/flash_stm32.c ****  *   FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
+ 120:tmk_core/common/chibios/flash_stm32.c ****  */
+ 121:tmk_core/common/chibios/flash_stm32.c **** FLASH_Status FLASH_ProgramHalfWord(uint32_t Address, uint16_t Data) {
+ 293              		.loc 1 121 69 is_stmt 1 view -0
+ 294              		.cfi_startproc
+ 295              		@ args = 0, pretend = 0, frame = 0
+ 296              		@ frame_needed = 0, uses_anonymous_args = 0
+ 122:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status = FLASH_BAD_ADDRESS;
+ 297              		.loc 1 122 5 view .LVU81
+ 123:tmk_core/common/chibios/flash_stm32.c **** 
+ 124:tmk_core/common/chibios/flash_stm32.c ****     if (IS_FLASH_ADDRESS(Address)) {
+ 298              		.loc 1 124 5 view .LVU82
+ 299              		.loc 1 124 8 is_stmt 0 view .LVU83
+ 300 0000 104B     		ldr	r3, .L31
+ 301              		.loc 1 124 9 view .LVU84
+ 302 0002 00F17842 		add	r2, r0, #-134217728
+ 303              		.loc 1 124 8 view .LVU85
+ 304 0006 9A42     		cmp	r2, r3
+ 121:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status = FLASH_BAD_ADDRESS;
+ 305              		.loc 1 121 69 view .LVU86
+ 306 0008 70B5     		push	{r4, r5, r6, lr}
+ 307              		.cfi_def_cfa_offset 16
+ 308              		.cfi_offset 4, -16
+ 309              		.cfi_offset 5, -12
+ 310              		.cfi_offset 6, -8
+ 311              		.cfi_offset 14, -4
+ 121:tmk_core/common/chibios/flash_stm32.c ****     FLASH_Status status = FLASH_BAD_ADDRESS;
+ 312              		.loc 1 121 69 view .LVU87
+ 313 000a 0546     		mov	r5, r0
+ 314 000c 0E46     		mov	r6, r1
+ 315              		.loc 1 124 8 view .LVU88
+ 316 000e 16D8     		bhi	.L27
+ 125:tmk_core/common/chibios/flash_stm32.c ****         /* Wait for last operation to be completed */
+ 126:tmk_core/common/chibios/flash_stm32.c ****         status = FLASH_WaitForLastOperation(ProgramTimeout);
+ 317              		.loc 1 126 9 is_stmt 1 view .LVU89
+ 318              		.loc 1 126 18 is_stmt 0 view .LVU90
+ 319 0010 1F20     		movs	r0, #31
+ 320              	.LVL14:
+ 321              		.loc 1 126 18 view .LVU91
+ 322 0012 FFF7FEFF 		bl	FLASH_WaitForLastOperation
+ 323              	.LVL15:
+ 127:tmk_core/common/chibios/flash_stm32.c ****         if (status == FLASH_COMPLETE) {
+ 324              		.loc 1 127 9 is_stmt 1 view .LVU92
+ 325              		.loc 1 127 12 is_stmt 0 view .LVU93
+ 326 0016 0528     		cmp	r0, #5
+ 327 0018 10D1     		bne	.L25
+ 128:tmk_core/common/chibios/flash_stm32.c ****             /* if the previous operation is completed, proceed to program the new data */
+ 129:tmk_core/common/chibios/flash_stm32.c ****             FLASH->CR |= FLASH_CR_PG;
+ 328              		.loc 1 129 13 is_stmt 1 view .LVU94
+ 329              		.loc 1 129 23 is_stmt 0 view .LVU95
+ 330 001a 0B4C     		ldr	r4, .L31+4
+ 331 001c 2369     		ldr	r3, [r4, #16]
+ 332 001e 43F00103 		orr	r3, r3, #1
+ 333 0022 2361     		str	r3, [r4, #16]
+ 130:tmk_core/common/chibios/flash_stm32.c ****             *(__IO uint16_t*)Address = Data;
+ 334              		.loc 1 130 13 is_stmt 1 view .LVU96
+ 131:tmk_core/common/chibios/flash_stm32.c ****             /* Wait for last operation to be completed */
+ 132:tmk_core/common/chibios/flash_stm32.c ****             status = FLASH_WaitForLastOperation(ProgramTimeout);
+ 335              		.loc 1 132 22 is_stmt 0 view .LVU97
+ 336 0024 1F20     		movs	r0, #31
+ 337              	.LVL16:
+ 130:tmk_core/common/chibios/flash_stm32.c ****             *(__IO uint16_t*)Address = Data;
+ 338              		.loc 1 130 38 view .LVU98
+ 339 0026 2E80     		strh	r6, [r5]	@ movhi
+ 340              		.loc 1 132 13 is_stmt 1 view .LVU99
+ 341              		.loc 1 132 22 is_stmt 0 view .LVU100
+ 342 0028 FFF7FEFF 		bl	FLASH_WaitForLastOperation
+ 343              	.LVL17:
+ 133:tmk_core/common/chibios/flash_stm32.c ****             if (status != FLASH_TIMEOUT) {
+ 344              		.loc 1 133 13 is_stmt 1 view .LVU101
+ 345              		.loc 1 133 16 is_stmt 0 view .LVU102
+ 346 002c 0628     		cmp	r0, #6
+ 134:tmk_core/common/chibios/flash_stm32.c ****                 /* if the program operation is completed, disable the PG Bit */
+ 135:tmk_core/common/chibios/flash_stm32.c ****                 FLASH->CR &= ~FLASH_CR_PG;
+ 347              		.loc 1 135 17 is_stmt 1 view .LVU103
+ 348              		.loc 1 135 27 is_stmt 0 view .LVU104
+ 349 002e 1EBF     		ittt	ne
+ 350 0030 2369     		ldrne	r3, [r4, #16]
+ 351 0032 23F00103 		bicne	r3, r3, #1
+ 352 0036 2361     		strne	r3, [r4, #16]
+ 136:tmk_core/common/chibios/flash_stm32.c ****             }
+ 137:tmk_core/common/chibios/flash_stm32.c ****             FLASH->SR = (FLASH_SR_EOP | FLASH_SR_PGERR | FLASH_SR_WRPERR);
+ 353              		.loc 1 137 13 is_stmt 1 view .LVU105
+ 354              		.loc 1 137 23 is_stmt 0 view .LVU106
+ 355 0038 3423     		movs	r3, #52
+ 356 003a E360     		str	r3, [r4, #12]
+ 357              	.LVL18:
+ 358              	.L25:
+ 138:tmk_core/common/chibios/flash_stm32.c ****         }
+ 139:tmk_core/common/chibios/flash_stm32.c ****     }
+ 140:tmk_core/common/chibios/flash_stm32.c ****     return status;
+ 359              		.loc 1 140 5 is_stmt 1 view .LVU107
+ 141:tmk_core/common/chibios/flash_stm32.c **** }
+ 360              		.loc 1 141 1 is_stmt 0 view .LVU108
+ 361 003c 70BD     		pop	{r4, r5, r6, pc}
+ 362              	.LVL19:
+ 363              	.L27:
+ 122:tmk_core/common/chibios/flash_stm32.c **** 
+ 364              		.loc 1 122 18 view .LVU109
+ 365 003e 0720     		movs	r0, #7
+ 366              	.LVL20:
+ 122:tmk_core/common/chibios/flash_stm32.c **** 
+ 367              		.loc 1 122 18 view .LVU110
+ 368 0040 FCE7     		b	.L25
+ 369              	.L32:
+ 370 0042 00BF     		.align	2
+ 371              	.L31:
+ 372 0044 FEFF0700 		.word	524286
+ 373 0048 00200240 		.word	1073881088
+ 374              		.cfi_endproc
+ 375              	.LFE332:
+ 377              		.section	.text.FLASH_Unlock,"ax",%progbits
+ 378              		.align	1
+ 379              		.global	FLASH_Unlock
+ 380              		.syntax unified
+ 381              		.thumb
+ 382              		.thumb_func
+ 383              		.fpu fpv4-sp-d16
+ 385              	FLASH_Unlock:
+ 386              	.LFB333:
+ 142:tmk_core/common/chibios/flash_stm32.c **** 
+ 143:tmk_core/common/chibios/flash_stm32.c **** /**
+ 144:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Unlocks the FLASH Program Erase Controller.
+ 145:tmk_core/common/chibios/flash_stm32.c ****  * @param  None
+ 146:tmk_core/common/chibios/flash_stm32.c ****  * @retval None
+ 147:tmk_core/common/chibios/flash_stm32.c ****  */
+ 148:tmk_core/common/chibios/flash_stm32.c **** void FLASH_Unlock(void) {
+ 387              		.loc 1 148 25 is_stmt 1 view -0
+ 388              		.cfi_startproc
+ 389              		@ args = 0, pretend = 0, frame = 0
+ 390              		@ frame_needed = 0, uses_anonymous_args = 0
+ 391              		@ link register save eliminated.
+ 149:tmk_core/common/chibios/flash_stm32.c ****     if (FLASH->CR & FLASH_CR_LOCK) {
+ 392              		.loc 1 149 5 view .LVU112
+ 393              		.loc 1 149 14 is_stmt 0 view .LVU113
+ 394 0000 044B     		ldr	r3, .L38
+ 395 0002 1A69     		ldr	r2, [r3, #16]
+ 396              		.loc 1 149 8 view .LVU114
+ 397 0004 1206     		lsls	r2, r2, #24
+ 150:tmk_core/common/chibios/flash_stm32.c ****         /* Authorize the FPEC Access */
+ 151:tmk_core/common/chibios/flash_stm32.c ****         FLASH->KEYR = FLASH_KEY1;
+ 398              		.loc 1 151 9 is_stmt 1 view .LVU115
+ 399              		.loc 1 151 21 is_stmt 0 view .LVU116
+ 400 0006 41BF     		itttt	mi
+ 401 0008 034A     		ldrmi	r2, .L38+4
+ 402 000a 5A60     		strmi	r2, [r3, #4]
+ 152:tmk_core/common/chibios/flash_stm32.c ****         FLASH->KEYR = FLASH_KEY2;
+ 403              		.loc 1 152 9 is_stmt 1 view .LVU117
+ 404              		.loc 1 152 21 is_stmt 0 view .LVU118
+ 405 000c 02F18832 		addmi	r2, r2, #-2004318072
+ 406 0010 5A60     		strmi	r2, [r3, #4]
+ 153:tmk_core/common/chibios/flash_stm32.c ****     }
+ 154:tmk_core/common/chibios/flash_stm32.c **** }
+ 407              		.loc 1 154 1 view .LVU119
+ 408 0012 7047     		bx	lr
+ 409              	.L39:
+ 410              		.align	2
+ 411              	.L38:
+ 412 0014 00200240 		.word	1073881088
+ 413 0018 23016745 		.word	1164378403
+ 414              		.cfi_endproc
+ 415              	.LFE333:
+ 417              		.section	.text.FLASH_Lock,"ax",%progbits
+ 418              		.align	1
+ 419              		.global	FLASH_Lock
+ 420              		.syntax unified
+ 421              		.thumb
+ 422              		.thumb_func
+ 423              		.fpu fpv4-sp-d16
+ 425              	FLASH_Lock:
+ 426              	.LFB334:
+ 155:tmk_core/common/chibios/flash_stm32.c **** 
+ 156:tmk_core/common/chibios/flash_stm32.c **** /**
+ 157:tmk_core/common/chibios/flash_stm32.c ****  * @brief  Locks the FLASH Program Erase Controller.
+ 158:tmk_core/common/chibios/flash_stm32.c ****  * @param  None
+ 159:tmk_core/common/chibios/flash_stm32.c ****  * @retval None
+ 160:tmk_core/common/chibios/flash_stm32.c ****  */
+ 161:tmk_core/common/chibios/flash_stm32.c **** void FLASH_Lock(void) {
+ 427              		.loc 1 161 23 is_stmt 1 view -0
+ 428              		.cfi_startproc
+ 429              		@ args = 0, pretend = 0, frame = 0
+ 430              		@ frame_needed = 0, uses_anonymous_args = 0
+ 431              		@ link register save eliminated.
+ 162:tmk_core/common/chibios/flash_stm32.c ****     /* Set the Lock Bit to lock the FPEC and the FCR */
+ 163:tmk_core/common/chibios/flash_stm32.c ****     FLASH->CR |= FLASH_CR_LOCK;
+ 432              		.loc 1 163 5 view .LVU121
+ 433              		.loc 1 163 15 is_stmt 0 view .LVU122
+ 434 0000 024A     		ldr	r2, .L41
+ 435 0002 1369     		ldr	r3, [r2, #16]
+ 436 0004 43F08003 		orr	r3, r3, #128
+ 437 0008 1361     		str	r3, [r2, #16]
+ 164:tmk_core/common/chibios/flash_stm32.c **** }
+ 438              		.loc 1 164 1 view .LVU123
+ 439 000a 7047     		bx	lr
+ 440              	.L42:
+ 441              		.align	2
+ 442              	.L41:
+ 443 000c 00200240 		.word	1073881088
+ 444              		.cfi_endproc
+ 445              	.LFE334:
+ 447              		.text
+ 448              	.Letext0:
+ 449              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 450              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 451              		.file 4 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
+ 452              		.file 5 "tmk_core/common/chibios/flash_stm32.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 flash_stm32.c
+     /tmp/ccEsgmfj.s:18     .text.FLASH_GetStatus:0000000000000000 $t
+     /tmp/ccEsgmfj.s:26     .text.FLASH_GetStatus:0000000000000000 FLASH_GetStatus
+     /tmp/ccEsgmfj.s:84     .text.FLASH_GetStatus:0000000000000030 $d
+     /tmp/ccEsgmfj.s:89     .text.FLASH_WaitForLastOperation:0000000000000000 $t
+     /tmp/ccEsgmfj.s:96     .text.FLASH_WaitForLastOperation:0000000000000000 FLASH_WaitForLastOperation
+     /tmp/ccEsgmfj.s:199    .text.FLASH_ErasePage:0000000000000000 $t
+     /tmp/ccEsgmfj.s:206    .text.FLASH_ErasePage:0000000000000000 FLASH_ErasePage
+     /tmp/ccEsgmfj.s:278    .text.FLASH_ErasePage:0000000000000040 $d
+     /tmp/ccEsgmfj.s:283    .text.FLASH_ProgramHalfWord:0000000000000000 $t
+     /tmp/ccEsgmfj.s:290    .text.FLASH_ProgramHalfWord:0000000000000000 FLASH_ProgramHalfWord
+     /tmp/ccEsgmfj.s:372    .text.FLASH_ProgramHalfWord:0000000000000044 $d
+     /tmp/ccEsgmfj.s:378    .text.FLASH_Unlock:0000000000000000 $t
+     /tmp/ccEsgmfj.s:385    .text.FLASH_Unlock:0000000000000000 FLASH_Unlock
+     /tmp/ccEsgmfj.s:412    .text.FLASH_Unlock:0000000000000014 $d
+     /tmp/ccEsgmfj.s:418    .text.FLASH_Lock:0000000000000000 $t
+     /tmp/ccEsgmfj.s:425    .text.FLASH_Lock:0000000000000000 FLASH_Lock
+     /tmp/ccEsgmfj.s:443    .text.FLASH_Lock:000000000000000c $d
+
+NO UNDEFINED SYMBOLS
