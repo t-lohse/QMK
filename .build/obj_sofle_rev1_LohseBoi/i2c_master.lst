@@ -1,0 +1,1681 @@
+   1               		.file	"i2c_master.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.i2c_init,"ax",@progbits
+  11               	.global	i2c_init
+  13               	i2c_init:
+  14               	.LFB8:
+  15               		.file 1 "platforms/avr/drivers/i2c_master.c"
+   1:platforms/avr/drivers/i2c_master.c **** /*  Copyright (C) 2019 Elia Ritterbusch
+   2:platforms/avr/drivers/i2c_master.c ****  +
+   3:platforms/avr/drivers/i2c_master.c ****  *  This program is free software: you can redistribute it and/or modify
+   4:platforms/avr/drivers/i2c_master.c ****  *  it under the terms of the GNU General Public License as published by
+   5:platforms/avr/drivers/i2c_master.c ****  *  the Free Software Foundation, either version 3 of the License, or
+   6:platforms/avr/drivers/i2c_master.c ****  *  (at your option) any later version.
+   7:platforms/avr/drivers/i2c_master.c ****  *
+   8:platforms/avr/drivers/i2c_master.c ****  *  This program is distributed in the hope that it will be useful,
+   9:platforms/avr/drivers/i2c_master.c ****  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:platforms/avr/drivers/i2c_master.c ****  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:platforms/avr/drivers/i2c_master.c ****  *  GNU General Public License for more details.
+  12:platforms/avr/drivers/i2c_master.c ****  *
+  13:platforms/avr/drivers/i2c_master.c ****  *  You should have received a copy of the GNU General Public License
+  14:platforms/avr/drivers/i2c_master.c ****  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  15:platforms/avr/drivers/i2c_master.c ****  */
+  16:platforms/avr/drivers/i2c_master.c **** /* Library made by: g4lvanix
+  17:platforms/avr/drivers/i2c_master.c ****  * GitHub repository: https://github.com/g4lvanix/I2C-master-lib
+  18:platforms/avr/drivers/i2c_master.c ****  */
+  19:platforms/avr/drivers/i2c_master.c **** 
+  20:platforms/avr/drivers/i2c_master.c **** #include <avr/io.h>
+  21:platforms/avr/drivers/i2c_master.c **** #include <util/twi.h>
+  22:platforms/avr/drivers/i2c_master.c **** 
+  23:platforms/avr/drivers/i2c_master.c **** #include "i2c_master.h"
+  24:platforms/avr/drivers/i2c_master.c **** #include "timer.h"
+  25:platforms/avr/drivers/i2c_master.c **** #include "wait.h"
+  26:platforms/avr/drivers/i2c_master.c **** 
+  27:platforms/avr/drivers/i2c_master.c **** #ifndef F_SCL
+  28:platforms/avr/drivers/i2c_master.c **** #    define F_SCL 400000UL  // SCL frequency
+  29:platforms/avr/drivers/i2c_master.c **** #endif
+  30:platforms/avr/drivers/i2c_master.c **** 
+  31:platforms/avr/drivers/i2c_master.c **** #ifndef I2C_START_RETRY_COUNT
+  32:platforms/avr/drivers/i2c_master.c **** #    define I2C_START_RETRY_COUNT 20
+  33:platforms/avr/drivers/i2c_master.c **** #endif  // I2C_START_RETRY_COUNT
+  34:platforms/avr/drivers/i2c_master.c **** 
+  35:platforms/avr/drivers/i2c_master.c **** #define TWBR_val (((F_CPU / F_SCL) - 16) / 2)
+  36:platforms/avr/drivers/i2c_master.c **** 
+  37:platforms/avr/drivers/i2c_master.c **** #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
+  38:platforms/avr/drivers/i2c_master.c **** 
+  39:platforms/avr/drivers/i2c_master.c **** void i2c_init(void) {
+  16               		.loc 1 39 21 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  40:platforms/avr/drivers/i2c_master.c ****     TWSR = 0; /* no prescaler */
+  22               		.loc 1 40 5 view .LVU1
+  23               		.loc 1 40 10 is_stmt 0 view .LVU2
+  24 0000 1092 B900 		sts 185,__zero_reg__
+  41:platforms/avr/drivers/i2c_master.c ****     TWBR = (uint8_t)TWBR_val;
+  25               		.loc 1 41 5 is_stmt 1 view .LVU3
+  26               		.loc 1 41 10 is_stmt 0 view .LVU4
+  27 0004 8CE0      		ldi r24,lo8(12)
+  28 0006 8093 B800 		sts 184,r24
+  29               	/* epilogue start */
+  42:platforms/avr/drivers/i2c_master.c **** 
+  43:platforms/avr/drivers/i2c_master.c **** #ifdef __AVR_ATmega32A__
+  44:platforms/avr/drivers/i2c_master.c ****     // set pull-up resistors on I2C bus pins
+  45:platforms/avr/drivers/i2c_master.c ****     PORTC |= 0b11;
+  46:platforms/avr/drivers/i2c_master.c **** 
+  47:platforms/avr/drivers/i2c_master.c ****     // enable TWI (two-wire interface)
+  48:platforms/avr/drivers/i2c_master.c ****     TWCR |= (1 << TWEN);
+  49:platforms/avr/drivers/i2c_master.c **** 
+  50:platforms/avr/drivers/i2c_master.c ****     // enable TWI interrupt and slave address ACK
+  51:platforms/avr/drivers/i2c_master.c ****     TWCR |= (1 << TWIE);
+  52:platforms/avr/drivers/i2c_master.c ****     TWCR |= (1 << TWEA);
+  53:platforms/avr/drivers/i2c_master.c **** #endif
+  54:platforms/avr/drivers/i2c_master.c **** }
+  30               		.loc 1 54 1 view .LVU5
+  31 000a 0895      		ret
+  32               		.cfi_endproc
+  33               	.LFE8:
+  35               		.section	.text.i2c_start,"ax",@progbits
+  36               	.global	i2c_start
+  38               	i2c_start:
+  39               	.LVL0:
+  40               	.LFB10:
+  55:platforms/avr/drivers/i2c_master.c **** 
+  56:platforms/avr/drivers/i2c_master.c **** static i2c_status_t i2c_start_impl(uint8_t address, uint16_t timeout) {
+  57:platforms/avr/drivers/i2c_master.c ****     // reset TWI control register
+  58:platforms/avr/drivers/i2c_master.c ****     TWCR = 0;
+  59:platforms/avr/drivers/i2c_master.c ****     // transmit START condition
+  60:platforms/avr/drivers/i2c_master.c ****     TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
+  61:platforms/avr/drivers/i2c_master.c **** 
+  62:platforms/avr/drivers/i2c_master.c ****     uint16_t timeout_timer = timer_read();
+  63:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+  64:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+  65:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+  66:platforms/avr/drivers/i2c_master.c ****         }
+  67:platforms/avr/drivers/i2c_master.c ****     }
+  68:platforms/avr/drivers/i2c_master.c **** 
+  69:platforms/avr/drivers/i2c_master.c ****     // check if the start condition was successfully transmitted
+  70:platforms/avr/drivers/i2c_master.c ****     if (((TW_STATUS & 0xF8) != TW_START) && ((TW_STATUS & 0xF8) != TW_REP_START)) {
+  71:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+  72:platforms/avr/drivers/i2c_master.c ****     }
+  73:platforms/avr/drivers/i2c_master.c **** 
+  74:platforms/avr/drivers/i2c_master.c ****     // load slave address into data register
+  75:platforms/avr/drivers/i2c_master.c ****     TWDR = address;
+  76:platforms/avr/drivers/i2c_master.c ****     // start transmission of address
+  77:platforms/avr/drivers/i2c_master.c ****     TWCR = (1 << TWINT) | (1 << TWEN);
+  78:platforms/avr/drivers/i2c_master.c **** 
+  79:platforms/avr/drivers/i2c_master.c ****     timeout_timer = timer_read();
+  80:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+  81:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+  82:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+  83:platforms/avr/drivers/i2c_master.c ****         }
+  84:platforms/avr/drivers/i2c_master.c ****     }
+  85:platforms/avr/drivers/i2c_master.c **** 
+  86:platforms/avr/drivers/i2c_master.c ****     // check if the device has acknowledged the READ / WRITE mode
+  87:platforms/avr/drivers/i2c_master.c ****     uint8_t twst = TW_STATUS & 0xF8;
+  88:platforms/avr/drivers/i2c_master.c ****     if ((twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK)) {
+  89:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+  90:platforms/avr/drivers/i2c_master.c ****     }
+  91:platforms/avr/drivers/i2c_master.c **** 
+  92:platforms/avr/drivers/i2c_master.c ****     return I2C_STATUS_SUCCESS;
+  93:platforms/avr/drivers/i2c_master.c **** }
+  94:platforms/avr/drivers/i2c_master.c **** 
+  95:platforms/avr/drivers/i2c_master.c **** i2c_status_t i2c_start(uint8_t address, uint16_t timeout) {
+  41               		.loc 1 95 59 is_stmt 1 view -0
+  42               		.cfi_startproc
+  43               		.loc 1 95 59 is_stmt 0 view .LVU7
+  44 0000 9F92      		push r9
+  45               	.LCFI0:
+  46               		.cfi_def_cfa_offset 3
+  47               		.cfi_offset 9, -2
+  48 0002 AF92      		push r10
+  49               	.LCFI1:
+  50               		.cfi_def_cfa_offset 4
+  51               		.cfi_offset 10, -3
+  52 0004 BF92      		push r11
+  53               	.LCFI2:
+  54               		.cfi_def_cfa_offset 5
+  55               		.cfi_offset 11, -4
+  56 0006 CF92      		push r12
+  57               	.LCFI3:
+  58               		.cfi_def_cfa_offset 6
+  59               		.cfi_offset 12, -5
+  60 0008 DF92      		push r13
+  61               	.LCFI4:
+  62               		.cfi_def_cfa_offset 7
+  63               		.cfi_offset 13, -6
+  64 000a EF92      		push r14
+  65               	.LCFI5:
+  66               		.cfi_def_cfa_offset 8
+  67               		.cfi_offset 14, -7
+  68 000c FF92      		push r15
+  69               	.LCFI6:
+  70               		.cfi_def_cfa_offset 9
+  71               		.cfi_offset 15, -8
+  72 000e 0F93      		push r16
+  73               	.LCFI7:
+  74               		.cfi_def_cfa_offset 10
+  75               		.cfi_offset 16, -9
+  76 0010 1F93      		push r17
+  77               	.LCFI8:
+  78               		.cfi_def_cfa_offset 11
+  79               		.cfi_offset 17, -10
+  80 0012 CF93      		push r28
+  81               	.LCFI9:
+  82               		.cfi_def_cfa_offset 12
+  83               		.cfi_offset 28, -11
+  84 0014 DF93      		push r29
+  85               	.LCFI10:
+  86               		.cfi_def_cfa_offset 13
+  87               		.cfi_offset 29, -12
+  88               	/* prologue: function */
+  89               	/* frame size = 0 */
+  90               	/* stack size = 11 */
+  91               	.L__stack_usage = 11
+  92 0016 B82E      		mov r11,r24
+  93 0018 EB01      		movw r28,r22
+  96:platforms/avr/drivers/i2c_master.c ****     // Retry i2c_start_impl a bunch times in case the remote side has interrupts disabled.
+  97:platforms/avr/drivers/i2c_master.c ****     uint16_t     timeout_timer = timer_read();
+  94               		.loc 1 97 5 is_stmt 1 view .LVU8
+  95               		.loc 1 97 34 is_stmt 0 view .LVU9
+  96 001a 0E94 0000 		call timer_read
+  97               	.LVL1:
+  98               		.loc 1 97 34 view .LVU10
+  99 001e 6C01      		movw r12,r24
+ 100               	.LVL2:
+  98:platforms/avr/drivers/i2c_master.c ****     uint16_t     time_slice    = MAX(1, (timeout == (I2C_TIMEOUT_INFINITE)) ? 5 : (timeout / (I2C_S
+ 101               		.loc 1 98 5 is_stmt 1 view .LVU11
+ 102               		.loc 1 98 34 is_stmt 0 view .LVU12
+ 103 0020 EE24      		clr r14
+ 104 0022 E394      		inc r14
+ 105 0024 F12C      		mov r15,__zero_reg__
+ 106 0026 C431      		cpi r28,20
+ 107 0028 D105      		cpc r29,__zero_reg__
+ 108 002a 00F0      		brlo .L3
+ 109               		.loc 1 98 34 discriminator 1 view .LVU13
+ 110 002c 25E0      		ldi r18,lo8(5)
+ 111 002e E22E      		mov r14,r18
+ 112 0030 F12C      		mov r15,__zero_reg__
+ 113 0032 CF3F      		cpi r28,-1
+ 114 0034 DC07      		cpc r29,r28
+ 115 0036 01F0      		breq .L3
+ 116               		.loc 1 98 34 discriminator 3 view .LVU14
+ 117 0038 CE01      		movw r24,r28
+ 118 003a 64E1      		ldi r22,lo8(20)
+ 119 003c 70E0      		ldi r23,0
+ 120 003e 0E94 0000 		call __udivmodhi4
+ 121 0042 7B01      		movw r14,r22
+ 122               	.L3:
+ 123               	.LVL3:
+ 124               	.LBB4:
+ 125               	.LBB5:
+  60:platforms/avr/drivers/i2c_master.c **** 
+ 126               		.loc 1 60 10 discriminator 8 view .LVU15
+ 127 0044 84EA      		ldi r24,lo8(-92)
+ 128 0046 A82E      		mov r10,r24
+  77:platforms/avr/drivers/i2c_master.c **** 
+ 129               		.loc 1 77 10 discriminator 8 view .LVU16
+ 130 0048 94E8      		ldi r25,lo8(-124)
+ 131 004a 992E      		mov r9,r25
+ 132               	.L13:
+ 133               	.LBE5:
+ 134               	.LBE4:
+  99:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status;
+ 135               		.loc 1 99 5 is_stmt 1 discriminator 4 view .LVU17
+ 100:platforms/avr/drivers/i2c_master.c ****     do {
+ 136               		.loc 1 100 5 discriminator 4 view .LVU18
+ 101:platforms/avr/drivers/i2c_master.c ****         status = i2c_start_impl(address, time_slice);
+ 137               		.loc 1 101 9 discriminator 4 view .LVU19
+ 138               	.LVL4:
+ 139               	.LBB9:
+ 140               	.LBI4:
+  56:platforms/avr/drivers/i2c_master.c ****     // reset TWI control register
+ 141               		.loc 1 56 21 discriminator 4 view .LVU20
+ 142               	.LBB6:
+  58:platforms/avr/drivers/i2c_master.c ****     // transmit START condition
+ 143               		.loc 1 58 5 discriminator 4 view .LVU21
+  58:platforms/avr/drivers/i2c_master.c ****     // transmit START condition
+ 144               		.loc 1 58 10 is_stmt 0 discriminator 4 view .LVU22
+ 145 004c 1092 BC00 		sts 188,__zero_reg__
+  60:platforms/avr/drivers/i2c_master.c **** 
+ 146               		.loc 1 60 5 is_stmt 1 discriminator 4 view .LVU23
+  60:platforms/avr/drivers/i2c_master.c **** 
+ 147               		.loc 1 60 10 is_stmt 0 discriminator 4 view .LVU24
+ 148 0050 A092 BC00 		sts 188,r10
+  62:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 149               		.loc 1 62 5 is_stmt 1 discriminator 4 view .LVU25
+  62:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 150               		.loc 1 62 30 is_stmt 0 discriminator 4 view .LVU26
+ 151 0054 0E94 0000 		call timer_read
+ 152               	.LVL5:
+ 153 0058 8C01      		movw r16,r24
+ 154               	.LVL6:
+  63:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 155               		.loc 1 63 5 is_stmt 1 discriminator 4 view .LVU27
+ 156               	.L4:
+  63:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 157               		.loc 1 63 14 is_stmt 0 view .LVU28
+ 158 005a 8091 BC00 		lds r24,188
+  63:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 159               		.loc 1 63 11 view .LVU29
+ 160 005e 87FF      		sbrs r24,7
+ 161 0060 00C0      		rjmp .L6
+  70:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 162               		.loc 1 70 5 is_stmt 1 view .LVU30
+  70:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 163               		.loc 1 70 11 is_stmt 0 view .LVU31
+ 164 0062 8091 B900 		lds r24,185
+  70:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 165               		.loc 1 70 8 view .LVU32
+ 166 0066 887F      		andi r24,lo8(-8)
+ 167 0068 8830      		cpi r24,lo8(8)
+ 168 006a 01F0      		breq .L7
+  70:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 169               		.loc 1 70 47 view .LVU33
+ 170 006c 8091 B900 		lds r24,185
+  70:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 171               		.loc 1 70 42 view .LVU34
+ 172 0070 887F      		andi r24,lo8(-8)
+ 173 0072 8031      		cpi r24,lo8(16)
+ 174 0074 01F0      		breq .L7
+ 175               	.L12:
+  71:platforms/avr/drivers/i2c_master.c ****     }
+ 176               		.loc 1 71 16 view .LVU35
+ 177 0076 0FEF      		ldi r16,lo8(-1)
+ 178 0078 1FEF      		ldi r17,lo8(-1)
+ 179               	.LVL7:
+  71:platforms/avr/drivers/i2c_master.c ****     }
+ 180               		.loc 1 71 16 view .LVU36
+ 181 007a 00C0      		rjmp .L5
+ 182               	.LVL8:
+ 183               	.L6:
+  64:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 184               		.loc 1 64 9 is_stmt 1 view .LVU37
+  64:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 185               		.loc 1 64 52 is_stmt 0 view .LVU38
+ 186 007c 0E94 0000 		call timer_read
+ 187               	.LVL9:
+  64:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 188               		.loc 1 64 65 view .LVU39
+ 189 0080 801B      		sub r24,r16
+ 190 0082 910B      		sbc r25,r17
+  64:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 191               		.loc 1 64 47 view .LVU40
+ 192 0084 8E15      		cp r24,r14
+ 193 0086 9F05      		cpc r25,r15
+ 194 0088 00F0      		brlo .L4
+ 195               	.L9:
+  71:platforms/avr/drivers/i2c_master.c ****     }
+ 196               		.loc 1 71 16 view .LVU41
+ 197 008a 0EEF      		ldi r16,lo8(-2)
+ 198 008c 1FEF      		ldi r17,lo8(-1)
+ 199               	.LVL10:
+ 200               	.L5:
+  71:platforms/avr/drivers/i2c_master.c ****     }
+ 201               		.loc 1 71 16 view .LVU42
+ 202               	.LBE6:
+ 203               	.LBE9:
+ 102:platforms/avr/drivers/i2c_master.c ****     } while ((status < 0) && ((timeout == I2C_TIMEOUT_INFINITE) || (timer_elapsed(timeout_timer) < 
+ 204               		.loc 1 102 27 discriminator 1 view .LVU43
+ 205 008e CF3F      		cpi r28,-1
+ 206 0090 DC07      		cpc r29,r28
+ 207 0092 01F0      		breq .L13
+ 208               		.loc 1 102 69 discriminator 3 view .LVU44
+ 209 0094 C601      		movw r24,r12
+ 210 0096 0E94 0000 		call timer_elapsed
+ 211               	.LVL11:
+ 212               		.loc 1 102 65 discriminator 3 view .LVU45
+ 213 009a 8C17      		cp r24,r28
+ 214 009c 9D07      		cpc r25,r29
+ 215 009e 00F0      		brlo .L13
+ 216               	.L2:
+ 103:platforms/avr/drivers/i2c_master.c ****     return status;
+ 104:platforms/avr/drivers/i2c_master.c **** }
+ 217               		.loc 1 104 1 view .LVU46
+ 218 00a0 C801      		movw r24,r16
+ 219               	/* epilogue start */
+ 220 00a2 DF91      		pop r29
+ 221 00a4 CF91      		pop r28
+ 222               	.LVL12:
+ 223               		.loc 1 104 1 view .LVU47
+ 224 00a6 1F91      		pop r17
+ 225 00a8 0F91      		pop r16
+ 226 00aa FF90      		pop r15
+ 227 00ac EF90      		pop r14
+ 228               	.LVL13:
+ 229               		.loc 1 104 1 view .LVU48
+ 230 00ae DF90      		pop r13
+ 231 00b0 CF90      		pop r12
+ 232               	.LVL14:
+ 233               		.loc 1 104 1 view .LVU49
+ 234 00b2 BF90      		pop r11
+ 235               	.LVL15:
+ 236               		.loc 1 104 1 view .LVU50
+ 237 00b4 AF90      		pop r10
+ 238 00b6 9F90      		pop r9
+ 239 00b8 0895      		ret
+ 240               	.LVL16:
+ 241               	.L7:
+ 242               	.LBB10:
+ 243               	.LBB7:
+  75:platforms/avr/drivers/i2c_master.c ****     // start transmission of address
+ 244               		.loc 1 75 5 is_stmt 1 view .LVU51
+  75:platforms/avr/drivers/i2c_master.c ****     // start transmission of address
+ 245               		.loc 1 75 10 is_stmt 0 view .LVU52
+ 246 00ba B092 BB00 		sts 187,r11
+  77:platforms/avr/drivers/i2c_master.c **** 
+ 247               		.loc 1 77 5 is_stmt 1 view .LVU53
+  77:platforms/avr/drivers/i2c_master.c **** 
+ 248               		.loc 1 77 10 is_stmt 0 view .LVU54
+ 249 00be 9092 BC00 		sts 188,r9
+  79:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 250               		.loc 1 79 5 is_stmt 1 view .LVU55
+  79:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 251               		.loc 1 79 21 is_stmt 0 view .LVU56
+ 252 00c2 0E94 0000 		call timer_read
+ 253               	.LVL17:
+ 254 00c6 8C01      		movw r16,r24
+ 255               	.LVL18:
+  80:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 256               		.loc 1 80 5 is_stmt 1 view .LVU57
+ 257               	.L8:
+  80:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 258               		.loc 1 80 14 is_stmt 0 view .LVU58
+ 259 00c8 8091 BC00 		lds r24,188
+  80:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 260               		.loc 1 80 11 view .LVU59
+ 261 00cc 87FF      		sbrs r24,7
+ 262 00ce 00C0      		rjmp .L10
+  87:platforms/avr/drivers/i2c_master.c ****     if ((twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK)) {
+ 263               		.loc 1 87 5 is_stmt 1 view .LVU60
+  87:platforms/avr/drivers/i2c_master.c ****     if ((twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK)) {
+ 264               		.loc 1 87 30 is_stmt 0 view .LVU61
+ 265 00d0 8091 B900 		lds r24,185
+  87:platforms/avr/drivers/i2c_master.c ****     if ((twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK)) {
+ 266               		.loc 1 87 13 view .LVU62
+ 267 00d4 887F      		andi r24,lo8(-8)
+ 268               	.LVL19:
+  88:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 269               		.loc 1 88 5 is_stmt 1 view .LVU63
+  88:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 270               		.loc 1 88 8 is_stmt 0 view .LVU64
+ 271 00d6 8831      		cpi r24,lo8(24)
+ 272 00d8 01F0      		breq .L17
+  88:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 273               		.loc 1 88 33 view .LVU65
+ 274 00da 8034      		cpi r24,lo8(64)
+ 275 00dc 01F4      		brne .L12
+ 276               	.L17:
+  92:platforms/avr/drivers/i2c_master.c **** }
+ 277               		.loc 1 92 12 view .LVU66
+ 278 00de 10E0      		ldi r17,0
+ 279 00e0 00E0      		ldi r16,0
+ 280               	.LVL20:
+  92:platforms/avr/drivers/i2c_master.c **** }
+ 281               		.loc 1 92 12 view .LVU67
+ 282               	.LBE7:
+ 283               	.LBE10:
+ 103:platforms/avr/drivers/i2c_master.c **** }
+ 284               		.loc 1 103 5 is_stmt 1 view .LVU68
+ 103:platforms/avr/drivers/i2c_master.c **** }
+ 285               		.loc 1 103 12 is_stmt 0 view .LVU69
+ 286 00e2 00C0      		rjmp .L2
+ 287               	.LVL21:
+ 288               	.L10:
+ 289               	.LBB11:
+ 290               	.LBB8:
+  81:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 291               		.loc 1 81 9 is_stmt 1 view .LVU70
+  81:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 292               		.loc 1 81 52 is_stmt 0 view .LVU71
+ 293 00e4 0E94 0000 		call timer_read
+ 294               	.LVL22:
+  81:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 295               		.loc 1 81 65 view .LVU72
+ 296 00e8 801B      		sub r24,r16
+ 297 00ea 910B      		sbc r25,r17
+  81:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 298               		.loc 1 81 47 view .LVU73
+ 299 00ec 8E15      		cp r24,r14
+ 300 00ee 9F05      		cpc r25,r15
+ 301 00f0 00F0      		brlo .L8
+ 302 00f2 00C0      		rjmp .L9
+ 303               	.LBE8:
+ 304               	.LBE11:
+ 305               		.cfi_endproc
+ 306               	.LFE10:
+ 308               		.section	.text.i2c_write,"ax",@progbits
+ 309               	.global	i2c_write
+ 311               	i2c_write:
+ 312               	.LVL23:
+ 313               	.LFB11:
+ 105:platforms/avr/drivers/i2c_master.c **** 
+ 106:platforms/avr/drivers/i2c_master.c **** i2c_status_t i2c_write(uint8_t data, uint16_t timeout) {
+ 314               		.loc 1 106 56 is_stmt 1 view -0
+ 315               		.cfi_startproc
+ 316               		.loc 1 106 56 is_stmt 0 view .LVU75
+ 317 0000 0F93      		push r16
+ 318               	.LCFI11:
+ 319               		.cfi_def_cfa_offset 3
+ 320               		.cfi_offset 16, -2
+ 321 0002 1F93      		push r17
+ 322               	.LCFI12:
+ 323               		.cfi_def_cfa_offset 4
+ 324               		.cfi_offset 17, -3
+ 325 0004 CF93      		push r28
+ 326               	.LCFI13:
+ 327               		.cfi_def_cfa_offset 5
+ 328               		.cfi_offset 28, -4
+ 329 0006 DF93      		push r29
+ 330               	.LCFI14:
+ 331               		.cfi_def_cfa_offset 6
+ 332               		.cfi_offset 29, -5
+ 333               	/* prologue: function */
+ 334               	/* frame size = 0 */
+ 335               	/* stack size = 4 */
+ 336               	.L__stack_usage = 4
+ 337 0008 EB01      		movw r28,r22
+ 107:platforms/avr/drivers/i2c_master.c ****     // load data into data register
+ 108:platforms/avr/drivers/i2c_master.c ****     TWDR = data;
+ 338               		.loc 1 108 5 is_stmt 1 view .LVU76
+ 339               		.loc 1 108 10 is_stmt 0 view .LVU77
+ 340 000a 8093 BB00 		sts 187,r24
+ 109:platforms/avr/drivers/i2c_master.c ****     // start transmission of data
+ 110:platforms/avr/drivers/i2c_master.c ****     TWCR = (1 << TWINT) | (1 << TWEN);
+ 341               		.loc 1 110 5 is_stmt 1 view .LVU78
+ 342               		.loc 1 110 10 is_stmt 0 view .LVU79
+ 343 000e 84E8      		ldi r24,lo8(-124)
+ 344               	.LVL24:
+ 345               		.loc 1 110 10 view .LVU80
+ 346 0010 8093 BC00 		sts 188,r24
+ 347               	.LVL25:
+ 111:platforms/avr/drivers/i2c_master.c **** 
+ 112:platforms/avr/drivers/i2c_master.c ****     uint16_t timeout_timer = timer_read();
+ 348               		.loc 1 112 5 is_stmt 1 view .LVU81
+ 349               		.loc 1 112 30 is_stmt 0 view .LVU82
+ 350 0014 0E94 0000 		call timer_read
+ 351               	.LVL26:
+ 352               		.loc 1 112 30 view .LVU83
+ 353 0018 8C01      		movw r16,r24
+ 354               	.LVL27:
+ 113:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 355               		.loc 1 113 5 is_stmt 1 view .LVU84
+ 356               	.L30:
+ 357               		.loc 1 113 14 is_stmt 0 view .LVU85
+ 358 001a 8091 BC00 		lds r24,188
+ 359               		.loc 1 113 11 view .LVU86
+ 360 001e 87FF      		sbrs r24,7
+ 361 0020 00C0      		rjmp .L32
+ 114:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 115:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 116:platforms/avr/drivers/i2c_master.c ****         }
+ 117:platforms/avr/drivers/i2c_master.c ****     }
+ 118:platforms/avr/drivers/i2c_master.c **** 
+ 119:platforms/avr/drivers/i2c_master.c ****     if ((TW_STATUS & 0xF8) != TW_MT_DATA_ACK) {
+ 362               		.loc 1 119 5 is_stmt 1 view .LVU87
+ 363               		.loc 1 119 10 is_stmt 0 view .LVU88
+ 364 0022 2091 B900 		lds r18,185
+ 365               		.loc 1 119 8 view .LVU89
+ 366 0026 287F      		andi r18,lo8(-8)
+ 367 0028 81E0      		ldi r24,lo8(1)
+ 368 002a 90E0      		ldi r25,0
+ 369 002c 2832      		cpi r18,lo8(40)
+ 370 002e 01F4      		brne .L33
+ 371 0030 90E0      		ldi r25,0
+ 372 0032 80E0      		ldi r24,0
+ 373               	.L33:
+ 374 0034 9195      		neg r25
+ 375 0036 8195      		neg r24
+ 376 0038 9109      		sbc r25,__zero_reg__
+ 377               	.L28:
+ 378               	/* epilogue start */
+ 120:platforms/avr/drivers/i2c_master.c ****         return I2C_STATUS_ERROR;
+ 121:platforms/avr/drivers/i2c_master.c ****     }
+ 122:platforms/avr/drivers/i2c_master.c **** 
+ 123:platforms/avr/drivers/i2c_master.c ****     return I2C_STATUS_SUCCESS;
+ 124:platforms/avr/drivers/i2c_master.c **** }
+ 379               		.loc 1 124 1 view .LVU90
+ 380 003a DF91      		pop r29
+ 381 003c CF91      		pop r28
+ 382               	.LVL28:
+ 383               		.loc 1 124 1 view .LVU91
+ 384 003e 1F91      		pop r17
+ 385 0040 0F91      		pop r16
+ 386               	.LVL29:
+ 387               		.loc 1 124 1 view .LVU92
+ 388 0042 0895      		ret
+ 389               	.LVL30:
+ 390               	.L32:
+ 114:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 391               		.loc 1 114 9 is_stmt 1 view .LVU93
+ 114:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 392               		.loc 1 114 12 is_stmt 0 view .LVU94
+ 393 0044 CF3F      		cpi r28,-1
+ 394 0046 DC07      		cpc r29,r28
+ 395 0048 01F0      		breq .L30
+ 114:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 396               		.loc 1 114 52 discriminator 1 view .LVU95
+ 397 004a 0E94 0000 		call timer_read
+ 398               	.LVL31:
+ 114:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 399               		.loc 1 114 65 discriminator 1 view .LVU96
+ 400 004e 801B      		sub r24,r16
+ 401 0050 910B      		sbc r25,r17
+ 114:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 402               		.loc 1 114 47 discriminator 1 view .LVU97
+ 403 0052 8C17      		cp r24,r28
+ 404 0054 9D07      		cpc r25,r29
+ 405 0056 00F0      		brlo .L30
+ 115:platforms/avr/drivers/i2c_master.c ****         }
+ 406               		.loc 1 115 20 view .LVU98
+ 407 0058 8EEF      		ldi r24,lo8(-2)
+ 408 005a 9FEF      		ldi r25,lo8(-1)
+ 409 005c 00C0      		rjmp .L28
+ 410               		.cfi_endproc
+ 411               	.LFE11:
+ 413               		.section	.text.i2c_read_ack,"ax",@progbits
+ 414               	.global	i2c_read_ack
+ 416               	i2c_read_ack:
+ 417               	.LVL32:
+ 418               	.LFB12:
+ 125:platforms/avr/drivers/i2c_master.c **** 
+ 126:platforms/avr/drivers/i2c_master.c **** int16_t i2c_read_ack(uint16_t timeout) {
+ 419               		.loc 1 126 40 is_stmt 1 view -0
+ 420               		.cfi_startproc
+ 421               		.loc 1 126 40 is_stmt 0 view .LVU100
+ 422 0000 0F93      		push r16
+ 423               	.LCFI15:
+ 424               		.cfi_def_cfa_offset 3
+ 425               		.cfi_offset 16, -2
+ 426 0002 1F93      		push r17
+ 427               	.LCFI16:
+ 428               		.cfi_def_cfa_offset 4
+ 429               		.cfi_offset 17, -3
+ 430 0004 CF93      		push r28
+ 431               	.LCFI17:
+ 432               		.cfi_def_cfa_offset 5
+ 433               		.cfi_offset 28, -4
+ 434 0006 DF93      		push r29
+ 435               	.LCFI18:
+ 436               		.cfi_def_cfa_offset 6
+ 437               		.cfi_offset 29, -5
+ 438               	/* prologue: function */
+ 439               	/* frame size = 0 */
+ 440               	/* stack size = 4 */
+ 441               	.L__stack_usage = 4
+ 442 0008 EC01      		movw r28,r24
+ 127:platforms/avr/drivers/i2c_master.c ****     // start TWI module and acknowledge data after reception
+ 128:platforms/avr/drivers/i2c_master.c ****     TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWEA);
+ 443               		.loc 1 128 5 is_stmt 1 view .LVU101
+ 444               		.loc 1 128 10 is_stmt 0 view .LVU102
+ 445 000a 84EC      		ldi r24,lo8(-60)
+ 446               	.LVL33:
+ 447               		.loc 1 128 10 view .LVU103
+ 448 000c 8093 BC00 		sts 188,r24
+ 129:platforms/avr/drivers/i2c_master.c **** 
+ 130:platforms/avr/drivers/i2c_master.c ****     uint16_t timeout_timer = timer_read();
+ 449               		.loc 1 130 5 is_stmt 1 view .LVU104
+ 450               		.loc 1 130 30 is_stmt 0 view .LVU105
+ 451 0010 0E94 0000 		call timer_read
+ 452               	.LVL34:
+ 453 0014 8C01      		movw r16,r24
+ 454               	.LVL35:
+ 131:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 455               		.loc 1 131 5 is_stmt 1 view .LVU106
+ 456               	.L39:
+ 457               		.loc 1 131 14 is_stmt 0 view .LVU107
+ 458 0016 8091 BC00 		lds r24,188
+ 459               		.loc 1 131 11 view .LVU108
+ 460 001a 87FF      		sbrs r24,7
+ 461 001c 00C0      		rjmp .L41
+ 132:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 133:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 134:platforms/avr/drivers/i2c_master.c ****         }
+ 135:platforms/avr/drivers/i2c_master.c ****     }
+ 136:platforms/avr/drivers/i2c_master.c **** 
+ 137:platforms/avr/drivers/i2c_master.c ****     // return received data from TWDR
+ 138:platforms/avr/drivers/i2c_master.c ****     return TWDR;
+ 462               		.loc 1 138 5 is_stmt 1 view .LVU109
+ 463               		.loc 1 138 12 is_stmt 0 view .LVU110
+ 464 001e 8091 BB00 		lds r24,187
+ 465 0022 90E0      		ldi r25,0
+ 466               	.L37:
+ 467               	/* epilogue start */
+ 139:platforms/avr/drivers/i2c_master.c **** }
+ 468               		.loc 1 139 1 view .LVU111
+ 469 0024 DF91      		pop r29
+ 470 0026 CF91      		pop r28
+ 471               	.LVL36:
+ 472               		.loc 1 139 1 view .LVU112
+ 473 0028 1F91      		pop r17
+ 474 002a 0F91      		pop r16
+ 475               	.LVL37:
+ 476               		.loc 1 139 1 view .LVU113
+ 477 002c 0895      		ret
+ 478               	.LVL38:
+ 479               	.L41:
+ 132:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 480               		.loc 1 132 9 is_stmt 1 view .LVU114
+ 132:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 481               		.loc 1 132 12 is_stmt 0 view .LVU115
+ 482 002e CF3F      		cpi r28,-1
+ 483 0030 DC07      		cpc r29,r28
+ 484 0032 01F0      		breq .L39
+ 132:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 485               		.loc 1 132 52 discriminator 1 view .LVU116
+ 486 0034 0E94 0000 		call timer_read
+ 487               	.LVL39:
+ 132:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 488               		.loc 1 132 65 discriminator 1 view .LVU117
+ 489 0038 801B      		sub r24,r16
+ 490 003a 910B      		sbc r25,r17
+ 132:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 491               		.loc 1 132 47 discriminator 1 view .LVU118
+ 492 003c 8C17      		cp r24,r28
+ 493 003e 9D07      		cpc r25,r29
+ 494 0040 00F0      		brlo .L39
+ 133:platforms/avr/drivers/i2c_master.c ****         }
+ 495               		.loc 1 133 20 view .LVU119
+ 496 0042 8EEF      		ldi r24,lo8(-2)
+ 497 0044 9FEF      		ldi r25,lo8(-1)
+ 498 0046 00C0      		rjmp .L37
+ 499               		.cfi_endproc
+ 500               	.LFE12:
+ 502               		.section	.text.i2c_read_nack,"ax",@progbits
+ 503               	.global	i2c_read_nack
+ 505               	i2c_read_nack:
+ 506               	.LVL40:
+ 507               	.LFB13:
+ 140:platforms/avr/drivers/i2c_master.c **** 
+ 141:platforms/avr/drivers/i2c_master.c **** int16_t i2c_read_nack(uint16_t timeout) {
+ 508               		.loc 1 141 41 is_stmt 1 view -0
+ 509               		.cfi_startproc
+ 510               		.loc 1 141 41 is_stmt 0 view .LVU121
+ 511 0000 0F93      		push r16
+ 512               	.LCFI19:
+ 513               		.cfi_def_cfa_offset 3
+ 514               		.cfi_offset 16, -2
+ 515 0002 1F93      		push r17
+ 516               	.LCFI20:
+ 517               		.cfi_def_cfa_offset 4
+ 518               		.cfi_offset 17, -3
+ 519 0004 CF93      		push r28
+ 520               	.LCFI21:
+ 521               		.cfi_def_cfa_offset 5
+ 522               		.cfi_offset 28, -4
+ 523 0006 DF93      		push r29
+ 524               	.LCFI22:
+ 525               		.cfi_def_cfa_offset 6
+ 526               		.cfi_offset 29, -5
+ 527               	/* prologue: function */
+ 528               	/* frame size = 0 */
+ 529               	/* stack size = 4 */
+ 530               	.L__stack_usage = 4
+ 531 0008 EC01      		movw r28,r24
+ 142:platforms/avr/drivers/i2c_master.c ****     // start receiving without acknowledging reception
+ 143:platforms/avr/drivers/i2c_master.c ****     TWCR = (1 << TWINT) | (1 << TWEN);
+ 532               		.loc 1 143 5 is_stmt 1 view .LVU122
+ 533               		.loc 1 143 10 is_stmt 0 view .LVU123
+ 534 000a 84E8      		ldi r24,lo8(-124)
+ 535               	.LVL41:
+ 536               		.loc 1 143 10 view .LVU124
+ 537 000c 8093 BC00 		sts 188,r24
+ 144:platforms/avr/drivers/i2c_master.c **** 
+ 145:platforms/avr/drivers/i2c_master.c ****     uint16_t timeout_timer = timer_read();
+ 538               		.loc 1 145 5 is_stmt 1 view .LVU125
+ 539               		.loc 1 145 30 is_stmt 0 view .LVU126
+ 540 0010 0E94 0000 		call timer_read
+ 541               	.LVL42:
+ 542 0014 8C01      		movw r16,r24
+ 543               	.LVL43:
+ 146:platforms/avr/drivers/i2c_master.c ****     while (!(TWCR & (1 << TWINT))) {
+ 544               		.loc 1 146 5 is_stmt 1 view .LVU127
+ 545               	.L47:
+ 546               		.loc 1 146 14 is_stmt 0 view .LVU128
+ 547 0016 8091 BC00 		lds r24,188
+ 548               		.loc 1 146 11 view .LVU129
+ 549 001a 87FF      		sbrs r24,7
+ 550 001c 00C0      		rjmp .L49
+ 147:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 148:platforms/avr/drivers/i2c_master.c ****             return I2C_STATUS_TIMEOUT;
+ 149:platforms/avr/drivers/i2c_master.c ****         }
+ 150:platforms/avr/drivers/i2c_master.c ****     }
+ 151:platforms/avr/drivers/i2c_master.c **** 
+ 152:platforms/avr/drivers/i2c_master.c ****     // return received data from TWDR
+ 153:platforms/avr/drivers/i2c_master.c ****     return TWDR;
+ 551               		.loc 1 153 5 is_stmt 1 view .LVU130
+ 552               		.loc 1 153 12 is_stmt 0 view .LVU131
+ 553 001e 8091 BB00 		lds r24,187
+ 554 0022 90E0      		ldi r25,0
+ 555               	.L45:
+ 556               	/* epilogue start */
+ 154:platforms/avr/drivers/i2c_master.c **** }
+ 557               		.loc 1 154 1 view .LVU132
+ 558 0024 DF91      		pop r29
+ 559 0026 CF91      		pop r28
+ 560               	.LVL44:
+ 561               		.loc 1 154 1 view .LVU133
+ 562 0028 1F91      		pop r17
+ 563 002a 0F91      		pop r16
+ 564               	.LVL45:
+ 565               		.loc 1 154 1 view .LVU134
+ 566 002c 0895      		ret
+ 567               	.LVL46:
+ 568               	.L49:
+ 147:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 569               		.loc 1 147 9 is_stmt 1 view .LVU135
+ 147:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 570               		.loc 1 147 12 is_stmt 0 view .LVU136
+ 571 002e CF3F      		cpi r28,-1
+ 572 0030 DC07      		cpc r29,r28
+ 573 0032 01F0      		breq .L47
+ 147:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 574               		.loc 1 147 52 discriminator 1 view .LVU137
+ 575 0034 0E94 0000 		call timer_read
+ 576               	.LVL47:
+ 147:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 577               		.loc 1 147 65 discriminator 1 view .LVU138
+ 578 0038 801B      		sub r24,r16
+ 579 003a 910B      		sbc r25,r17
+ 147:platforms/avr/drivers/i2c_master.c ****         if ((timeout != I2C_TIMEOUT_INFINITE) && ((timer_read() - timeout_timer) >= timeout)) {
+ 580               		.loc 1 147 47 discriminator 1 view .LVU139
+ 581 003c 8C17      		cp r24,r28
+ 582 003e 9D07      		cpc r25,r29
+ 583 0040 00F0      		brlo .L47
+ 148:platforms/avr/drivers/i2c_master.c ****         }
+ 584               		.loc 1 148 20 view .LVU140
+ 585 0042 8EEF      		ldi r24,lo8(-2)
+ 586 0044 9FEF      		ldi r25,lo8(-1)
+ 587 0046 00C0      		rjmp .L45
+ 588               		.cfi_endproc
+ 589               	.LFE13:
+ 591               		.section	.text.i2c_transmit,"ax",@progbits
+ 592               	.global	i2c_transmit
+ 594               	i2c_transmit:
+ 595               	.LVL48:
+ 596               	.LFB14:
+ 155:platforms/avr/drivers/i2c_master.c **** 
+ 156:platforms/avr/drivers/i2c_master.c **** i2c_status_t i2c_transmit(uint8_t address, const uint8_t* data, uint16_t length, uint16_t timeout) 
+ 597               		.loc 1 156 100 is_stmt 1 view -0
+ 598               		.cfi_startproc
+ 599               		.loc 1 156 100 is_stmt 0 view .LVU142
+ 600 0000 CF92      		push r12
+ 601               	.LCFI23:
+ 602               		.cfi_def_cfa_offset 3
+ 603               		.cfi_offset 12, -2
+ 604 0002 DF92      		push r13
+ 605               	.LCFI24:
+ 606               		.cfi_def_cfa_offset 4
+ 607               		.cfi_offset 13, -3
+ 608 0004 EF92      		push r14
+ 609               	.LCFI25:
+ 610               		.cfi_def_cfa_offset 5
+ 611               		.cfi_offset 14, -4
+ 612 0006 FF92      		push r15
+ 613               	.LCFI26:
+ 614               		.cfi_def_cfa_offset 6
+ 615               		.cfi_offset 15, -5
+ 616 0008 0F93      		push r16
+ 617               	.LCFI27:
+ 618               		.cfi_def_cfa_offset 7
+ 619               		.cfi_offset 16, -6
+ 620 000a 1F93      		push r17
+ 621               	.LCFI28:
+ 622               		.cfi_def_cfa_offset 8
+ 623               		.cfi_offset 17, -7
+ 624 000c CF93      		push r28
+ 625               	.LCFI29:
+ 626               		.cfi_def_cfa_offset 9
+ 627               		.cfi_offset 28, -8
+ 628 000e DF93      		push r29
+ 629               	.LCFI30:
+ 630               		.cfi_def_cfa_offset 10
+ 631               		.cfi_offset 29, -9
+ 632               	/* prologue: function */
+ 633               	/* frame size = 0 */
+ 634               	/* stack size = 8 */
+ 635               	.L__stack_usage = 8
+ 636 0010 6B01      		movw r12,r22
+ 637 0012 8A01      		movw r16,r20
+ 638 0014 7901      		movw r14,r18
+ 157:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(address | I2C_WRITE, timeout);
+ 639               		.loc 1 157 5 is_stmt 1 view .LVU143
+ 640               		.loc 1 157 27 is_stmt 0 view .LVU144
+ 641 0016 B901      		movw r22,r18
+ 642               	.LVL49:
+ 643               		.loc 1 157 27 view .LVU145
+ 644 0018 0E94 0000 		call i2c_start
+ 645               	.LVL50:
+ 158:platforms/avr/drivers/i2c_master.c **** 
+ 159:platforms/avr/drivers/i2c_master.c ****     for (uint16_t i = 0; i < length && status >= 0; i++) {
+ 646               		.loc 1 159 5 is_stmt 1 view .LVU146
+ 647               	.LBB15:
+ 648               		.loc 1 159 10 view .LVU147
+ 649               		.loc 1 159 10 is_stmt 0 view .LVU148
+ 650 001c E601      		movw r28,r12
+ 651 001e 0C0D      		add r16,r12
+ 652 0020 1D1D      		adc r17,r13
+ 653               	.LVL51:
+ 654               	.L54:
+ 655               		.loc 1 159 5 discriminator 1 view .LVU149
+ 656 0022 C017      		cp r28,r16
+ 657 0024 D107      		cpc r29,r17
+ 658 0026 01F4      		brne .L55
+ 659               	.L57:
+ 660               		.loc 1 159 5 discriminator 1 view .LVU150
+ 661               	.LBE15:
+ 160:platforms/avr/drivers/i2c_master.c ****         status = i2c_write(data[i], timeout);
+ 161:platforms/avr/drivers/i2c_master.c ****     }
+ 162:platforms/avr/drivers/i2c_master.c **** 
+ 163:platforms/avr/drivers/i2c_master.c ****     i2c_stop();
+ 662               		.loc 1 163 5 is_stmt 1 view .LVU151
+ 663               	.LBB16:
+ 664               	.LBI16:
+ 164:platforms/avr/drivers/i2c_master.c **** 
+ 165:platforms/avr/drivers/i2c_master.c ****     return status;
+ 166:platforms/avr/drivers/i2c_master.c **** }
+ 167:platforms/avr/drivers/i2c_master.c **** 
+ 168:platforms/avr/drivers/i2c_master.c **** i2c_status_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length, uint16_t timeout) {
+ 169:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(address | I2C_READ, timeout);
+ 170:platforms/avr/drivers/i2c_master.c **** 
+ 171:platforms/avr/drivers/i2c_master.c ****     for (uint16_t i = 0; i < (length - 1) && status >= 0; i++) {
+ 172:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 173:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 174:platforms/avr/drivers/i2c_master.c ****             data[i] = status;
+ 175:platforms/avr/drivers/i2c_master.c ****         }
+ 176:platforms/avr/drivers/i2c_master.c ****     }
+ 177:platforms/avr/drivers/i2c_master.c **** 
+ 178:platforms/avr/drivers/i2c_master.c ****     if (status >= 0) {
+ 179:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_nack(timeout);
+ 180:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 181:platforms/avr/drivers/i2c_master.c ****             data[(length - 1)] = status;
+ 182:platforms/avr/drivers/i2c_master.c ****         }
+ 183:platforms/avr/drivers/i2c_master.c ****     }
+ 184:platforms/avr/drivers/i2c_master.c **** 
+ 185:platforms/avr/drivers/i2c_master.c ****     i2c_stop();
+ 186:platforms/avr/drivers/i2c_master.c **** 
+ 187:platforms/avr/drivers/i2c_master.c ****     return (status < 0) ? status : I2C_STATUS_SUCCESS;
+ 188:platforms/avr/drivers/i2c_master.c **** }
+ 189:platforms/avr/drivers/i2c_master.c **** 
+ 190:platforms/avr/drivers/i2c_master.c **** i2c_status_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, const uint8_t* data, uint16_t length, u
+ 191:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(devaddr | 0x00, timeout);
+ 192:platforms/avr/drivers/i2c_master.c ****     if (status >= 0) {
+ 193:platforms/avr/drivers/i2c_master.c ****         status = i2c_write(regaddr, timeout);
+ 194:platforms/avr/drivers/i2c_master.c **** 
+ 195:platforms/avr/drivers/i2c_master.c ****         for (uint16_t i = 0; i < length && status >= 0; i++) {
+ 196:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 197:platforms/avr/drivers/i2c_master.c ****         }
+ 198:platforms/avr/drivers/i2c_master.c ****     }
+ 199:platforms/avr/drivers/i2c_master.c **** 
+ 200:platforms/avr/drivers/i2c_master.c ****     i2c_stop();
+ 201:platforms/avr/drivers/i2c_master.c **** 
+ 202:platforms/avr/drivers/i2c_master.c ****     return status;
+ 203:platforms/avr/drivers/i2c_master.c **** }
+ 204:platforms/avr/drivers/i2c_master.c **** 
+ 205:platforms/avr/drivers/i2c_master.c **** i2c_status_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length, uint16_t
+ 206:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(devaddr, timeout);
+ 207:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 208:platforms/avr/drivers/i2c_master.c ****         goto error;
+ 209:platforms/avr/drivers/i2c_master.c ****     }
+ 210:platforms/avr/drivers/i2c_master.c **** 
+ 211:platforms/avr/drivers/i2c_master.c ****     status = i2c_write(regaddr, timeout);
+ 212:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 213:platforms/avr/drivers/i2c_master.c ****         goto error;
+ 214:platforms/avr/drivers/i2c_master.c ****     }
+ 215:platforms/avr/drivers/i2c_master.c **** 
+ 216:platforms/avr/drivers/i2c_master.c ****     status = i2c_start(devaddr | 0x01, timeout);
+ 217:platforms/avr/drivers/i2c_master.c **** 
+ 218:platforms/avr/drivers/i2c_master.c ****     for (uint16_t i = 0; i < (length - 1) && status >= 0; i++) {
+ 219:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 220:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 221:platforms/avr/drivers/i2c_master.c ****             data[i] = status;
+ 222:platforms/avr/drivers/i2c_master.c ****         }
+ 223:platforms/avr/drivers/i2c_master.c ****     }
+ 224:platforms/avr/drivers/i2c_master.c **** 
+ 225:platforms/avr/drivers/i2c_master.c ****     if (status >= 0) {
+ 226:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_nack(timeout);
+ 227:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 228:platforms/avr/drivers/i2c_master.c ****             data[(length - 1)] = status;
+ 229:platforms/avr/drivers/i2c_master.c ****         }
+ 230:platforms/avr/drivers/i2c_master.c ****     }
+ 231:platforms/avr/drivers/i2c_master.c **** 
+ 232:platforms/avr/drivers/i2c_master.c **** error:
+ 233:platforms/avr/drivers/i2c_master.c ****     i2c_stop();
+ 234:platforms/avr/drivers/i2c_master.c **** 
+ 235:platforms/avr/drivers/i2c_master.c ****     return (status < 0) ? status : I2C_STATUS_SUCCESS;
+ 236:platforms/avr/drivers/i2c_master.c **** }
+ 237:platforms/avr/drivers/i2c_master.c **** 
+ 238:platforms/avr/drivers/i2c_master.c **** void i2c_stop(void) {
+ 665               		.loc 1 238 6 view .LVU152
+ 666               	.LBB17:
+ 239:platforms/avr/drivers/i2c_master.c ****     // transmit STOP condition
+ 240:platforms/avr/drivers/i2c_master.c ****     TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
+ 667               		.loc 1 240 5 view .LVU153
+ 668               		.loc 1 240 10 is_stmt 0 view .LVU154
+ 669 0028 24E9      		ldi r18,lo8(-108)
+ 670 002a 2093 BC00 		sts 188,r18
+ 671               	.LBE17:
+ 672               	.LBE16:
+ 165:platforms/avr/drivers/i2c_master.c **** }
+ 673               		.loc 1 165 5 is_stmt 1 view .LVU155
+ 674               	/* epilogue start */
+ 166:platforms/avr/drivers/i2c_master.c **** 
+ 675               		.loc 1 166 1 is_stmt 0 view .LVU156
+ 676 002e DF91      		pop r29
+ 677 0030 CF91      		pop r28
+ 678               	.LVL52:
+ 166:platforms/avr/drivers/i2c_master.c **** 
+ 679               		.loc 1 166 1 view .LVU157
+ 680 0032 1F91      		pop r17
+ 681 0034 0F91      		pop r16
+ 682 0036 FF90      		pop r15
+ 683 0038 EF90      		pop r14
+ 684               	.LVL53:
+ 166:platforms/avr/drivers/i2c_master.c **** 
+ 685               		.loc 1 166 1 view .LVU158
+ 686 003a DF90      		pop r13
+ 687 003c CF90      		pop r12
+ 688               	.LVL54:
+ 166:platforms/avr/drivers/i2c_master.c **** 
+ 689               		.loc 1 166 1 view .LVU159
+ 690 003e 0895      		ret
+ 691               	.LVL55:
+ 692               	.L55:
+ 693               	.LBB18:
+ 159:platforms/avr/drivers/i2c_master.c ****         status = i2c_write(data[i], timeout);
+ 694               		.loc 1 159 37 discriminator 3 view .LVU160
+ 695 0040 97FD      		sbrc r25,7
+ 696 0042 00C0      		rjmp .L57
+ 160:platforms/avr/drivers/i2c_master.c ****     }
+ 697               		.loc 1 160 9 is_stmt 1 discriminator 4 view .LVU161
+ 160:platforms/avr/drivers/i2c_master.c ****     }
+ 698               		.loc 1 160 18 is_stmt 0 discriminator 4 view .LVU162
+ 699 0044 B701      		movw r22,r14
+ 700 0046 8991      		ld r24,Y+
+ 701               	.LVL56:
+ 160:platforms/avr/drivers/i2c_master.c ****     }
+ 702               		.loc 1 160 18 discriminator 4 view .LVU163
+ 703 0048 0E94 0000 		call i2c_write
+ 704               	.LVL57:
+ 160:platforms/avr/drivers/i2c_master.c ****     }
+ 705               		.loc 1 160 18 discriminator 4 view .LVU164
+ 706 004c 00C0      		rjmp .L54
+ 707               	.LBE18:
+ 708               		.cfi_endproc
+ 709               	.LFE14:
+ 711               		.section	.text.i2c_receive,"ax",@progbits
+ 712               	.global	i2c_receive
+ 714               	i2c_receive:
+ 715               	.LVL58:
+ 716               	.LFB15:
+ 168:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(address | I2C_READ, timeout);
+ 717               		.loc 1 168 93 is_stmt 1 view -0
+ 718               		.cfi_startproc
+ 168:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(address | I2C_READ, timeout);
+ 719               		.loc 1 168 93 is_stmt 0 view .LVU166
+ 720 0000 CF92      		push r12
+ 721               	.LCFI31:
+ 722               		.cfi_def_cfa_offset 3
+ 723               		.cfi_offset 12, -2
+ 724 0002 DF92      		push r13
+ 725               	.LCFI32:
+ 726               		.cfi_def_cfa_offset 4
+ 727               		.cfi_offset 13, -3
+ 728 0004 EF92      		push r14
+ 729               	.LCFI33:
+ 730               		.cfi_def_cfa_offset 5
+ 731               		.cfi_offset 14, -4
+ 732 0006 FF92      		push r15
+ 733               	.LCFI34:
+ 734               		.cfi_def_cfa_offset 6
+ 735               		.cfi_offset 15, -5
+ 736 0008 0F93      		push r16
+ 737               	.LCFI35:
+ 738               		.cfi_def_cfa_offset 7
+ 739               		.cfi_offset 16, -6
+ 740 000a 1F93      		push r17
+ 741               	.LCFI36:
+ 742               		.cfi_def_cfa_offset 8
+ 743               		.cfi_offset 17, -7
+ 744 000c CF93      		push r28
+ 745               	.LCFI37:
+ 746               		.cfi_def_cfa_offset 9
+ 747               		.cfi_offset 28, -8
+ 748 000e DF93      		push r29
+ 749               	.LCFI38:
+ 750               		.cfi_def_cfa_offset 10
+ 751               		.cfi_offset 29, -9
+ 752               	/* prologue: function */
+ 753               	/* frame size = 0 */
+ 754               	/* stack size = 8 */
+ 755               	.L__stack_usage = 8
+ 756 0010 EB01      		movw r28,r22
+ 757 0012 8A01      		movw r16,r20
+ 758 0014 6901      		movw r12,r18
+ 169:platforms/avr/drivers/i2c_master.c **** 
+ 759               		.loc 1 169 5 is_stmt 1 view .LVU167
+ 169:platforms/avr/drivers/i2c_master.c **** 
+ 760               		.loc 1 169 27 is_stmt 0 view .LVU168
+ 761 0016 B901      		movw r22,r18
+ 762               	.LVL59:
+ 169:platforms/avr/drivers/i2c_master.c **** 
+ 763               		.loc 1 169 27 view .LVU169
+ 764 0018 8160      		ori r24,lo8(1)
+ 765               	.LVL60:
+ 169:platforms/avr/drivers/i2c_master.c **** 
+ 766               		.loc 1 169 27 view .LVU170
+ 767 001a 0E94 0000 		call i2c_start
+ 768               	.LVL61:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 769               		.loc 1 171 5 is_stmt 1 view .LVU171
+ 770               	.LBB22:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 771               		.loc 1 171 10 view .LVU172
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 772               		.loc 1 171 19 is_stmt 0 view .LVU173
+ 773 001e F12C      		mov r15,__zero_reg__
+ 774 0020 E12C      		mov r14,__zero_reg__
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 775               		.loc 1 171 38 view .LVU174
+ 776 0022 0150      		subi r16,1
+ 777 0024 1109      		sbc r17,__zero_reg__
+ 778               	.LVL62:
+ 779               	.L60:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 780               		.loc 1 171 5 discriminator 1 view .LVU175
+ 781 0026 E016      		cp r14,r16
+ 782 0028 F106      		cpc r15,r17
+ 783 002a 00F4      		brsh .L62
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 784               		.loc 1 171 43 discriminator 3 view .LVU176
+ 785 002c 97FF      		sbrs r25,7
+ 786 002e 00C0      		rjmp .L63
+ 787               	.LVL63:
+ 788               	.L64:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 789               		.loc 1 171 43 discriminator 3 view .LVU177
+ 790               	.LBE22:
+ 185:platforms/avr/drivers/i2c_master.c **** 
+ 791               		.loc 1 185 5 is_stmt 1 view .LVU178
+ 792               	.LBB23:
+ 793               	.LBI23:
+ 238:platforms/avr/drivers/i2c_master.c ****     // transmit STOP condition
+ 794               		.loc 1 238 6 view .LVU179
+ 795               	.LBB24:
+ 796               		.loc 1 240 5 view .LVU180
+ 797               		.loc 1 240 10 is_stmt 0 view .LVU181
+ 798 0030 24E9      		ldi r18,lo8(-108)
+ 799 0032 2093 BC00 		sts 188,r18
+ 800               	.LBE24:
+ 801               	.LBE23:
+ 187:platforms/avr/drivers/i2c_master.c **** }
+ 802               		.loc 1 187 5 is_stmt 1 view .LVU182
+ 187:platforms/avr/drivers/i2c_master.c **** }
+ 803               		.loc 1 187 34 is_stmt 0 view .LVU183
+ 804 0036 1816      		cp __zero_reg__,r24
+ 805 0038 1906      		cpc __zero_reg__,r25
+ 806 003a 04F4      		brge .L65
+ 187:platforms/avr/drivers/i2c_master.c **** }
+ 807               		.loc 1 187 34 view .LVU184
+ 808 003c 90E0      		ldi r25,0
+ 809 003e 80E0      		ldi r24,0
+ 810               	.LVL64:
+ 811               	.L65:
+ 812               	/* epilogue start */
+ 188:platforms/avr/drivers/i2c_master.c **** 
+ 813               		.loc 1 188 1 view .LVU185
+ 814 0040 DF91      		pop r29
+ 815 0042 CF91      		pop r28
+ 816 0044 1F91      		pop r17
+ 817 0046 0F91      		pop r16
+ 818               	.LVL65:
+ 188:platforms/avr/drivers/i2c_master.c **** 
+ 819               		.loc 1 188 1 view .LVU186
+ 820 0048 FF90      		pop r15
+ 821 004a EF90      		pop r14
+ 822               	.LVL66:
+ 188:platforms/avr/drivers/i2c_master.c **** 
+ 823               		.loc 1 188 1 view .LVU187
+ 824 004c DF90      		pop r13
+ 825 004e CF90      		pop r12
+ 826               	.LVL67:
+ 188:platforms/avr/drivers/i2c_master.c **** 
+ 827               		.loc 1 188 1 view .LVU188
+ 828 0050 0895      		ret
+ 829               	.LVL68:
+ 830               	.L63:
+ 831               	.LBB25:
+ 172:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 832               		.loc 1 172 9 is_stmt 1 view .LVU189
+ 172:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 833               		.loc 1 172 18 is_stmt 0 view .LVU190
+ 834 0052 C601      		movw r24,r12
+ 835               	.LVL69:
+ 172:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 836               		.loc 1 172 18 view .LVU191
+ 837 0054 0E94 0000 		call i2c_read_ack
+ 838               	.LVL70:
+ 173:platforms/avr/drivers/i2c_master.c ****             data[i] = status;
+ 839               		.loc 1 173 9 is_stmt 1 view .LVU192
+ 173:platforms/avr/drivers/i2c_master.c ****             data[i] = status;
+ 840               		.loc 1 173 12 is_stmt 0 view .LVU193
+ 841 0058 97FD      		sbrc r25,7
+ 842 005a 00C0      		rjmp .L61
+ 174:platforms/avr/drivers/i2c_master.c ****         }
+ 843               		.loc 1 174 13 is_stmt 1 view .LVU194
+ 174:platforms/avr/drivers/i2c_master.c ****         }
+ 844               		.loc 1 174 21 is_stmt 0 view .LVU195
+ 845 005c FE01      		movw r30,r28
+ 846 005e EE0D      		add r30,r14
+ 847 0060 FF1D      		adc r31,r15
+ 848 0062 8083      		st Z,r24
+ 849               	.L61:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 850               		.loc 1 171 60 discriminator 2 view .LVU196
+ 851 0064 2FEF      		ldi r18,-1
+ 852 0066 E21A      		sub r14,r18
+ 853 0068 F20A      		sbc r15,r18
+ 854               	.LVL71:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 855               		.loc 1 171 60 discriminator 2 view .LVU197
+ 856 006a 00C0      		rjmp .L60
+ 857               	.L62:
+ 171:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 858               		.loc 1 171 60 discriminator 2 view .LVU198
+ 859               	.LBE25:
+ 178:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_nack(timeout);
+ 860               		.loc 1 178 5 is_stmt 1 view .LVU199
+ 178:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_nack(timeout);
+ 861               		.loc 1 178 8 is_stmt 0 view .LVU200
+ 862 006c 97FD      		sbrc r25,7
+ 863 006e 00C0      		rjmp .L64
+ 179:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 864               		.loc 1 179 9 is_stmt 1 view .LVU201
+ 179:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 865               		.loc 1 179 18 is_stmt 0 view .LVU202
+ 866 0070 C601      		movw r24,r12
+ 867               	.LVL72:
+ 179:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 868               		.loc 1 179 18 view .LVU203
+ 869 0072 0E94 0000 		call i2c_read_nack
+ 870               	.LVL73:
+ 180:platforms/avr/drivers/i2c_master.c ****             data[(length - 1)] = status;
+ 871               		.loc 1 180 9 is_stmt 1 view .LVU204
+ 180:platforms/avr/drivers/i2c_master.c ****             data[(length - 1)] = status;
+ 872               		.loc 1 180 12 is_stmt 0 view .LVU205
+ 873 0076 97FD      		sbrc r25,7
+ 874 0078 00C0      		rjmp .L64
+ 181:platforms/avr/drivers/i2c_master.c ****         }
+ 875               		.loc 1 181 13 is_stmt 1 view .LVU206
+ 181:platforms/avr/drivers/i2c_master.c ****         }
+ 876               		.loc 1 181 32 is_stmt 0 view .LVU207
+ 877 007a C00F      		add r28,r16
+ 878 007c D11F      		adc r29,r17
+ 879               	.LVL74:
+ 181:platforms/avr/drivers/i2c_master.c ****         }
+ 880               		.loc 1 181 32 view .LVU208
+ 881 007e 8883      		st Y,r24
+ 882 0080 00C0      		rjmp .L64
+ 883               		.cfi_endproc
+ 884               	.LFE15:
+ 886               		.section	.text.i2c_writeReg,"ax",@progbits
+ 887               	.global	i2c_writeReg
+ 889               	i2c_writeReg:
+ 890               	.LVL75:
+ 891               	.LFB16:
+ 190:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(devaddr | 0x00, timeout);
+ 892               		.loc 1 190 117 is_stmt 1 view -0
+ 893               		.cfi_startproc
+ 190:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(devaddr | 0x00, timeout);
+ 894               		.loc 1 190 117 is_stmt 0 view .LVU210
+ 895 0000 CF92      		push r12
+ 896               	.LCFI39:
+ 897               		.cfi_def_cfa_offset 3
+ 898               		.cfi_offset 12, -2
+ 899 0002 DF92      		push r13
+ 900               	.LCFI40:
+ 901               		.cfi_def_cfa_offset 4
+ 902               		.cfi_offset 13, -3
+ 903 0004 EF92      		push r14
+ 904               	.LCFI41:
+ 905               		.cfi_def_cfa_offset 5
+ 906               		.cfi_offset 14, -4
+ 907 0006 FF92      		push r15
+ 908               	.LCFI42:
+ 909               		.cfi_def_cfa_offset 6
+ 910               		.cfi_offset 15, -5
+ 911 0008 0F93      		push r16
+ 912               	.LCFI43:
+ 913               		.cfi_def_cfa_offset 7
+ 914               		.cfi_offset 16, -6
+ 915 000a 1F93      		push r17
+ 916               	.LCFI44:
+ 917               		.cfi_def_cfa_offset 8
+ 918               		.cfi_offset 17, -7
+ 919 000c CF93      		push r28
+ 920               	.LCFI45:
+ 921               		.cfi_def_cfa_offset 9
+ 922               		.cfi_offset 28, -8
+ 923 000e DF93      		push r29
+ 924               	.LCFI46:
+ 925               		.cfi_def_cfa_offset 10
+ 926               		.cfi_offset 29, -9
+ 927               	/* prologue: function */
+ 928               	/* frame size = 0 */
+ 929               	/* stack size = 8 */
+ 930               	.L__stack_usage = 8
+ 931 0010 C62F      		mov r28,r22
+ 932 0012 6A01      		movw r12,r20
+ 933 0014 7901      		movw r14,r18
+ 191:platforms/avr/drivers/i2c_master.c ****     if (status >= 0) {
+ 934               		.loc 1 191 5 is_stmt 1 view .LVU211
+ 191:platforms/avr/drivers/i2c_master.c ****     if (status >= 0) {
+ 935               		.loc 1 191 27 is_stmt 0 view .LVU212
+ 936 0016 B801      		movw r22,r16
+ 937               	.LVL76:
+ 191:platforms/avr/drivers/i2c_master.c ****     if (status >= 0) {
+ 938               		.loc 1 191 27 view .LVU213
+ 939 0018 0E94 0000 		call i2c_start
+ 940               	.LVL77:
+ 192:platforms/avr/drivers/i2c_master.c ****         status = i2c_write(regaddr, timeout);
+ 941               		.loc 1 192 5 is_stmt 1 view .LVU214
+ 192:platforms/avr/drivers/i2c_master.c ****         status = i2c_write(regaddr, timeout);
+ 942               		.loc 1 192 8 is_stmt 0 view .LVU215
+ 943 001c 97FD      		sbrc r25,7
+ 944 001e 00C0      		rjmp .L67
+ 193:platforms/avr/drivers/i2c_master.c **** 
+ 945               		.loc 1 193 9 is_stmt 1 view .LVU216
+ 193:platforms/avr/drivers/i2c_master.c **** 
+ 946               		.loc 1 193 18 is_stmt 0 view .LVU217
+ 947 0020 B801      		movw r22,r16
+ 948 0022 8C2F      		mov r24,r28
+ 949               	.LVL78:
+ 193:platforms/avr/drivers/i2c_master.c **** 
+ 950               		.loc 1 193 18 view .LVU218
+ 951 0024 0E94 0000 		call i2c_write
+ 952               	.LVL79:
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 953               		.loc 1 195 9 is_stmt 1 view .LVU219
+ 954               	.LBB29:
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 955               		.loc 1 195 14 view .LVU220
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 956               		.loc 1 195 14 is_stmt 0 view .LVU221
+ 957 0028 E601      		movw r28,r12
+ 958               	.LVL80:
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 959               		.loc 1 195 14 view .LVU222
+ 960 002a EC0C      		add r14,r12
+ 961 002c FD1C      		adc r15,r13
+ 962               	.LVL81:
+ 963               	.L68:
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 964               		.loc 1 195 9 discriminator 1 view .LVU223
+ 965 002e CE15      		cp r28,r14
+ 966 0030 DF05      		cpc r29,r15
+ 967 0032 01F0      		breq .L67
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 968               		.loc 1 195 41 discriminator 3 view .LVU224
+ 969 0034 97FF      		sbrs r25,7
+ 970 0036 00C0      		rjmp .L69
+ 971               	.LVL82:
+ 972               	.L67:
+ 195:platforms/avr/drivers/i2c_master.c ****             status = i2c_write(data[i], timeout);
+ 973               		.loc 1 195 41 discriminator 3 view .LVU225
+ 974               	.LBE29:
+ 200:platforms/avr/drivers/i2c_master.c **** 
+ 975               		.loc 1 200 5 is_stmt 1 view .LVU226
+ 976               	.LBB30:
+ 977               	.LBI30:
+ 238:platforms/avr/drivers/i2c_master.c ****     // transmit STOP condition
+ 978               		.loc 1 238 6 view .LVU227
+ 979               	.LBB31:
+ 980               		.loc 1 240 5 view .LVU228
+ 981               		.loc 1 240 10 is_stmt 0 view .LVU229
+ 982 0038 24E9      		ldi r18,lo8(-108)
+ 983 003a 2093 BC00 		sts 188,r18
+ 984               	.LBE31:
+ 985               	.LBE30:
+ 202:platforms/avr/drivers/i2c_master.c **** }
+ 986               		.loc 1 202 5 is_stmt 1 view .LVU230
+ 987               	/* epilogue start */
+ 203:platforms/avr/drivers/i2c_master.c **** 
+ 988               		.loc 1 203 1 is_stmt 0 view .LVU231
+ 989 003e DF91      		pop r29
+ 990 0040 CF91      		pop r28
+ 991 0042 1F91      		pop r17
+ 992 0044 0F91      		pop r16
+ 993               	.LVL83:
+ 203:platforms/avr/drivers/i2c_master.c **** 
+ 994               		.loc 1 203 1 view .LVU232
+ 995 0046 FF90      		pop r15
+ 996 0048 EF90      		pop r14
+ 997 004a DF90      		pop r13
+ 998 004c CF90      		pop r12
+ 999               	.LVL84:
+ 203:platforms/avr/drivers/i2c_master.c **** 
+ 1000               		.loc 1 203 1 view .LVU233
+ 1001 004e 0895      		ret
+ 1002               	.LVL85:
+ 1003               	.L69:
+ 1004               	.LBB32:
+ 196:platforms/avr/drivers/i2c_master.c ****         }
+ 1005               		.loc 1 196 13 is_stmt 1 discriminator 4 view .LVU234
+ 196:platforms/avr/drivers/i2c_master.c ****         }
+ 1006               		.loc 1 196 22 is_stmt 0 discriminator 4 view .LVU235
+ 1007 0050 B801      		movw r22,r16
+ 1008 0052 8991      		ld r24,Y+
+ 1009               	.LVL86:
+ 196:platforms/avr/drivers/i2c_master.c ****         }
+ 1010               		.loc 1 196 22 discriminator 4 view .LVU236
+ 1011 0054 0E94 0000 		call i2c_write
+ 1012               	.LVL87:
+ 196:platforms/avr/drivers/i2c_master.c ****         }
+ 1013               		.loc 1 196 22 discriminator 4 view .LVU237
+ 1014 0058 00C0      		rjmp .L68
+ 1015               	.LBE32:
+ 1016               		.cfi_endproc
+ 1017               	.LFE16:
+ 1019               		.section	.text.i2c_readReg,"ax",@progbits
+ 1020               	.global	i2c_readReg
+ 1022               	i2c_readReg:
+ 1023               	.LVL88:
+ 1024               	.LFB17:
+ 205:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(devaddr, timeout);
+ 1025               		.loc 1 205 110 is_stmt 1 view -0
+ 1026               		.cfi_startproc
+ 205:platforms/avr/drivers/i2c_master.c ****     i2c_status_t status = i2c_start(devaddr, timeout);
+ 1027               		.loc 1 205 110 is_stmt 0 view .LVU239
+ 1028 0000 CF92      		push r12
+ 1029               	.LCFI47:
+ 1030               		.cfi_def_cfa_offset 3
+ 1031               		.cfi_offset 12, -2
+ 1032 0002 DF92      		push r13
+ 1033               	.LCFI48:
+ 1034               		.cfi_def_cfa_offset 4
+ 1035               		.cfi_offset 13, -3
+ 1036 0004 EF92      		push r14
+ 1037               	.LCFI49:
+ 1038               		.cfi_def_cfa_offset 5
+ 1039               		.cfi_offset 14, -4
+ 1040 0006 FF92      		push r15
+ 1041               	.LCFI50:
+ 1042               		.cfi_def_cfa_offset 6
+ 1043               		.cfi_offset 15, -5
+ 1044 0008 0F93      		push r16
+ 1045               	.LCFI51:
+ 1046               		.cfi_def_cfa_offset 7
+ 1047               		.cfi_offset 16, -6
+ 1048 000a 1F93      		push r17
+ 1049               	.LCFI52:
+ 1050               		.cfi_def_cfa_offset 8
+ 1051               		.cfi_offset 17, -7
+ 1052 000c CF93      		push r28
+ 1053               	.LCFI53:
+ 1054               		.cfi_def_cfa_offset 9
+ 1055               		.cfi_offset 28, -8
+ 1056 000e DF93      		push r29
+ 1057               	.LCFI54:
+ 1058               		.cfi_def_cfa_offset 10
+ 1059               		.cfi_offset 29, -9
+ 1060               	/* prologue: function */
+ 1061               	/* frame size = 0 */
+ 1062               	/* stack size = 8 */
+ 1063               	.L__stack_usage = 8
+ 1064 0010 F82E      		mov r15,r24
+ 1065 0012 E62E      		mov r14,r22
+ 1066 0014 EA01      		movw r28,r20
+ 1067 0016 6901      		movw r12,r18
+ 206:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 1068               		.loc 1 206 5 is_stmt 1 view .LVU240
+ 206:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 1069               		.loc 1 206 27 is_stmt 0 view .LVU241
+ 1070 0018 B801      		movw r22,r16
+ 1071               	.LVL89:
+ 206:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 1072               		.loc 1 206 27 view .LVU242
+ 1073 001a 0E94 0000 		call i2c_start
+ 1074               	.LVL90:
+ 207:platforms/avr/drivers/i2c_master.c ****         goto error;
+ 1075               		.loc 1 207 5 is_stmt 1 view .LVU243
+ 207:platforms/avr/drivers/i2c_master.c ****         goto error;
+ 1076               		.loc 1 207 8 is_stmt 0 view .LVU244
+ 1077 001e 97FD      		sbrc r25,7
+ 1078 0020 00C0      		rjmp .L71
+ 211:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 1079               		.loc 1 211 5 is_stmt 1 view .LVU245
+ 211:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 1080               		.loc 1 211 14 is_stmt 0 view .LVU246
+ 1081 0022 B801      		movw r22,r16
+ 1082 0024 8E2D      		mov r24,r14
+ 1083               	.LVL91:
+ 211:platforms/avr/drivers/i2c_master.c ****     if (status < 0) {
+ 1084               		.loc 1 211 14 view .LVU247
+ 1085 0026 0E94 0000 		call i2c_write
+ 1086               	.LVL92:
+ 212:platforms/avr/drivers/i2c_master.c ****         goto error;
+ 1087               		.loc 1 212 5 is_stmt 1 view .LVU248
+ 212:platforms/avr/drivers/i2c_master.c ****         goto error;
+ 1088               		.loc 1 212 8 is_stmt 0 view .LVU249
+ 1089 002a 97FD      		sbrc r25,7
+ 1090 002c 00C0      		rjmp .L71
+ 216:platforms/avr/drivers/i2c_master.c **** 
+ 1091               		.loc 1 216 5 is_stmt 1 view .LVU250
+ 216:platforms/avr/drivers/i2c_master.c **** 
+ 1092               		.loc 1 216 14 is_stmt 0 view .LVU251
+ 1093 002e B801      		movw r22,r16
+ 1094 0030 8F2D      		mov r24,r15
+ 1095               	.LVL93:
+ 216:platforms/avr/drivers/i2c_master.c **** 
+ 1096               		.loc 1 216 14 view .LVU252
+ 1097 0032 8160      		ori r24,lo8(1)
+ 1098 0034 0E94 0000 		call i2c_start
+ 1099               	.LVL94:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1100               		.loc 1 218 5 is_stmt 1 view .LVU253
+ 1101               	.LBB36:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1102               		.loc 1 218 10 view .LVU254
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1103               		.loc 1 218 19 is_stmt 0 view .LVU255
+ 1104 0038 F12C      		mov r15,__zero_reg__
+ 1105               	.LVL95:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1106               		.loc 1 218 19 view .LVU256
+ 1107 003a E12C      		mov r14,__zero_reg__
+ 1108               	.LVL96:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1109               		.loc 1 218 38 view .LVU257
+ 1110 003c 21E0      		ldi r18,1
+ 1111 003e C21A      		sub r12,r18
+ 1112 0040 D108      		sbc r13,__zero_reg__
+ 1113               	.LVL97:
+ 1114               	.L72:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1115               		.loc 1 218 5 discriminator 1 view .LVU258
+ 1116 0042 EC14      		cp r14,r12
+ 1117 0044 FD04      		cpc r15,r13
+ 1118 0046 00F4      		brsh .L74
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1119               		.loc 1 218 43 discriminator 3 view .LVU259
+ 1120 0048 97FF      		sbrs r25,7
+ 1121 004a 00C0      		rjmp .L75
+ 1122               	.LVL98:
+ 1123               	.L71:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1124               		.loc 1 218 43 discriminator 3 view .LVU260
+ 1125               	.LBE36:
+ 233:platforms/avr/drivers/i2c_master.c **** 
+ 1126               		.loc 1 233 5 is_stmt 1 view .LVU261
+ 1127               	.LBB37:
+ 1128               	.LBI37:
+ 238:platforms/avr/drivers/i2c_master.c ****     // transmit STOP condition
+ 1129               		.loc 1 238 6 view .LVU262
+ 1130               	.LBB38:
+ 1131               		.loc 1 240 5 view .LVU263
+ 1132               		.loc 1 240 10 is_stmt 0 view .LVU264
+ 1133 004c 24E9      		ldi r18,lo8(-108)
+ 1134 004e 2093 BC00 		sts 188,r18
+ 1135               	.LBE38:
+ 1136               	.LBE37:
+ 235:platforms/avr/drivers/i2c_master.c **** }
+ 1137               		.loc 1 235 5 is_stmt 1 view .LVU265
+ 235:platforms/avr/drivers/i2c_master.c **** }
+ 1138               		.loc 1 235 34 is_stmt 0 view .LVU266
+ 1139 0052 1816      		cp __zero_reg__,r24
+ 1140 0054 1906      		cpc __zero_reg__,r25
+ 1141 0056 04F4      		brge .L76
+ 235:platforms/avr/drivers/i2c_master.c **** }
+ 1142               		.loc 1 235 34 view .LVU267
+ 1143 0058 90E0      		ldi r25,0
+ 1144 005a 80E0      		ldi r24,0
+ 1145               	.LVL99:
+ 1146               	.L76:
+ 1147               	/* epilogue start */
+ 236:platforms/avr/drivers/i2c_master.c **** 
+ 1148               		.loc 1 236 1 view .LVU268
+ 1149 005c DF91      		pop r29
+ 1150 005e CF91      		pop r28
+ 1151 0060 1F91      		pop r17
+ 1152 0062 0F91      		pop r16
+ 1153               	.LVL100:
+ 236:platforms/avr/drivers/i2c_master.c **** 
+ 1154               		.loc 1 236 1 view .LVU269
+ 1155 0064 FF90      		pop r15
+ 1156 0066 EF90      		pop r14
+ 1157 0068 DF90      		pop r13
+ 1158 006a CF90      		pop r12
+ 1159 006c 0895      		ret
+ 1160               	.LVL101:
+ 1161               	.L75:
+ 1162               	.LBB39:
+ 219:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 1163               		.loc 1 219 9 is_stmt 1 view .LVU270
+ 219:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 1164               		.loc 1 219 18 is_stmt 0 view .LVU271
+ 1165 006e C801      		movw r24,r16
+ 1166               	.LVL102:
+ 219:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 1167               		.loc 1 219 18 view .LVU272
+ 1168 0070 0E94 0000 		call i2c_read_ack
+ 1169               	.LVL103:
+ 220:platforms/avr/drivers/i2c_master.c ****             data[i] = status;
+ 1170               		.loc 1 220 9 is_stmt 1 view .LVU273
+ 220:platforms/avr/drivers/i2c_master.c ****             data[i] = status;
+ 1171               		.loc 1 220 12 is_stmt 0 view .LVU274
+ 1172 0074 97FD      		sbrc r25,7
+ 1173 0076 00C0      		rjmp .L73
+ 221:platforms/avr/drivers/i2c_master.c ****         }
+ 1174               		.loc 1 221 13 is_stmt 1 view .LVU275
+ 221:platforms/avr/drivers/i2c_master.c ****         }
+ 1175               		.loc 1 221 21 is_stmt 0 view .LVU276
+ 1176 0078 FE01      		movw r30,r28
+ 1177 007a EE0D      		add r30,r14
+ 1178 007c FF1D      		adc r31,r15
+ 1179 007e 8083      		st Z,r24
+ 1180               	.L73:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1181               		.loc 1 218 60 discriminator 2 view .LVU277
+ 1182 0080 2FEF      		ldi r18,-1
+ 1183 0082 E21A      		sub r14,r18
+ 1184 0084 F20A      		sbc r15,r18
+ 1185               	.LVL104:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1186               		.loc 1 218 60 discriminator 2 view .LVU278
+ 1187 0086 00C0      		rjmp .L72
+ 1188               	.L74:
+ 218:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_ack(timeout);
+ 1189               		.loc 1 218 60 discriminator 2 view .LVU279
+ 1190               	.LBE39:
+ 225:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_nack(timeout);
+ 1191               		.loc 1 225 5 is_stmt 1 view .LVU280
+ 225:platforms/avr/drivers/i2c_master.c ****         status = i2c_read_nack(timeout);
+ 1192               		.loc 1 225 8 is_stmt 0 view .LVU281
+ 1193 0088 97FD      		sbrc r25,7
+ 1194 008a 00C0      		rjmp .L71
+ 226:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 1195               		.loc 1 226 9 is_stmt 1 view .LVU282
+ 226:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 1196               		.loc 1 226 18 is_stmt 0 view .LVU283
+ 1197 008c C801      		movw r24,r16
+ 1198               	.LVL105:
+ 226:platforms/avr/drivers/i2c_master.c ****         if (status >= 0) {
+ 1199               		.loc 1 226 18 view .LVU284
+ 1200 008e 0E94 0000 		call i2c_read_nack
+ 1201               	.LVL106:
+ 227:platforms/avr/drivers/i2c_master.c ****             data[(length - 1)] = status;
+ 1202               		.loc 1 227 9 is_stmt 1 view .LVU285
+ 227:platforms/avr/drivers/i2c_master.c ****             data[(length - 1)] = status;
+ 1203               		.loc 1 227 12 is_stmt 0 view .LVU286
+ 1204 0092 97FD      		sbrc r25,7
+ 1205 0094 00C0      		rjmp .L71
+ 228:platforms/avr/drivers/i2c_master.c ****         }
+ 1206               		.loc 1 228 13 is_stmt 1 view .LVU287
+ 228:platforms/avr/drivers/i2c_master.c ****         }
+ 1207               		.loc 1 228 32 is_stmt 0 view .LVU288
+ 1208 0096 CC0D      		add r28,r12
+ 1209 0098 DD1D      		adc r29,r13
+ 1210               	.LVL107:
+ 228:platforms/avr/drivers/i2c_master.c ****         }
+ 1211               		.loc 1 228 32 view .LVU289
+ 1212 009a 8883      		st Y,r24
+ 1213 009c 00C0      		rjmp .L71
+ 1214               		.cfi_endproc
+ 1215               	.LFE17:
+ 1217               		.section	.text.i2c_stop,"ax",@progbits
+ 1218               	.global	i2c_stop
+ 1220               	i2c_stop:
+ 1221               	.LFB18:
+ 238:platforms/avr/drivers/i2c_master.c ****     // transmit STOP condition
+ 1222               		.loc 1 238 21 is_stmt 1 view -0
+ 1223               		.cfi_startproc
+ 1224               	/* prologue: function */
+ 1225               	/* frame size = 0 */
+ 1226               	/* stack size = 0 */
+ 1227               	.L__stack_usage = 0
+ 1228               		.loc 1 240 5 view .LVU291
+ 1229               		.loc 1 240 10 is_stmt 0 view .LVU292
+ 1230 0000 84E9      		ldi r24,lo8(-108)
+ 1231 0002 8093 BC00 		sts 188,r24
+ 1232               	/* epilogue start */
+ 241:platforms/avr/drivers/i2c_master.c **** }
+ 1233               		.loc 1 241 1 view .LVU293
+ 1234 0006 0895      		ret
+ 1235               		.cfi_endproc
+ 1236               	.LFE18:
+ 1238               		.text
+ 1239               	.Letext0:
+ 1240               		.file 2 "/usr/avr/include/stdint.h"
+ 1241               		.file 3 "platforms/avr/drivers/i2c_master.h"
+ 1242               		.file 4 "tmk_core/common/timer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 i2c_master.c
+     /tmp/cc4LTsyw.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc4LTsyw.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc4LTsyw.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc4LTsyw.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc4LTsyw.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc4LTsyw.s:13     .text.i2c_init:0000000000000000 i2c_init
+     /tmp/cc4LTsyw.s:38     .text.i2c_start:0000000000000000 i2c_start
+     /tmp/cc4LTsyw.s:311    .text.i2c_write:0000000000000000 i2c_write
+     /tmp/cc4LTsyw.s:416    .text.i2c_read_ack:0000000000000000 i2c_read_ack
+     /tmp/cc4LTsyw.s:505    .text.i2c_read_nack:0000000000000000 i2c_read_nack
+     /tmp/cc4LTsyw.s:594    .text.i2c_transmit:0000000000000000 i2c_transmit
+     /tmp/cc4LTsyw.s:714    .text.i2c_receive:0000000000000000 i2c_receive
+     /tmp/cc4LTsyw.s:889    .text.i2c_writeReg:0000000000000000 i2c_writeReg
+     /tmp/cc4LTsyw.s:1022   .text.i2c_readReg:0000000000000000 i2c_readReg
+     /tmp/cc4LTsyw.s:1220   .text.i2c_stop:0000000000000000 i2c_stop
+
+UNDEFINED SYMBOLS
+timer_read
+__udivmodhi4
+timer_elapsed

@@ -1,0 +1,2043 @@
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 2
+  13              		.file	"process_music.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.music_all_notes_off,"ax",%progbits
+  18              		.align	1
+  19              		.global	music_all_notes_off
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	music_all_notes_off:
+  27              	.LFB343:
+  28              		.file 1 "quantum/process_keycode/process_music.c"
+   1:quantum/process_keycode/process_music.c **** /* Copyright 2016 Jack Humbert
+   2:quantum/process_keycode/process_music.c ****  *
+   3:quantum/process_keycode/process_music.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/process_keycode/process_music.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/process_keycode/process_music.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:quantum/process_keycode/process_music.c ****  * (at your option) any later version.
+   7:quantum/process_keycode/process_music.c ****  *
+   8:quantum/process_keycode/process_music.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/process_keycode/process_music.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/process_keycode/process_music.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/process_keycode/process_music.c ****  * GNU General Public License for more details.
+  12:quantum/process_keycode/process_music.c ****  *
+  13:quantum/process_keycode/process_music.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/process_keycode/process_music.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/process_keycode/process_music.c ****  */
+  16:quantum/process_keycode/process_music.c **** #include "process_music.h"
+  17:quantum/process_keycode/process_music.c **** 
+  18:quantum/process_keycode/process_music.c **** #ifdef AUDIO_ENABLE
+  19:quantum/process_keycode/process_music.c **** #    include "process_audio.h"
+  20:quantum/process_keycode/process_music.c **** #endif
+  21:quantum/process_keycode/process_music.c **** #if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+  22:quantum/process_keycode/process_music.c **** #    include "process_midi.h"
+  23:quantum/process_keycode/process_music.c **** #endif
+  24:quantum/process_keycode/process_music.c **** 
+  25:quantum/process_keycode/process_music.c **** #if defined(AUDIO_ENABLE) || (defined(MIDI_ENABLE) && defined(MIDI_BASIC))
+  26:quantum/process_keycode/process_music.c **** 
+  27:quantum/process_keycode/process_music.c **** bool    music_activated     = false;
+  28:quantum/process_keycode/process_music.c **** bool    midi_activated      = false;
+  29:quantum/process_keycode/process_music.c **** uint8_t music_starting_note = 0x0C;
+  30:quantum/process_keycode/process_music.c **** int     music_offset        = 7;
+  31:quantum/process_keycode/process_music.c **** uint8_t music_mode          = MUSIC_MODE_MAJOR;
+  32:quantum/process_keycode/process_music.c **** 
+  33:quantum/process_keycode/process_music.c **** // music sequencer
+  34:quantum/process_keycode/process_music.c **** static bool    music_sequence_recording = false;
+  35:quantum/process_keycode/process_music.c **** static bool    music_sequence_recorded  = false;
+  36:quantum/process_keycode/process_music.c **** static bool    music_sequence_playing   = false;
+  37:quantum/process_keycode/process_music.c **** static uint8_t music_sequence[16]       = {0};
+  38:quantum/process_keycode/process_music.c **** static uint8_t music_sequence_count     = 0;
+  39:quantum/process_keycode/process_music.c **** static uint8_t music_sequence_position  = 0;
+  40:quantum/process_keycode/process_music.c **** 
+  41:quantum/process_keycode/process_music.c **** static uint16_t music_sequence_timer    = 0;
+  42:quantum/process_keycode/process_music.c **** static uint16_t music_sequence_interval = 100;
+  43:quantum/process_keycode/process_music.c **** 
+  44:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+  45:quantum/process_keycode/process_music.c **** #        ifndef MUSIC_ON_SONG
+  46:quantum/process_keycode/process_music.c **** #            define MUSIC_ON_SONG SONG(MUSIC_ON_SOUND)
+  47:quantum/process_keycode/process_music.c **** #        endif
+  48:quantum/process_keycode/process_music.c **** #        ifndef MUSIC_OFF_SONG
+  49:quantum/process_keycode/process_music.c **** #            define MUSIC_OFF_SONG SONG(MUSIC_OFF_SOUND)
+  50:quantum/process_keycode/process_music.c **** #        endif
+  51:quantum/process_keycode/process_music.c **** #        ifndef MIDI_ON_SONG
+  52:quantum/process_keycode/process_music.c **** #            define MIDI_ON_SONG SONG(MUSIC_ON_SOUND)
+  53:quantum/process_keycode/process_music.c **** #        endif
+  54:quantum/process_keycode/process_music.c **** #        ifndef MIDI_OFF_SONG
+  55:quantum/process_keycode/process_music.c **** #            define MIDI_OFF_SONG SONG(MUSIC_OFF_SOUND)
+  56:quantum/process_keycode/process_music.c **** #        endif
+  57:quantum/process_keycode/process_music.c **** #        ifndef CHROMATIC_SONG
+  58:quantum/process_keycode/process_music.c **** #            define CHROMATIC_SONG SONG(CHROMATIC_SOUND)
+  59:quantum/process_keycode/process_music.c **** #        endif
+  60:quantum/process_keycode/process_music.c **** #        ifndef GUITAR_SONG
+  61:quantum/process_keycode/process_music.c **** #            define GUITAR_SONG SONG(GUITAR_SOUND)
+  62:quantum/process_keycode/process_music.c **** #        endif
+  63:quantum/process_keycode/process_music.c **** #        ifndef VIOLIN_SONG
+  64:quantum/process_keycode/process_music.c **** #            define VIOLIN_SONG SONG(VIOLIN_SOUND)
+  65:quantum/process_keycode/process_music.c **** #        endif
+  66:quantum/process_keycode/process_music.c **** #        ifndef MAJOR_SONG
+  67:quantum/process_keycode/process_music.c **** #            define MAJOR_SONG SONG(MAJOR_SOUND)
+  68:quantum/process_keycode/process_music.c **** #        endif
+  69:quantum/process_keycode/process_music.c **** float music_mode_songs[NUMBER_OF_MODES][5][2] = {CHROMATIC_SONG, GUITAR_SONG, VIOLIN_SONG, MAJOR_SO
+  70:quantum/process_keycode/process_music.c **** float music_on_song[][2]                      = MUSIC_ON_SONG;
+  71:quantum/process_keycode/process_music.c **** float music_off_song[][2]                     = MUSIC_OFF_SONG;
+  72:quantum/process_keycode/process_music.c **** float midi_on_song[][2]                       = MIDI_ON_SONG;
+  73:quantum/process_keycode/process_music.c **** float midi_off_song[][2]                      = MIDI_OFF_SONG;
+  74:quantum/process_keycode/process_music.c **** #    endif
+  75:quantum/process_keycode/process_music.c **** 
+  76:quantum/process_keycode/process_music.c **** static void music_noteon(uint8_t note) {
+  77:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+  78:quantum/process_keycode/process_music.c ****     if (music_activated) process_audio_noteon(note);
+  79:quantum/process_keycode/process_music.c **** #    endif
+  80:quantum/process_keycode/process_music.c **** #    if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+  81:quantum/process_keycode/process_music.c ****     if (midi_activated) process_midi_basic_noteon(note);
+  82:quantum/process_keycode/process_music.c **** #    endif
+  83:quantum/process_keycode/process_music.c **** }
+  84:quantum/process_keycode/process_music.c **** 
+  85:quantum/process_keycode/process_music.c **** static void music_noteoff(uint8_t note) {
+  86:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+  87:quantum/process_keycode/process_music.c ****     if (music_activated) process_audio_noteoff(note);
+  88:quantum/process_keycode/process_music.c **** #    endif
+  89:quantum/process_keycode/process_music.c **** #    if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+  90:quantum/process_keycode/process_music.c ****     if (midi_activated) process_midi_basic_noteoff(note);
+  91:quantum/process_keycode/process_music.c **** #    endif
+  92:quantum/process_keycode/process_music.c **** }
+  93:quantum/process_keycode/process_music.c **** 
+  94:quantum/process_keycode/process_music.c **** void music_all_notes_off(void) {
+  29              		.loc 1 94 32 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  95:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+  96:quantum/process_keycode/process_music.c ****     if (music_activated) process_audio_all_notes_off();
+  34              		.loc 1 96 5 view .LVU1
+  35              		.loc 1 96 9 is_stmt 0 view .LVU2
+  36 0000 024B     		ldr	r3, .L3
+  37              		.loc 1 96 8 view .LVU3
+  38 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  39 0004 0BB1     		cbz	r3, .L1
+  40              		.loc 1 96 26 is_stmt 1 discriminator 1 view .LVU4
+  41 0006 FFF7FEBF 		b	process_audio_all_notes_off
+  42              	.LVL0:
+  43              	.L1:
+  97:quantum/process_keycode/process_music.c **** #    endif
+  98:quantum/process_keycode/process_music.c **** #    if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+  99:quantum/process_keycode/process_music.c ****     if (midi_activated) process_midi_all_notes_off();
+ 100:quantum/process_keycode/process_music.c **** #    endif
+ 101:quantum/process_keycode/process_music.c **** }
+  44              		.loc 1 101 1 is_stmt 0 view .LVU5
+  45 000a 7047     		bx	lr
+  46              	.L4:
+  47              		.align	2
+  48              	.L3:
+  49 000c 00000000 		.word	.LANCHOR0
+  50              		.cfi_endproc
+  51              	.LFE343:
+  53              		.section	.text.music_mask_user,"ax",%progbits
+  54              		.align	1
+  55              		.weak	music_mask_user
+  56              		.syntax unified
+  57              		.thumb
+  58              		.thumb_func
+  59              		.fpu fpv4-sp-d16
+  61              	music_mask_user:
+  62              	.LVL1:
+  63              	.LFB347:
+ 102:quantum/process_keycode/process_music.c **** 
+ 103:quantum/process_keycode/process_music.c **** bool process_music(uint16_t keycode, keyrecord_t *record) {
+ 104:quantum/process_keycode/process_music.c ****     if (keycode == MU_ON && record->event.pressed) {
+ 105:quantum/process_keycode/process_music.c ****         music_on();
+ 106:quantum/process_keycode/process_music.c ****         return false;
+ 107:quantum/process_keycode/process_music.c ****     }
+ 108:quantum/process_keycode/process_music.c **** 
+ 109:quantum/process_keycode/process_music.c ****     if (keycode == MU_OFF && record->event.pressed) {
+ 110:quantum/process_keycode/process_music.c ****         music_off();
+ 111:quantum/process_keycode/process_music.c ****         return false;
+ 112:quantum/process_keycode/process_music.c ****     }
+ 113:quantum/process_keycode/process_music.c **** 
+ 114:quantum/process_keycode/process_music.c ****     if (keycode == MU_TOG && record->event.pressed) {
+ 115:quantum/process_keycode/process_music.c ****         if (music_activated) {
+ 116:quantum/process_keycode/process_music.c ****             music_off();
+ 117:quantum/process_keycode/process_music.c ****         } else {
+ 118:quantum/process_keycode/process_music.c ****             music_on();
+ 119:quantum/process_keycode/process_music.c ****         }
+ 120:quantum/process_keycode/process_music.c ****         return false;
+ 121:quantum/process_keycode/process_music.c ****     }
+ 122:quantum/process_keycode/process_music.c **** 
+ 123:quantum/process_keycode/process_music.c ****     if (keycode == MI_ON && record->event.pressed) {
+ 124:quantum/process_keycode/process_music.c ****         midi_on();
+ 125:quantum/process_keycode/process_music.c ****         return false;
+ 126:quantum/process_keycode/process_music.c ****     }
+ 127:quantum/process_keycode/process_music.c **** 
+ 128:quantum/process_keycode/process_music.c ****     if (keycode == MI_OFF && record->event.pressed) {
+ 129:quantum/process_keycode/process_music.c ****         midi_off();
+ 130:quantum/process_keycode/process_music.c ****         return false;
+ 131:quantum/process_keycode/process_music.c ****     }
+ 132:quantum/process_keycode/process_music.c **** 
+ 133:quantum/process_keycode/process_music.c ****     if (keycode == MI_TOG && record->event.pressed) {
+ 134:quantum/process_keycode/process_music.c ****         if (midi_activated) {
+ 135:quantum/process_keycode/process_music.c ****             midi_off();
+ 136:quantum/process_keycode/process_music.c ****         } else {
+ 137:quantum/process_keycode/process_music.c ****             midi_on();
+ 138:quantum/process_keycode/process_music.c ****         }
+ 139:quantum/process_keycode/process_music.c ****         return false;
+ 140:quantum/process_keycode/process_music.c ****     }
+ 141:quantum/process_keycode/process_music.c **** 
+ 142:quantum/process_keycode/process_music.c ****     if (keycode == MU_MOD && record->event.pressed) {
+ 143:quantum/process_keycode/process_music.c ****         music_mode_cycle();
+ 144:quantum/process_keycode/process_music.c ****         return false;
+ 145:quantum/process_keycode/process_music.c ****     }
+ 146:quantum/process_keycode/process_music.c **** 
+ 147:quantum/process_keycode/process_music.c ****     if (music_activated || midi_activated) {
+ 148:quantum/process_keycode/process_music.c ****         if (record->event.pressed) {
+ 149:quantum/process_keycode/process_music.c ****             if (keycode == KC_LCTL) {  // Start recording
+ 150:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 151:quantum/process_keycode/process_music.c ****                 music_sequence_recording = true;
+ 152:quantum/process_keycode/process_music.c ****                 music_sequence_recorded  = false;
+ 153:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = false;
+ 154:quantum/process_keycode/process_music.c ****                 music_sequence_count     = 0;
+ 155:quantum/process_keycode/process_music.c ****                 return false;
+ 156:quantum/process_keycode/process_music.c ****             }
+ 157:quantum/process_keycode/process_music.c **** 
+ 158:quantum/process_keycode/process_music.c ****             if (keycode == KC_LALT) {  // Stop recording/playing
+ 159:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 160:quantum/process_keycode/process_music.c ****                 if (music_sequence_recording) {  // was recording
+ 161:quantum/process_keycode/process_music.c ****                     music_sequence_recorded = true;
+ 162:quantum/process_keycode/process_music.c ****                 }
+ 163:quantum/process_keycode/process_music.c ****                 music_sequence_recording = false;
+ 164:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = false;
+ 165:quantum/process_keycode/process_music.c ****                 return false;
+ 166:quantum/process_keycode/process_music.c ****             }
+ 167:quantum/process_keycode/process_music.c **** 
+ 168:quantum/process_keycode/process_music.c ****             if (keycode == KC_LGUI && music_sequence_recorded) {  // Start playing
+ 169:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 170:quantum/process_keycode/process_music.c ****                 music_sequence_recording = false;
+ 171:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = true;
+ 172:quantum/process_keycode/process_music.c ****                 music_sequence_position  = 0;
+ 173:quantum/process_keycode/process_music.c ****                 music_sequence_timer     = 0;
+ 174:quantum/process_keycode/process_music.c ****                 return false;
+ 175:quantum/process_keycode/process_music.c ****             }
+ 176:quantum/process_keycode/process_music.c **** 
+ 177:quantum/process_keycode/process_music.c ****             if (keycode == KC_UP) {
+ 178:quantum/process_keycode/process_music.c ****                 music_sequence_interval -= 10;
+ 179:quantum/process_keycode/process_music.c ****                 return false;
+ 180:quantum/process_keycode/process_music.c ****             }
+ 181:quantum/process_keycode/process_music.c **** 
+ 182:quantum/process_keycode/process_music.c ****             if (keycode == KC_DOWN) {
+ 183:quantum/process_keycode/process_music.c ****                 music_sequence_interval += 10;
+ 184:quantum/process_keycode/process_music.c ****                 return false;
+ 185:quantum/process_keycode/process_music.c ****             }
+ 186:quantum/process_keycode/process_music.c ****         }
+ 187:quantum/process_keycode/process_music.c **** 
+ 188:quantum/process_keycode/process_music.c ****         uint8_t note = 36;
+ 189:quantum/process_keycode/process_music.c **** #    ifdef MUSIC_MAP
+ 190:quantum/process_keycode/process_music.c ****         if (music_mode == MUSIC_MODE_CHROMATIC) {
+ 191:quantum/process_keycode/process_music.c ****             note = music_starting_note + music_offset + 36 + music_map[record->event.key.row][recor
+ 192:quantum/process_keycode/process_music.c ****         } else {
+ 193:quantum/process_keycode/process_music.c ****             uint8_t position = music_map[record->event.key.row][record->event.key.col];
+ 194:quantum/process_keycode/process_music.c ****             note             = music_starting_note + music_offset + 36 + SCALE[position % 7] + (pos
+ 195:quantum/process_keycode/process_music.c ****         }
+ 196:quantum/process_keycode/process_music.c **** #    else
+ 197:quantum/process_keycode/process_music.c ****         if (music_mode == MUSIC_MODE_CHROMATIC)
+ 198:quantum/process_keycode/process_music.c ****             note = (music_starting_note + record->event.key.col + music_offset - 3) + 12 * (MATRIX_
+ 199:quantum/process_keycode/process_music.c ****         else if (music_mode == MUSIC_MODE_GUITAR)
+ 200:quantum/process_keycode/process_music.c ****             note = (music_starting_note + record->event.key.col + music_offset + 32) + 5 * (MATRIX_
+ 201:quantum/process_keycode/process_music.c ****         else if (music_mode == MUSIC_MODE_VIOLIN)
+ 202:quantum/process_keycode/process_music.c ****             note = (music_starting_note + record->event.key.col + music_offset + 32) + 7 * (MATRIX_
+ 203:quantum/process_keycode/process_music.c ****         else if (music_mode == MUSIC_MODE_MAJOR)
+ 204:quantum/process_keycode/process_music.c ****             note = (music_starting_note + SCALE[record->event.key.col + music_offset] - 3) + 12 * (
+ 205:quantum/process_keycode/process_music.c ****         else
+ 206:quantum/process_keycode/process_music.c ****             note = music_starting_note;
+ 207:quantum/process_keycode/process_music.c **** #    endif
+ 208:quantum/process_keycode/process_music.c **** 
+ 209:quantum/process_keycode/process_music.c ****         if (record->event.pressed) {
+ 210:quantum/process_keycode/process_music.c ****             music_noteon(note);
+ 211:quantum/process_keycode/process_music.c ****             if (music_sequence_recording) {
+ 212:quantum/process_keycode/process_music.c ****                 music_sequence[music_sequence_count] = note;
+ 213:quantum/process_keycode/process_music.c ****                 music_sequence_count++;
+ 214:quantum/process_keycode/process_music.c ****             }
+ 215:quantum/process_keycode/process_music.c ****         } else {
+ 216:quantum/process_keycode/process_music.c ****             music_noteoff(note);
+ 217:quantum/process_keycode/process_music.c ****         }
+ 218:quantum/process_keycode/process_music.c **** 
+ 219:quantum/process_keycode/process_music.c ****         if (music_mask(keycode)) return false;
+ 220:quantum/process_keycode/process_music.c ****     }
+ 221:quantum/process_keycode/process_music.c **** 
+ 222:quantum/process_keycode/process_music.c ****     return true;
+ 223:quantum/process_keycode/process_music.c **** }
+ 224:quantum/process_keycode/process_music.c **** 
+ 225:quantum/process_keycode/process_music.c **** bool music_mask(uint16_t keycode) {
+ 226:quantum/process_keycode/process_music.c **** #    ifdef MUSIC_MASK
+ 227:quantum/process_keycode/process_music.c ****     return MUSIC_MASK;
+ 228:quantum/process_keycode/process_music.c **** #    else
+ 229:quantum/process_keycode/process_music.c ****     return music_mask_kb(keycode);
+ 230:quantum/process_keycode/process_music.c **** #    endif
+ 231:quantum/process_keycode/process_music.c **** }
+ 232:quantum/process_keycode/process_music.c **** 
+ 233:quantum/process_keycode/process_music.c **** __attribute__((weak)) bool music_mask_kb(uint16_t keycode) { return music_mask_user(keycode); }
+ 234:quantum/process_keycode/process_music.c **** 
+ 235:quantum/process_keycode/process_music.c **** __attribute__((weak)) bool music_mask_user(uint16_t keycode) { return keycode < 0xFF; }
+  64              		.loc 1 235 62 is_stmt 1 view -0
+  65              		.cfi_startproc
+  66              		@ args = 0, pretend = 0, frame = 0
+  67              		@ frame_needed = 0, uses_anonymous_args = 0
+  68              		@ link register save eliminated.
+  69              		.loc 1 235 64 view .LVU7
+  70              		.loc 1 235 87 is_stmt 0 view .LVU8
+  71 0000 FE28     		cmp	r0, #254
+  72 0002 8CBF     		ite	hi
+  73 0004 0020     		movhi	r0, #0
+  74              	.LVL2:
+  75              		.loc 1 235 87 view .LVU9
+  76 0006 0120     		movls	r0, #1
+  77 0008 7047     		bx	lr
+  78              		.cfi_endproc
+  79              	.LFE347:
+  81              		.section	.text.music_mask_kb,"ax",%progbits
+  82              		.align	1
+  83              		.weak	music_mask_kb
+  84              		.syntax unified
+  85              		.thumb
+  86              		.thumb_func
+  87              		.fpu fpv4-sp-d16
+  89              	music_mask_kb:
+  90              	.LVL3:
+  91              	.LFB346:
+ 233:quantum/process_keycode/process_music.c **** 
+  92              		.loc 1 233 60 is_stmt 1 view -0
+  93              		.cfi_startproc
+  94              		@ args = 0, pretend = 0, frame = 0
+  95              		@ frame_needed = 0, uses_anonymous_args = 0
+ 233:quantum/process_keycode/process_music.c **** 
+  96              		.loc 1 233 62 view .LVU11
+ 233:quantum/process_keycode/process_music.c **** 
+  97              		.loc 1 233 60 is_stmt 0 view .LVU12
+  98 0000 08B5     		push	{r3, lr}
+  99              		.cfi_def_cfa_offset 8
+ 100              		.cfi_offset 3, -8
+ 101              		.cfi_offset 14, -4
+ 233:quantum/process_keycode/process_music.c **** 
+ 102              		.loc 1 233 69 view .LVU13
+ 103 0002 FFF7FEFF 		bl	music_mask_user
+ 104              	.LVL4:
+ 233:quantum/process_keycode/process_music.c **** 
+ 105              		.loc 1 233 95 view .LVU14
+ 106 0006 08BD     		pop	{r3, pc}
+ 107              		.cfi_endproc
+ 108              	.LFE346:
+ 110              		.section	.text.music_mask,"ax",%progbits
+ 111              		.align	1
+ 112              		.global	music_mask
+ 113              		.syntax unified
+ 114              		.thumb
+ 115              		.thumb_func
+ 116              		.fpu fpv4-sp-d16
+ 118              	music_mask:
+ 119              	.LVL5:
+ 120              	.LFB345:
+ 225:quantum/process_keycode/process_music.c **** #    ifdef MUSIC_MASK
+ 121              		.loc 1 225 35 is_stmt 1 view -0
+ 122              		.cfi_startproc
+ 123              		@ args = 0, pretend = 0, frame = 0
+ 124              		@ frame_needed = 0, uses_anonymous_args = 0
+ 229:quantum/process_keycode/process_music.c **** #    endif
+ 125              		.loc 1 229 5 view .LVU16
+ 225:quantum/process_keycode/process_music.c **** #    ifdef MUSIC_MASK
+ 126              		.loc 1 225 35 is_stmt 0 view .LVU17
+ 127 0000 08B5     		push	{r3, lr}
+ 128              		.cfi_def_cfa_offset 8
+ 129              		.cfi_offset 3, -8
+ 130              		.cfi_offset 14, -4
+ 229:quantum/process_keycode/process_music.c **** #    endif
+ 131              		.loc 1 229 12 view .LVU18
+ 132 0002 FFF7FEFF 		bl	music_mask_kb
+ 133              	.LVL6:
+ 231:quantum/process_keycode/process_music.c **** 
+ 134              		.loc 1 231 1 view .LVU19
+ 135 0006 08BD     		pop	{r3, pc}
+ 136              		.cfi_endproc
+ 137              	.LFE345:
+ 139              		.section	.text.is_music_on,"ax",%progbits
+ 140              		.align	1
+ 141              		.global	is_music_on
+ 142              		.syntax unified
+ 143              		.thumb
+ 144              		.thumb_func
+ 145              		.fpu fpv4-sp-d16
+ 147              	is_music_on:
+ 148              	.LFB348:
+ 236:quantum/process_keycode/process_music.c **** 
+ 237:quantum/process_keycode/process_music.c **** bool is_music_on(void) { return (music_activated != 0); }
+ 149              		.loc 1 237 24 is_stmt 1 view -0
+ 150              		.cfi_startproc
+ 151              		@ args = 0, pretend = 0, frame = 0
+ 152              		@ frame_needed = 0, uses_anonymous_args = 0
+ 153              		@ link register save eliminated.
+ 154              		.loc 1 237 26 view .LVU21
+ 155              		.loc 1 237 57 is_stmt 0 view .LVU22
+ 156 0000 014B     		ldr	r3, .L9
+ 157 0002 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 158 0004 7047     		bx	lr
+ 159              	.L10:
+ 160 0006 00BF     		.align	2
+ 161              	.L9:
+ 162 0008 00000000 		.word	.LANCHOR0
+ 163              		.cfi_endproc
+ 164              	.LFE348:
+ 166              		.section	.text.music_off,"ax",%progbits
+ 167              		.align	1
+ 168              		.global	music_off
+ 169              		.syntax unified
+ 170              		.thumb
+ 171              		.thumb_func
+ 172              		.fpu fpv4-sp-d16
+ 174              	music_off:
+ 175              	.LFB351:
+ 238:quantum/process_keycode/process_music.c **** 
+ 239:quantum/process_keycode/process_music.c **** void music_toggle(void) {
+ 240:quantum/process_keycode/process_music.c ****     if (!music_activated) {
+ 241:quantum/process_keycode/process_music.c ****         music_on();
+ 242:quantum/process_keycode/process_music.c ****     } else {
+ 243:quantum/process_keycode/process_music.c ****         music_off();
+ 244:quantum/process_keycode/process_music.c ****     }
+ 245:quantum/process_keycode/process_music.c **** }
+ 246:quantum/process_keycode/process_music.c **** 
+ 247:quantum/process_keycode/process_music.c **** void music_on(void) {
+ 248:quantum/process_keycode/process_music.c ****     music_activated = 1;
+ 249:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 250:quantum/process_keycode/process_music.c ****     PLAY_SONG(music_on_song);
+ 251:quantum/process_keycode/process_music.c **** #    endif
+ 252:quantum/process_keycode/process_music.c ****     music_on_user();
+ 253:quantum/process_keycode/process_music.c **** }
+ 254:quantum/process_keycode/process_music.c **** 
+ 255:quantum/process_keycode/process_music.c **** void music_off(void) {
+ 176              		.loc 1 255 22 is_stmt 1 view -0
+ 177              		.cfi_startproc
+ 178              		@ args = 0, pretend = 0, frame = 0
+ 179              		@ frame_needed = 0, uses_anonymous_args = 0
+ 256:quantum/process_keycode/process_music.c ****     music_all_notes_off();
+ 180              		.loc 1 256 5 view .LVU24
+ 255:quantum/process_keycode/process_music.c ****     music_all_notes_off();
+ 181              		.loc 1 255 22 is_stmt 0 view .LVU25
+ 182 0000 08B5     		push	{r3, lr}
+ 183              		.cfi_def_cfa_offset 8
+ 184              		.cfi_offset 3, -8
+ 185              		.cfi_offset 14, -4
+ 186              		.loc 1 256 5 view .LVU26
+ 187 0002 FFF7FEFF 		bl	music_all_notes_off
+ 188              	.LVL7:
+ 257:quantum/process_keycode/process_music.c ****     music_activated = 0;
+ 189              		.loc 1 257 5 is_stmt 1 view .LVU27
+ 190              		.loc 1 257 21 is_stmt 0 view .LVU28
+ 191 0006 044B     		ldr	r3, .L12
+ 258:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 259:quantum/process_keycode/process_music.c ****     PLAY_SONG(music_off_song);
+ 192              		.loc 1 259 5 view .LVU29
+ 193 0008 0448     		ldr	r0, .L12+4
+ 257:quantum/process_keycode/process_music.c ****     music_activated = 0;
+ 194              		.loc 1 257 21 view .LVU30
+ 195 000a 0022     		movs	r2, #0
+ 196 000c 1A70     		strb	r2, [r3]
+ 197              		.loc 1 259 5 is_stmt 1 view .LVU31
+ 198 000e 0821     		movs	r1, #8
+ 260:quantum/process_keycode/process_music.c **** #    endif
+ 261:quantum/process_keycode/process_music.c **** }
+ 199              		.loc 1 261 1 is_stmt 0 view .LVU32
+ 200 0010 BDE80840 		pop	{r3, lr}
+ 201              		.cfi_restore 14
+ 202              		.cfi_restore 3
+ 203              		.cfi_def_cfa_offset 0
+ 259:quantum/process_keycode/process_music.c **** #    endif
+ 204              		.loc 1 259 5 view .LVU33
+ 205 0014 FFF7FEBF 		b	audio_play_melody
+ 206              	.LVL8:
+ 207              	.L13:
+ 208              		.align	2
+ 209              	.L12:
+ 210 0018 00000000 		.word	.LANCHOR0
+ 211 001c 00000000 		.word	.LANCHOR1
+ 212              		.cfi_endproc
+ 213              	.LFE351:
+ 215              		.section	.text.is_midi_on,"ax",%progbits
+ 216              		.align	1
+ 217              		.global	is_midi_on
+ 218              		.syntax unified
+ 219              		.thumb
+ 220              		.thumb_func
+ 221              		.fpu fpv4-sp-d16
+ 223              	is_midi_on:
+ 224              	.LFB352:
+ 262:quantum/process_keycode/process_music.c **** 
+ 263:quantum/process_keycode/process_music.c **** bool is_midi_on(void) { return (midi_activated != 0); }
+ 225              		.loc 1 263 23 is_stmt 1 view -0
+ 226              		.cfi_startproc
+ 227              		@ args = 0, pretend = 0, frame = 0
+ 228              		@ frame_needed = 0, uses_anonymous_args = 0
+ 229              		@ link register save eliminated.
+ 230              		.loc 1 263 25 view .LVU35
+ 231              		.loc 1 263 55 is_stmt 0 view .LVU36
+ 232 0000 014B     		ldr	r3, .L15
+ 233 0002 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 234 0004 7047     		bx	lr
+ 235              	.L16:
+ 236 0006 00BF     		.align	2
+ 237              	.L15:
+ 238 0008 00000000 		.word	.LANCHOR2
+ 239              		.cfi_endproc
+ 240              	.LFE352:
+ 242              		.section	.text.midi_off,"ax",%progbits
+ 243              		.align	1
+ 244              		.global	midi_off
+ 245              		.syntax unified
+ 246              		.thumb
+ 247              		.thumb_func
+ 248              		.fpu fpv4-sp-d16
+ 250              	midi_off:
+ 251              	.LFB355:
+ 264:quantum/process_keycode/process_music.c **** 
+ 265:quantum/process_keycode/process_music.c **** void midi_toggle(void) {
+ 266:quantum/process_keycode/process_music.c ****     if (!midi_activated) {
+ 267:quantum/process_keycode/process_music.c ****         midi_on();
+ 268:quantum/process_keycode/process_music.c ****     } else {
+ 269:quantum/process_keycode/process_music.c ****         midi_off();
+ 270:quantum/process_keycode/process_music.c ****     }
+ 271:quantum/process_keycode/process_music.c **** }
+ 272:quantum/process_keycode/process_music.c **** 
+ 273:quantum/process_keycode/process_music.c **** void midi_on(void) {
+ 274:quantum/process_keycode/process_music.c ****     midi_activated = 1;
+ 275:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 276:quantum/process_keycode/process_music.c ****     PLAY_SONG(midi_on_song);
+ 277:quantum/process_keycode/process_music.c **** #    endif
+ 278:quantum/process_keycode/process_music.c ****     midi_on_user();
+ 279:quantum/process_keycode/process_music.c **** }
+ 280:quantum/process_keycode/process_music.c **** 
+ 281:quantum/process_keycode/process_music.c **** void midi_off(void) {
+ 252              		.loc 1 281 21 is_stmt 1 view -0
+ 253              		.cfi_startproc
+ 254              		@ args = 0, pretend = 0, frame = 0
+ 255              		@ frame_needed = 0, uses_anonymous_args = 0
+ 256              		@ link register save eliminated.
+ 282:quantum/process_keycode/process_music.c **** #    if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+ 283:quantum/process_keycode/process_music.c ****     process_midi_all_notes_off();
+ 284:quantum/process_keycode/process_music.c **** #    endif
+ 285:quantum/process_keycode/process_music.c ****     midi_activated = 0;
+ 257              		.loc 1 285 5 view .LVU38
+ 258              		.loc 1 285 20 is_stmt 0 view .LVU39
+ 259 0000 034B     		ldr	r3, .L18
+ 286:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 287:quantum/process_keycode/process_music.c ****     PLAY_SONG(midi_off_song);
+ 260              		.loc 1 287 5 view .LVU40
+ 261 0002 0448     		ldr	r0, .L18+4
+ 285:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 262              		.loc 1 285 20 view .LVU41
+ 263 0004 0022     		movs	r2, #0
+ 264              		.loc 1 287 5 view .LVU42
+ 265 0006 0821     		movs	r1, #8
+ 285:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 266              		.loc 1 285 20 view .LVU43
+ 267 0008 1A70     		strb	r2, [r3]
+ 268              		.loc 1 287 5 is_stmt 1 view .LVU44
+ 269 000a FFF7FEBF 		b	audio_play_melody
+ 270              	.LVL9:
+ 271              	.L19:
+ 272 000e 00BF     		.align	2
+ 273              	.L18:
+ 274 0010 00000000 		.word	.LANCHOR2
+ 275 0014 00000000 		.word	.LANCHOR3
+ 276              		.cfi_endproc
+ 277              	.LFE355:
+ 279              		.section	.text.music_mode_cycle,"ax",%progbits
+ 280              		.align	1
+ 281              		.global	music_mode_cycle
+ 282              		.syntax unified
+ 283              		.thumb
+ 284              		.thumb_func
+ 285              		.fpu fpv4-sp-d16
+ 287              	music_mode_cycle:
+ 288              	.LFB356:
+ 288:quantum/process_keycode/process_music.c **** #    endif
+ 289:quantum/process_keycode/process_music.c **** }
+ 290:quantum/process_keycode/process_music.c **** 
+ 291:quantum/process_keycode/process_music.c **** void music_mode_cycle(void) {
+ 289              		.loc 1 291 29 view -0
+ 290              		.cfi_startproc
+ 291              		@ args = 0, pretend = 0, frame = 0
+ 292              		@ frame_needed = 0, uses_anonymous_args = 0
+ 292:quantum/process_keycode/process_music.c ****     music_all_notes_off();
+ 293              		.loc 1 292 5 view .LVU46
+ 291:quantum/process_keycode/process_music.c ****     music_all_notes_off();
+ 294              		.loc 1 291 29 is_stmt 0 view .LVU47
+ 295 0000 10B5     		push	{r4, lr}
+ 296              		.cfi_def_cfa_offset 8
+ 297              		.cfi_offset 4, -8
+ 298              		.cfi_offset 14, -4
+ 299              		.loc 1 292 5 view .LVU48
+ 300 0002 FFF7FEFF 		bl	music_all_notes_off
+ 301              	.LVL10:
+ 293:quantum/process_keycode/process_music.c ****     music_mode = (music_mode + 1) % NUMBER_OF_MODES;
+ 302              		.loc 1 293 5 is_stmt 1 view .LVU49
+ 303              		.loc 1 293 30 is_stmt 0 view .LVU50
+ 304 0006 084A     		ldr	r2, .L21
+ 294:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 295:quantum/process_keycode/process_music.c ****     PLAY_SONG(music_mode_songs[music_mode]);
+ 305              		.loc 1 295 5 view .LVU51
+ 306 0008 0848     		ldr	r0, .L21+4
+ 293:quantum/process_keycode/process_music.c ****     music_mode = (music_mode + 1) % NUMBER_OF_MODES;
+ 307              		.loc 1 293 30 view .LVU52
+ 308 000a 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 309 000c 0133     		adds	r3, r3, #1
+ 293:quantum/process_keycode/process_music.c ****     music_mode = (music_mode + 1) % NUMBER_OF_MODES;
+ 310              		.loc 1 293 35 view .LVU53
+ 311 000e 03F00303 		and	r3, r3, #3
+ 293:quantum/process_keycode/process_music.c ****     music_mode = (music_mode + 1) % NUMBER_OF_MODES;
+ 312              		.loc 1 293 16 view .LVU54
+ 313 0012 1370     		strb	r3, [r2]
+ 314              		.loc 1 295 5 is_stmt 1 view .LVU55
+ 315 0014 2824     		movs	r4, #40
+ 316 0016 04FB0300 		mla	r0, r4, r3, r0
+ 317 001a 0022     		movs	r2, #0
+ 296:quantum/process_keycode/process_music.c **** #    endif
+ 297:quantum/process_keycode/process_music.c **** }
+ 318              		.loc 1 297 1 is_stmt 0 view .LVU56
+ 319 001c BDE81040 		pop	{r4, lr}
+ 320              		.cfi_restore 14
+ 321              		.cfi_restore 4
+ 322              		.cfi_def_cfa_offset 0
+ 295:quantum/process_keycode/process_music.c **** #    endif
+ 323              		.loc 1 295 5 view .LVU57
+ 324 0020 0521     		movs	r1, #5
+ 325 0022 FFF7FEBF 		b	audio_play_melody
+ 326              	.LVL11:
+ 327              	.L22:
+ 328 0026 00BF     		.align	2
+ 329              	.L21:
+ 330 0028 00000000 		.word	.LANCHOR4
+ 331 002c 00000000 		.word	.LANCHOR5
+ 332              		.cfi_endproc
+ 333              	.LFE356:
+ 335              		.section	.text.music_task,"ax",%progbits
+ 336              		.align	1
+ 337              		.global	music_task
+ 338              		.syntax unified
+ 339              		.thumb
+ 340              		.thumb_func
+ 341              		.fpu fpv4-sp-d16
+ 343              	music_task:
+ 344              	.LFB357:
+ 298:quantum/process_keycode/process_music.c **** 
+ 299:quantum/process_keycode/process_music.c **** void music_task(void) {
+ 345              		.loc 1 299 23 is_stmt 1 view -0
+ 346              		.cfi_startproc
+ 347              		@ args = 0, pretend = 0, frame = 0
+ 348              		@ frame_needed = 0, uses_anonymous_args = 0
+ 300:quantum/process_keycode/process_music.c ****     if (music_sequence_playing) {
+ 349              		.loc 1 300 5 view .LVU59
+ 299:quantum/process_keycode/process_music.c ****     if (music_sequence_playing) {
+ 350              		.loc 1 299 23 is_stmt 0 view .LVU60
+ 351 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 352              		.cfi_def_cfa_offset 24
+ 353              		.cfi_offset 3, -24
+ 354              		.cfi_offset 4, -20
+ 355              		.cfi_offset 5, -16
+ 356              		.cfi_offset 6, -12
+ 357              		.cfi_offset 7, -8
+ 358              		.cfi_offset 14, -4
+ 359              		.loc 1 300 9 view .LVU61
+ 360 0002 174B     		ldr	r3, .L39
+ 361              		.loc 1 300 8 view .LVU62
+ 362 0004 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 363 0006 8BB1     		cbz	r3, .L23
+ 301:quantum/process_keycode/process_music.c ****         if ((music_sequence_timer == 0) || (timer_elapsed(music_sequence_timer) > music_sequence_in
+ 364              		.loc 1 301 9 is_stmt 1 view .LVU63
+ 365              		.loc 1 301 35 is_stmt 0 view .LVU64
+ 366 0008 164C     		ldr	r4, .L39+4
+ 367 000a 2088     		ldrh	r0, [r4]
+ 368              		.loc 1 301 12 view .LVU65
+ 369 000c 40B9     		cbnz	r0, .L26
+ 370              	.L29:
+ 371              	.LBB11:
+ 302:quantum/process_keycode/process_music.c ****             music_sequence_timer = timer_read();
+ 372              		.loc 1 302 13 is_stmt 1 view .LVU66
+ 373              		.loc 1 302 36 is_stmt 0 view .LVU67
+ 374 000e FFF7FEFF 		bl	timer_read
+ 375              	.LVL12:
+ 376              		.loc 1 302 34 view .LVU68
+ 377 0012 2080     		strh	r0, [r4]	@ movhi
+ 303:quantum/process_keycode/process_music.c ****             uint8_t prev_note    = music_sequence[(music_sequence_position - 1 < 0) ? (music_sequen
+ 378              		.loc 1 303 13 is_stmt 1 view .LVU69
+ 379              		.loc 1 303 80 is_stmt 0 view .LVU70
+ 380 0014 144C     		ldr	r4, .L39+8
+ 381 0016 154D     		ldr	r5, .L39+12
+ 382 0018 2278     		ldrb	r2, [r4]	@ zero_extendqisi2
+ 383              		.loc 1 303 140 view .LVU71
+ 384 001a 42B1     		cbz	r2, .L27
+ 385              		.loc 1 303 140 discriminator 2 view .LVU72
+ 386 001c 531E     		subs	r3, r2, #1
+ 387 001e 08E0     		b	.L31
+ 388              	.L26:
+ 389              	.LBE11:
+ 301:quantum/process_keycode/process_music.c ****         if ((music_sequence_timer == 0) || (timer_elapsed(music_sequence_timer) > music_sequence_in
+ 390              		.loc 1 301 45 discriminator 1 view .LVU73
+ 391 0020 FFF7FEFF 		bl	timer_elapsed
+ 392              	.LVL13:
+ 301:quantum/process_keycode/process_music.c ****         if ((music_sequence_timer == 0) || (timer_elapsed(music_sequence_timer) > music_sequence_in
+ 393              		.loc 1 301 81 discriminator 1 view .LVU74
+ 394 0024 124B     		ldr	r3, .L39+16
+ 301:quantum/process_keycode/process_music.c ****         if ((music_sequence_timer == 0) || (timer_elapsed(music_sequence_timer) > music_sequence_in
+ 395              		.loc 1 301 41 discriminator 1 view .LVU75
+ 396 0026 1B88     		ldrh	r3, [r3]
+ 397 0028 8342     		cmp	r3, r0
+ 398 002a F0D3     		bcc	.L29
+ 399              	.L23:
+ 304:quantum/process_keycode/process_music.c ****             uint8_t next_note    = music_sequence[music_sequence_position];
+ 305:quantum/process_keycode/process_music.c ****             music_noteoff(prev_note);
+ 306:quantum/process_keycode/process_music.c ****             music_noteon(next_note);
+ 307:quantum/process_keycode/process_music.c ****             music_sequence_position = (music_sequence_position + 1) % music_sequence_count;
+ 308:quantum/process_keycode/process_music.c ****         }
+ 309:quantum/process_keycode/process_music.c ****     }
+ 310:quantum/process_keycode/process_music.c **** }
+ 400              		.loc 1 310 1 view .LVU76
+ 401 002c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 402              	.L27:
+ 403              	.LBB20:
+ 303:quantum/process_keycode/process_music.c ****             uint8_t prev_note    = music_sequence[(music_sequence_position - 1 < 0) ? (music_sequen
+ 404              		.loc 1 303 116 discriminator 1 view .LVU77
+ 405 002e 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 303:quantum/process_keycode/process_music.c ****             uint8_t prev_note    = music_sequence[(music_sequence_position - 1 < 0) ? (music_sequen
+ 406              		.loc 1 303 140 discriminator 1 view .LVU78
+ 407 0030 013B     		subs	r3, r3, #1
+ 408              	.L31:
+ 303:quantum/process_keycode/process_music.c ****             uint8_t prev_note    = music_sequence[(music_sequence_position - 1 < 0) ? (music_sequen
+ 409              		.loc 1 303 21 discriminator 4 view .LVU79
+ 410 0032 1049     		ldr	r1, .L39+20
+ 411              	.LBB12:
+ 412              	.LBB13:
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 413              		.loc 1 87 9 discriminator 4 view .LVU80
+ 414 0034 104E     		ldr	r6, .L39+24
+ 415              	.LBE13:
+ 416              	.LBE12:
+ 303:quantum/process_keycode/process_music.c ****             uint8_t prev_note    = music_sequence[(music_sequence_position - 1 < 0) ? (music_sequen
+ 417              		.loc 1 303 21 discriminator 4 view .LVU81
+ 418 0036 C85C     		ldrb	r0, [r1, r3]	@ zero_extendqisi2
+ 419              	.LVL14:
+ 304:quantum/process_keycode/process_music.c ****             uint8_t next_note    = music_sequence[music_sequence_position];
+ 420              		.loc 1 304 13 is_stmt 1 discriminator 4 view .LVU82
+ 421              	.LBB16:
+ 422              	.LBB14:
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 423              		.loc 1 87 8 is_stmt 0 discriminator 4 view .LVU83
+ 424 0038 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 425              	.LBE14:
+ 426              	.LBE16:
+ 304:quantum/process_keycode/process_music.c ****             uint8_t next_note    = music_sequence[music_sequence_position];
+ 427              		.loc 1 304 21 discriminator 4 view .LVU84
+ 428 003a 8F5C     		ldrb	r7, [r1, r2]	@ zero_extendqisi2
+ 429              	.LVL15:
+ 305:quantum/process_keycode/process_music.c ****             music_noteon(next_note);
+ 430              		.loc 1 305 13 is_stmt 1 discriminator 4 view .LVU85
+ 431              	.LBB17:
+ 432              	.LBI12:
+  85:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 433              		.loc 1 85 13 discriminator 4 view .LVU86
+ 434              	.LBB15:
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 435              		.loc 1 87 5 discriminator 4 view .LVU87
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 436              		.loc 1 87 8 is_stmt 0 discriminator 4 view .LVU88
+ 437 003c 33B1     		cbz	r3, .L33
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 438              		.loc 1 87 26 is_stmt 1 view .LVU89
+ 439 003e FFF7FEFF 		bl	process_audio_noteoff
+ 440              	.LVL16:
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 441              		.loc 1 87 26 is_stmt 0 view .LVU90
+ 442              	.LBE15:
+ 443              	.LBE17:
+ 306:quantum/process_keycode/process_music.c ****             music_sequence_position = (music_sequence_position + 1) % music_sequence_count;
+ 444              		.loc 1 306 13 is_stmt 1 view .LVU91
+ 445              	.LBB18:
+ 446              	.LBI18:
+  76:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 447              		.loc 1 76 13 view .LVU92
+ 448              	.LBB19:
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 449              		.loc 1 78 5 view .LVU93
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 450              		.loc 1 78 8 is_stmt 0 view .LVU94
+ 451 0042 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 452 0044 13B1     		cbz	r3, .L33
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 453              		.loc 1 78 26 is_stmt 1 view .LVU95
+ 454 0046 3846     		mov	r0, r7
+ 455 0048 FFF7FEFF 		bl	process_audio_noteon
+ 456              	.LVL17:
+ 457              	.L33:
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 458              		.loc 1 78 26 is_stmt 0 view .LVU96
+ 459              	.LBE19:
+ 460              	.LBE18:
+ 307:quantum/process_keycode/process_music.c ****         }
+ 461              		.loc 1 307 13 is_stmt 1 view .LVU97
+ 307:quantum/process_keycode/process_music.c ****         }
+ 462              		.loc 1 307 64 is_stmt 0 view .LVU98
+ 463 004c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 307:quantum/process_keycode/process_music.c ****         }
+ 464              		.loc 1 307 69 view .LVU99
+ 465 004e 2A78     		ldrb	r2, [r5]	@ zero_extendqisi2
+ 307:quantum/process_keycode/process_music.c ****         }
+ 466              		.loc 1 307 64 view .LVU100
+ 467 0050 0133     		adds	r3, r3, #1
+ 307:quantum/process_keycode/process_music.c ****         }
+ 468              		.loc 1 307 69 view .LVU101
+ 469 0052 B3FBF2F1 		udiv	r1, r3, r2
+ 470 0056 02FB1133 		mls	r3, r2, r1, r3
+ 307:quantum/process_keycode/process_music.c ****         }
+ 471              		.loc 1 307 37 view .LVU102
+ 472 005a 2370     		strb	r3, [r4]
+ 473              	.LBE20:
+ 474              		.loc 1 310 1 view .LVU103
+ 475 005c E6E7     		b	.L23
+ 476              	.L40:
+ 477 005e 00BF     		.align	2
+ 478              	.L39:
+ 479 0060 00000000 		.word	.LANCHOR6
+ 480 0064 00000000 		.word	.LANCHOR7
+ 481 0068 00000000 		.word	.LANCHOR8
+ 482 006c 00000000 		.word	.LANCHOR10
+ 483 0070 00000000 		.word	.LANCHOR9
+ 484 0074 00000000 		.word	.LANCHOR11
+ 485 0078 00000000 		.word	.LANCHOR0
+ 486              		.cfi_endproc
+ 487              	.LFE357:
+ 489              		.section	.text.music_on_user,"ax",%progbits
+ 490              		.align	1
+ 491              		.weak	music_on_user
+ 492              		.syntax unified
+ 493              		.thumb
+ 494              		.thumb_func
+ 495              		.fpu fpv4-sp-d16
+ 497              	music_on_user:
+ 498              	.LFB358:
+ 311:quantum/process_keycode/process_music.c **** 
+ 312:quantum/process_keycode/process_music.c **** __attribute__((weak)) void music_on_user() {}
+ 499              		.loc 1 312 44 is_stmt 1 view -0
+ 500              		.cfi_startproc
+ 501              		@ args = 0, pretend = 0, frame = 0
+ 502              		@ frame_needed = 0, uses_anonymous_args = 0
+ 503              		@ link register save eliminated.
+ 504              		.loc 1 312 45 view .LVU105
+ 505 0000 7047     		bx	lr
+ 506              		.cfi_endproc
+ 507              	.LFE358:
+ 509              		.section	.text.music_on,"ax",%progbits
+ 510              		.align	1
+ 511              		.global	music_on
+ 512              		.syntax unified
+ 513              		.thumb
+ 514              		.thumb_func
+ 515              		.fpu fpv4-sp-d16
+ 517              	music_on:
+ 518              	.LFB350:
+ 247:quantum/process_keycode/process_music.c ****     music_activated = 1;
+ 519              		.loc 1 247 21 view -0
+ 520              		.cfi_startproc
+ 521              		@ args = 0, pretend = 0, frame = 0
+ 522              		@ frame_needed = 0, uses_anonymous_args = 0
+ 248:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 523              		.loc 1 248 5 view .LVU107
+ 247:quantum/process_keycode/process_music.c ****     music_activated = 1;
+ 524              		.loc 1 247 21 is_stmt 0 view .LVU108
+ 525 0000 08B5     		push	{r3, lr}
+ 526              		.cfi_def_cfa_offset 8
+ 527              		.cfi_offset 3, -8
+ 528              		.cfi_offset 14, -4
+ 248:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 529              		.loc 1 248 21 view .LVU109
+ 530 0002 054B     		ldr	r3, .L43
+ 250:quantum/process_keycode/process_music.c **** #    endif
+ 531              		.loc 1 250 5 view .LVU110
+ 532 0004 0548     		ldr	r0, .L43+4
+ 248:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 533              		.loc 1 248 21 view .LVU111
+ 534 0006 0122     		movs	r2, #1
+ 535 0008 1A70     		strb	r2, [r3]
+ 250:quantum/process_keycode/process_music.c **** #    endif
+ 536              		.loc 1 250 5 is_stmt 1 view .LVU112
+ 537 000a 0821     		movs	r1, #8
+ 538 000c 0022     		movs	r2, #0
+ 539 000e FFF7FEFF 		bl	audio_play_melody
+ 540              	.LVL18:
+ 252:quantum/process_keycode/process_music.c **** }
+ 541              		.loc 1 252 5 view .LVU113
+ 542 0012 FFF7FEFF 		bl	music_on_user
+ 543              	.LVL19:
+ 253:quantum/process_keycode/process_music.c **** 
+ 544              		.loc 1 253 1 is_stmt 0 view .LVU114
+ 545 0016 08BD     		pop	{r3, pc}
+ 546              	.L44:
+ 547              		.align	2
+ 548              	.L43:
+ 549 0018 00000000 		.word	.LANCHOR0
+ 550 001c 00000000 		.word	.LANCHOR12
+ 551              		.cfi_endproc
+ 552              	.LFE350:
+ 554              		.section	.text.music_toggle,"ax",%progbits
+ 555              		.align	1
+ 556              		.global	music_toggle
+ 557              		.syntax unified
+ 558              		.thumb
+ 559              		.thumb_func
+ 560              		.fpu fpv4-sp-d16
+ 562              	music_toggle:
+ 563              	.LFB349:
+ 239:quantum/process_keycode/process_music.c ****     if (!music_activated) {
+ 564              		.loc 1 239 25 is_stmt 1 view -0
+ 565              		.cfi_startproc
+ 566              		@ args = 0, pretend = 0, frame = 0
+ 567              		@ frame_needed = 0, uses_anonymous_args = 0
+ 568              		@ link register save eliminated.
+ 240:quantum/process_keycode/process_music.c ****         music_on();
+ 569              		.loc 1 240 5 view .LVU116
+ 240:quantum/process_keycode/process_music.c ****         music_on();
+ 570              		.loc 1 240 9 is_stmt 0 view .LVU117
+ 571 0000 034B     		ldr	r3, .L47
+ 240:quantum/process_keycode/process_music.c ****         music_on();
+ 572              		.loc 1 240 8 view .LVU118
+ 573 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 574 0004 0BB9     		cbnz	r3, .L46
+ 241:quantum/process_keycode/process_music.c ****     } else {
+ 575              		.loc 1 241 9 is_stmt 1 view .LVU119
+ 576 0006 FFF7FEBF 		b	music_on
+ 577              	.LVL20:
+ 578              	.L46:
+ 243:quantum/process_keycode/process_music.c ****     }
+ 579              		.loc 1 243 9 view .LVU120
+ 580 000a FFF7FEBF 		b	music_off
+ 581              	.LVL21:
+ 582              	.L48:
+ 583 000e 00BF     		.align	2
+ 584              	.L47:
+ 585 0010 00000000 		.word	.LANCHOR0
+ 586              		.cfi_endproc
+ 587              	.LFE349:
+ 589              		.section	.text.midi_on_user,"ax",%progbits
+ 590              		.align	1
+ 591              		.weak	midi_on_user
+ 592              		.syntax unified
+ 593              		.thumb
+ 594              		.thumb_func
+ 595              		.fpu fpv4-sp-d16
+ 597              	midi_on_user:
+ 598              	.LFB362:
+ 599              		.cfi_startproc
+ 600              		@ args = 0, pretend = 0, frame = 0
+ 601              		@ frame_needed = 0, uses_anonymous_args = 0
+ 602              		@ link register save eliminated.
+ 603 0000 7047     		bx	lr
+ 604              		.cfi_endproc
+ 605              	.LFE362:
+ 607              		.section	.text.midi_on,"ax",%progbits
+ 608              		.align	1
+ 609              		.global	midi_on
+ 610              		.syntax unified
+ 611              		.thumb
+ 612              		.thumb_func
+ 613              		.fpu fpv4-sp-d16
+ 615              	midi_on:
+ 616              	.LFB354:
+ 273:quantum/process_keycode/process_music.c ****     midi_activated = 1;
+ 617              		.loc 1 273 20 view -0
+ 618              		.cfi_startproc
+ 619              		@ args = 0, pretend = 0, frame = 0
+ 620              		@ frame_needed = 0, uses_anonymous_args = 0
+ 274:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 621              		.loc 1 274 5 view .LVU122
+ 273:quantum/process_keycode/process_music.c ****     midi_activated = 1;
+ 622              		.loc 1 273 20 is_stmt 0 view .LVU123
+ 623 0000 08B5     		push	{r3, lr}
+ 624              		.cfi_def_cfa_offset 8
+ 625              		.cfi_offset 3, -8
+ 626              		.cfi_offset 14, -4
+ 274:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 627              		.loc 1 274 20 view .LVU124
+ 628 0002 054B     		ldr	r3, .L51
+ 276:quantum/process_keycode/process_music.c **** #    endif
+ 629              		.loc 1 276 5 view .LVU125
+ 630 0004 0548     		ldr	r0, .L51+4
+ 274:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 631              		.loc 1 274 20 view .LVU126
+ 632 0006 0122     		movs	r2, #1
+ 633 0008 1A70     		strb	r2, [r3]
+ 276:quantum/process_keycode/process_music.c **** #    endif
+ 634              		.loc 1 276 5 is_stmt 1 view .LVU127
+ 635 000a 0821     		movs	r1, #8
+ 636 000c 0022     		movs	r2, #0
+ 637 000e FFF7FEFF 		bl	audio_play_melody
+ 638              	.LVL22:
+ 278:quantum/process_keycode/process_music.c **** }
+ 639              		.loc 1 278 5 view .LVU128
+ 640 0012 FFF7FEFF 		bl	midi_on_user
+ 641              	.LVL23:
+ 279:quantum/process_keycode/process_music.c **** 
+ 642              		.loc 1 279 1 is_stmt 0 view .LVU129
+ 643 0016 08BD     		pop	{r3, pc}
+ 644              	.L52:
+ 645              		.align	2
+ 646              	.L51:
+ 647 0018 00000000 		.word	.LANCHOR2
+ 648 001c 00000000 		.word	.LANCHOR13
+ 649              		.cfi_endproc
+ 650              	.LFE354:
+ 652              		.section	.text.process_music,"ax",%progbits
+ 653              		.align	1
+ 654              		.global	process_music
+ 655              		.syntax unified
+ 656              		.thumb
+ 657              		.thumb_func
+ 658              		.fpu fpv4-sp-d16
+ 660              	process_music:
+ 661              	.LVL24:
+ 662              	.LFB344:
+ 103:quantum/process_keycode/process_music.c ****     if (keycode == MU_ON && record->event.pressed) {
+ 663              		.loc 1 103 59 is_stmt 1 view -0
+ 664              		.cfi_startproc
+ 665              		@ args = 0, pretend = 0, frame = 40
+ 666              		@ frame_needed = 0, uses_anonymous_args = 0
+ 103:quantum/process_keycode/process_music.c ****     if (keycode == MU_ON && record->event.pressed) {
+ 667              		.loc 1 103 59 is_stmt 0 view .LVU131
+ 668 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 669              		.cfi_def_cfa_offset 24
+ 670              		.cfi_offset 4, -24
+ 671              		.cfi_offset 5, -20
+ 672              		.cfi_offset 6, -16
+ 673              		.cfi_offset 7, -12
+ 674              		.cfi_offset 8, -8
+ 675              		.cfi_offset 14, -4
+ 104:quantum/process_keycode/process_music.c ****         music_on();
+ 676              		.loc 1 104 8 view .LVU132
+ 677 0004 45F62643 		movw	r3, #23590
+ 678 0008 9842     		cmp	r0, r3
+ 103:quantum/process_keycode/process_music.c ****     if (keycode == MU_ON && record->event.pressed) {
+ 679              		.loc 1 103 59 view .LVU133
+ 680 000a 8AB0     		sub	sp, sp, #40
+ 681              		.cfi_def_cfa_offset 64
+ 103:quantum/process_keycode/process_music.c ****     if (keycode == MU_ON && record->event.pressed) {
+ 682              		.loc 1 103 59 view .LVU134
+ 683 000c 0546     		mov	r5, r0
+ 104:quantum/process_keycode/process_music.c ****         music_on();
+ 684              		.loc 1 104 5 is_stmt 1 view .LVU135
+ 104:quantum/process_keycode/process_music.c ****         music_on();
+ 685              		.loc 1 104 8 is_stmt 0 view .LVU136
+ 686 000e 06D1     		bne	.L54
+ 104:quantum/process_keycode/process_music.c ****         music_on();
+ 687              		.loc 1 104 26 discriminator 1 view .LVU137
+ 688 0010 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 689 0012 002B     		cmp	r3, #0
+ 690 0014 3ED0     		beq	.L55
+ 691              	.L60:
+ 105:quantum/process_keycode/process_music.c ****         return false;
+ 692              		.loc 1 105 9 is_stmt 1 view .LVU138
+ 693 0016 FFF7FEFF 		bl	music_on
+ 694              	.LVL25:
+ 106:quantum/process_keycode/process_music.c ****     }
+ 695              		.loc 1 106 9 view .LVU139
+ 696              	.L120:
+ 697              	.LBB29:
+ 184:quantum/process_keycode/process_music.c ****             }
+ 698              		.loc 1 184 17 view .LVU140
+ 184:quantum/process_keycode/process_music.c ****             }
+ 699              		.loc 1 184 24 is_stmt 0 view .LVU141
+ 700 001a 0020     		movs	r0, #0
+ 701 001c 53E0     		b	.L56
+ 702              	.LVL26:
+ 703              	.L54:
+ 184:quantum/process_keycode/process_music.c ****             }
+ 704              		.loc 1 184 24 view .LVU142
+ 705              	.LBE29:
+ 109:quantum/process_keycode/process_music.c ****         music_off();
+ 706              		.loc 1 109 5 is_stmt 1 view .LVU143
+ 109:quantum/process_keycode/process_music.c ****         music_off();
+ 707              		.loc 1 109 8 is_stmt 0 view .LVU144
+ 708 001e 45F62743 		movw	r3, #23591
+ 709 0022 9842     		cmp	r0, r3
+ 710 0024 05D1     		bne	.L57
+ 109:quantum/process_keycode/process_music.c ****         music_off();
+ 711              		.loc 1 109 27 discriminator 1 view .LVU145
+ 712 0026 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 713 0028 002B     		cmp	r3, #0
+ 714 002a 33D0     		beq	.L55
+ 715              	.L59:
+ 110:quantum/process_keycode/process_music.c ****         return false;
+ 716              		.loc 1 110 9 is_stmt 1 view .LVU146
+ 717 002c FFF7FEFF 		bl	music_off
+ 718              	.LVL27:
+ 111:quantum/process_keycode/process_music.c ****     }
+ 719              		.loc 1 111 9 view .LVU147
+ 720 0030 F3E7     		b	.L120
+ 721              	.LVL28:
+ 722              	.L57:
+ 114:quantum/process_keycode/process_music.c ****         if (music_activated) {
+ 723              		.loc 1 114 5 view .LVU148
+ 114:quantum/process_keycode/process_music.c ****         if (music_activated) {
+ 724              		.loc 1 114 8 is_stmt 0 view .LVU149
+ 725 0032 45F62843 		movw	r3, #23592
+ 726 0036 9842     		cmp	r0, r3
+ 727 0038 06D1     		bne	.L58
+ 114:quantum/process_keycode/process_music.c ****         if (music_activated) {
+ 728              		.loc 1 114 27 discriminator 1 view .LVU150
+ 729 003a 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 730 003c 53B3     		cbz	r3, .L55
+ 115:quantum/process_keycode/process_music.c ****             music_off();
+ 731              		.loc 1 115 9 is_stmt 1 view .LVU151
+ 115:quantum/process_keycode/process_music.c ****             music_off();
+ 732              		.loc 1 115 13 is_stmt 0 view .LVU152
+ 733 003e 654B     		ldr	r3, .L123
+ 115:quantum/process_keycode/process_music.c ****             music_off();
+ 734              		.loc 1 115 12 view .LVU153
+ 735 0040 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 736 0042 002B     		cmp	r3, #0
+ 737 0044 F2D1     		bne	.L59
+ 738 0046 E6E7     		b	.L60
+ 739              	.L58:
+ 123:quantum/process_keycode/process_music.c ****         midi_on();
+ 740              		.loc 1 123 5 is_stmt 1 view .LVU154
+ 123:quantum/process_keycode/process_music.c ****         midi_on();
+ 741              		.loc 1 123 8 is_stmt 0 view .LVU155
+ 742 0048 45F62C43 		movw	r3, #23596
+ 743 004c 9842     		cmp	r0, r3
+ 744 004e 04D1     		bne	.L61
+ 123:quantum/process_keycode/process_music.c ****         midi_on();
+ 745              		.loc 1 123 26 discriminator 1 view .LVU156
+ 746 0050 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 747 0052 FBB1     		cbz	r3, .L55
+ 748              	.L65:
+ 124:quantum/process_keycode/process_music.c ****         return false;
+ 749              		.loc 1 124 9 is_stmt 1 view .LVU157
+ 750 0054 FFF7FEFF 		bl	midi_on
+ 751              	.LVL29:
+ 125:quantum/process_keycode/process_music.c ****     }
+ 752              		.loc 1 125 9 view .LVU158
+ 753 0058 DFE7     		b	.L120
+ 754              	.LVL30:
+ 755              	.L61:
+ 128:quantum/process_keycode/process_music.c ****         midi_off();
+ 756              		.loc 1 128 5 view .LVU159
+ 128:quantum/process_keycode/process_music.c ****         midi_off();
+ 757              		.loc 1 128 8 is_stmt 0 view .LVU160
+ 758 005a 45F62D43 		movw	r3, #23597
+ 759 005e 9842     		cmp	r0, r3
+ 760 0060 04D1     		bne	.L62
+ 128:quantum/process_keycode/process_music.c ****         midi_off();
+ 761              		.loc 1 128 27 discriminator 1 view .LVU161
+ 762 0062 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 763 0064 B3B1     		cbz	r3, .L55
+ 764              	.L64:
+ 129:quantum/process_keycode/process_music.c ****         return false;
+ 765              		.loc 1 129 9 is_stmt 1 view .LVU162
+ 766 0066 FFF7FEFF 		bl	midi_off
+ 767              	.LVL31:
+ 130:quantum/process_keycode/process_music.c ****     }
+ 768              		.loc 1 130 9 view .LVU163
+ 769 006a D6E7     		b	.L120
+ 770              	.LVL32:
+ 771              	.L62:
+ 133:quantum/process_keycode/process_music.c ****         if (midi_activated) {
+ 772              		.loc 1 133 5 view .LVU164
+ 133:quantum/process_keycode/process_music.c ****         if (midi_activated) {
+ 773              		.loc 1 133 8 is_stmt 0 view .LVU165
+ 774 006c 45F62E43 		movw	r3, #23598
+ 775 0070 9842     		cmp	r0, r3
+ 776 0072 06D1     		bne	.L63
+ 133:quantum/process_keycode/process_music.c ****         if (midi_activated) {
+ 777              		.loc 1 133 27 discriminator 1 view .LVU166
+ 778 0074 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 779 0076 6BB1     		cbz	r3, .L55
+ 134:quantum/process_keycode/process_music.c ****             midi_off();
+ 780              		.loc 1 134 9 is_stmt 1 view .LVU167
+ 134:quantum/process_keycode/process_music.c ****             midi_off();
+ 781              		.loc 1 134 13 is_stmt 0 view .LVU168
+ 782 0078 574B     		ldr	r3, .L123+4
+ 134:quantum/process_keycode/process_music.c ****             midi_off();
+ 783              		.loc 1 134 12 view .LVU169
+ 784 007a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 785 007c 002B     		cmp	r3, #0
+ 786 007e F2D1     		bne	.L64
+ 787 0080 E8E7     		b	.L65
+ 788              	.L63:
+ 142:quantum/process_keycode/process_music.c ****         music_mode_cycle();
+ 789              		.loc 1 142 5 is_stmt 1 view .LVU170
+ 142:quantum/process_keycode/process_music.c ****         music_mode_cycle();
+ 790              		.loc 1 142 8 is_stmt 0 view .LVU171
+ 791 0082 45F62943 		movw	r3, #23593
+ 792 0086 9842     		cmp	r0, r3
+ 793 0088 04D1     		bne	.L55
+ 142:quantum/process_keycode/process_music.c ****         music_mode_cycle();
+ 794              		.loc 1 142 27 discriminator 1 view .LVU172
+ 795 008a 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 796 008c 13B1     		cbz	r3, .L55
+ 143:quantum/process_keycode/process_music.c ****         return false;
+ 797              		.loc 1 143 9 is_stmt 1 view .LVU173
+ 798 008e FFF7FEFF 		bl	music_mode_cycle
+ 799              	.LVL33:
+ 144:quantum/process_keycode/process_music.c ****     }
+ 800              		.loc 1 144 9 view .LVU174
+ 801 0092 C2E7     		b	.L120
+ 802              	.LVL34:
+ 803              	.L55:
+ 147:quantum/process_keycode/process_music.c ****         if (record->event.pressed) {
+ 804              		.loc 1 147 5 view .LVU175
+ 147:quantum/process_keycode/process_music.c ****         if (record->event.pressed) {
+ 805              		.loc 1 147 9 is_stmt 0 view .LVU176
+ 806 0094 4F4B     		ldr	r3, .L123
+ 807 0096 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 147:quantum/process_keycode/process_music.c ****         if (record->event.pressed) {
+ 808              		.loc 1 147 8 view .LVU177
+ 809 0098 22B9     		cbnz	r2, .L66
+ 147:quantum/process_keycode/process_music.c ****         if (record->event.pressed) {
+ 810              		.loc 1 147 25 discriminator 1 view .LVU178
+ 811 009a 4F4B     		ldr	r3, .L123+4
+ 812 009c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 813 009e 002B     		cmp	r3, #0
+ 814 00a0 00F09680 		beq	.L81
+ 815              	.L66:
+ 816              	.LBB38:
+ 148:quantum/process_keycode/process_music.c ****             if (keycode == KC_LCTL) {  // Start recording
+ 817              		.loc 1 148 9 is_stmt 1 view .LVU179
+ 148:quantum/process_keycode/process_music.c ****             if (keycode == KC_LCTL) {  // Start recording
+ 818              		.loc 1 148 26 is_stmt 0 view .LVU180
+ 819 00a4 8E78     		ldrb	r6, [r1, #2]	@ zero_extendqisi2
+ 148:quantum/process_keycode/process_music.c ****             if (keycode == KC_LCTL) {  // Start recording
+ 820              		.loc 1 148 12 view .LVU181
+ 821 00a6 002E     		cmp	r6, #0
+ 822 00a8 3DD0     		beq	.L67
+ 149:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 823              		.loc 1 149 13 is_stmt 1 view .LVU182
+ 149:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 824              		.loc 1 149 16 is_stmt 0 view .LVU183
+ 825 00aa E02D     		cmp	r5, #224
+ 826 00ac 0ED1     		bne	.L68
+ 150:quantum/process_keycode/process_music.c ****                 music_sequence_recording = true;
+ 827              		.loc 1 150 17 is_stmt 1 view .LVU184
+ 828 00ae FFF7FEFF 		bl	music_all_notes_off
+ 829              	.LVL35:
+ 151:quantum/process_keycode/process_music.c ****                 music_sequence_recorded  = false;
+ 830              		.loc 1 151 17 view .LVU185
+ 151:quantum/process_keycode/process_music.c ****                 music_sequence_recorded  = false;
+ 831              		.loc 1 151 42 is_stmt 0 view .LVU186
+ 832 00b2 4A4B     		ldr	r3, .L123+8
+ 833 00b4 0122     		movs	r2, #1
+ 834 00b6 1A70     		strb	r2, [r3]
+ 152:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = false;
+ 835              		.loc 1 152 17 is_stmt 1 view .LVU187
+ 152:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = false;
+ 836              		.loc 1 152 42 is_stmt 0 view .LVU188
+ 837 00b8 494B     		ldr	r3, .L123+12
+ 838 00ba 0020     		movs	r0, #0
+ 839 00bc 1870     		strb	r0, [r3]
+ 153:quantum/process_keycode/process_music.c ****                 music_sequence_count     = 0;
+ 840              		.loc 1 153 17 is_stmt 1 view .LVU189
+ 153:quantum/process_keycode/process_music.c ****                 music_sequence_count     = 0;
+ 841              		.loc 1 153 42 is_stmt 0 view .LVU190
+ 842 00be 494B     		ldr	r3, .L123+16
+ 843 00c0 1870     		strb	r0, [r3]
+ 154:quantum/process_keycode/process_music.c ****                 return false;
+ 844              		.loc 1 154 17 is_stmt 1 view .LVU191
+ 154:quantum/process_keycode/process_music.c ****                 return false;
+ 845              		.loc 1 154 42 is_stmt 0 view .LVU192
+ 846 00c2 494B     		ldr	r3, .L123+20
+ 847              	.L122:
+ 164:quantum/process_keycode/process_music.c ****                 return false;
+ 848              		.loc 1 164 42 view .LVU193
+ 849 00c4 1870     		strb	r0, [r3]
+ 165:quantum/process_keycode/process_music.c ****             }
+ 850              		.loc 1 165 17 is_stmt 1 view .LVU194
+ 851              	.L56:
+ 165:quantum/process_keycode/process_music.c ****             }
+ 852              		.loc 1 165 17 is_stmt 0 view .LVU195
+ 853              	.LBE38:
+ 223:quantum/process_keycode/process_music.c **** 
+ 854              		.loc 1 223 1 view .LVU196
+ 855 00c6 0AB0     		add	sp, sp, #40
+ 856              		.cfi_remember_state
+ 857              		.cfi_def_cfa_offset 24
+ 858              		@ sp needed
+ 859 00c8 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 860              	.LVL36:
+ 861              	.L68:
+ 862              		.cfi_restore_state
+ 863              	.LBB39:
+ 158:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 864              		.loc 1 158 13 is_stmt 1 view .LVU197
+ 158:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 865              		.loc 1 158 16 is_stmt 0 view .LVU198
+ 866 00cc E22D     		cmp	r5, #226
+ 867 00ce 0BD1     		bne	.L69
+ 159:quantum/process_keycode/process_music.c ****                 if (music_sequence_recording) {  // was recording
+ 868              		.loc 1 159 17 is_stmt 1 view .LVU199
+ 869 00d0 FFF7FEFF 		bl	music_all_notes_off
+ 870              	.LVL37:
+ 160:quantum/process_keycode/process_music.c ****                     music_sequence_recorded = true;
+ 871              		.loc 1 160 17 view .LVU200
+ 160:quantum/process_keycode/process_music.c ****                     music_sequence_recorded = true;
+ 872              		.loc 1 160 21 is_stmt 0 view .LVU201
+ 873 00d4 414B     		ldr	r3, .L123+8
+ 160:quantum/process_keycode/process_music.c ****                     music_sequence_recorded = true;
+ 874              		.loc 1 160 20 view .LVU202
+ 875 00d6 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 876 00d8 12B1     		cbz	r2, .L70
+ 161:quantum/process_keycode/process_music.c ****                 }
+ 877              		.loc 1 161 21 is_stmt 1 view .LVU203
+ 161:quantum/process_keycode/process_music.c ****                 }
+ 878              		.loc 1 161 45 is_stmt 0 view .LVU204
+ 879 00da 414A     		ldr	r2, .L123+12
+ 880 00dc 0121     		movs	r1, #1
+ 881 00de 1170     		strb	r1, [r2]
+ 882              	.L70:
+ 163:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = false;
+ 883              		.loc 1 163 17 is_stmt 1 view .LVU205
+ 163:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = false;
+ 884              		.loc 1 163 42 is_stmt 0 view .LVU206
+ 885 00e0 0020     		movs	r0, #0
+ 886 00e2 1870     		strb	r0, [r3]
+ 164:quantum/process_keycode/process_music.c ****                 return false;
+ 887              		.loc 1 164 17 is_stmt 1 view .LVU207
+ 164:quantum/process_keycode/process_music.c ****                 return false;
+ 888              		.loc 1 164 42 is_stmt 0 view .LVU208
+ 889 00e4 3F4B     		ldr	r3, .L123+16
+ 890 00e6 EDE7     		b	.L122
+ 891              	.LVL38:
+ 892              	.L69:
+ 168:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 893              		.loc 1 168 13 is_stmt 1 view .LVU209
+ 168:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 894              		.loc 1 168 16 is_stmt 0 view .LVU210
+ 895 00e8 E32D     		cmp	r5, #227
+ 896 00ea 0FD1     		bne	.L71
+ 168:quantum/process_keycode/process_music.c ****                 music_all_notes_off();
+ 897              		.loc 1 168 36 discriminator 1 view .LVU211
+ 898 00ec 3C4B     		ldr	r3, .L123+12
+ 899 00ee 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 900 00f0 CBB1     		cbz	r3, .L67
+ 169:quantum/process_keycode/process_music.c ****                 music_sequence_recording = false;
+ 901              		.loc 1 169 17 is_stmt 1 view .LVU212
+ 902 00f2 FFF7FEFF 		bl	music_all_notes_off
+ 903              	.LVL39:
+ 170:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = true;
+ 904              		.loc 1 170 17 view .LVU213
+ 170:quantum/process_keycode/process_music.c ****                 music_sequence_playing   = true;
+ 905              		.loc 1 170 42 is_stmt 0 view .LVU214
+ 906 00f6 394B     		ldr	r3, .L123+8
+ 907 00f8 0020     		movs	r0, #0
+ 908 00fa 1870     		strb	r0, [r3]
+ 171:quantum/process_keycode/process_music.c ****                 music_sequence_position  = 0;
+ 909              		.loc 1 171 17 is_stmt 1 view .LVU215
+ 171:quantum/process_keycode/process_music.c ****                 music_sequence_position  = 0;
+ 910              		.loc 1 171 42 is_stmt 0 view .LVU216
+ 911 00fc 394B     		ldr	r3, .L123+16
+ 912 00fe 0122     		movs	r2, #1
+ 913 0100 1A70     		strb	r2, [r3]
+ 172:quantum/process_keycode/process_music.c ****                 music_sequence_timer     = 0;
+ 914              		.loc 1 172 17 is_stmt 1 view .LVU217
+ 172:quantum/process_keycode/process_music.c ****                 music_sequence_timer     = 0;
+ 915              		.loc 1 172 42 is_stmt 0 view .LVU218
+ 916 0102 3A4B     		ldr	r3, .L123+24
+ 917 0104 1870     		strb	r0, [r3]
+ 173:quantum/process_keycode/process_music.c ****                 return false;
+ 918              		.loc 1 173 17 is_stmt 1 view .LVU219
+ 173:quantum/process_keycode/process_music.c ****                 return false;
+ 919              		.loc 1 173 42 is_stmt 0 view .LVU220
+ 920 0106 3A4B     		ldr	r3, .L123+28
+ 921 0108 1880     		strh	r0, [r3]	@ movhi
+ 174:quantum/process_keycode/process_music.c ****             }
+ 922              		.loc 1 174 17 is_stmt 1 view .LVU221
+ 174:quantum/process_keycode/process_music.c ****             }
+ 923              		.loc 1 174 24 is_stmt 0 view .LVU222
+ 924 010a DCE7     		b	.L56
+ 925              	.LVL40:
+ 926              	.L71:
+ 177:quantum/process_keycode/process_music.c ****                 music_sequence_interval -= 10;
+ 927              		.loc 1 177 13 is_stmt 1 view .LVU223
+ 177:quantum/process_keycode/process_music.c ****                 music_sequence_interval -= 10;
+ 928              		.loc 1 177 16 is_stmt 0 view .LVU224
+ 929 010c 522D     		cmp	r5, #82
+ 930 010e 04D1     		bne	.L72
+ 178:quantum/process_keycode/process_music.c ****                 return false;
+ 931              		.loc 1 178 17 is_stmt 1 view .LVU225
+ 178:quantum/process_keycode/process_music.c ****                 return false;
+ 932              		.loc 1 178 41 is_stmt 0 view .LVU226
+ 933 0110 384A     		ldr	r2, .L123+32
+ 934 0112 1388     		ldrh	r3, [r2]
+ 935 0114 0A3B     		subs	r3, r3, #10
+ 936              	.L121:
+ 183:quantum/process_keycode/process_music.c ****                 return false;
+ 937              		.loc 1 183 41 view .LVU227
+ 938 0116 1380     		strh	r3, [r2]	@ movhi
+ 939 0118 7FE7     		b	.L120
+ 940              	.L72:
+ 182:quantum/process_keycode/process_music.c ****                 music_sequence_interval += 10;
+ 941              		.loc 1 182 13 is_stmt 1 view .LVU228
+ 182:quantum/process_keycode/process_music.c ****                 music_sequence_interval += 10;
+ 942              		.loc 1 182 16 is_stmt 0 view .LVU229
+ 943 011a 512D     		cmp	r5, #81
+ 944 011c 03D1     		bne	.L67
+ 183:quantum/process_keycode/process_music.c ****                 return false;
+ 945              		.loc 1 183 17 is_stmt 1 view .LVU230
+ 183:quantum/process_keycode/process_music.c ****                 return false;
+ 946              		.loc 1 183 41 is_stmt 0 view .LVU231
+ 947 011e 354A     		ldr	r2, .L123+32
+ 948 0120 1388     		ldrh	r3, [r2]
+ 949 0122 0A33     		adds	r3, r3, #10
+ 950 0124 F7E7     		b	.L121
+ 951              	.L67:
+ 188:quantum/process_keycode/process_music.c **** #    ifdef MUSIC_MAP
+ 952              		.loc 1 188 9 is_stmt 1 view .LVU232
+ 953              	.LVL41:
+ 190:quantum/process_keycode/process_music.c ****             note = music_starting_note + music_offset + 36 + music_map[record->event.key.row][recor
+ 954              		.loc 1 190 9 view .LVU233
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 955              		.loc 1 191 89 is_stmt 0 view .LVU234
+ 956 0126 4878     		ldrb	r0, [r1, #1]	@ zero_extendqisi2
+ 957              	.LVL42:
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 958              		.loc 1 191 94 view .LVU235
+ 959 0128 334B     		ldr	r3, .L123+36
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 960              		.loc 1 191 112 view .LVU236
+ 961 012a 0978     		ldrb	r1, [r1]	@ zero_extendqisi2
+ 962              	.LVL43:
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 963              		.loc 1 191 94 view .LVU237
+ 964 012c 0624     		movs	r4, #6
+ 965 012e 04FB0033 		mla	r3, r4, r0, r3
+ 966 0132 13F801C0 		ldrb	ip, [r3, r1]	@ zero_extendqisi2
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 967              		.loc 1 191 40 view .LVU238
+ 968 0136 314B     		ldr	r3, .L123+40
+ 969 0138 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 970 013a 314B     		ldr	r3, .L123+44
+ 971 013c 1B68     		ldr	r3, [r3]
+ 972 013e 2434     		adds	r4, r4, #36
+ 973 0140 1C44     		add	r4, r4, r3
+ 190:quantum/process_keycode/process_music.c ****             note = music_starting_note + music_offset + 36 + music_map[record->event.key.row][recor
+ 974              		.loc 1 190 24 view .LVU239
+ 975 0142 304B     		ldr	r3, .L123+48
+ 190:quantum/process_keycode/process_music.c ****             note = music_starting_note + music_offset + 36 + music_map[record->event.key.row][recor
+ 976              		.loc 1 190 12 view .LVU240
+ 977 0144 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 978 0146 E4B2     		uxtb	r4, r4
+ 979 0148 BBB9     		cbnz	r3, .L73
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 980              		.loc 1 191 13 is_stmt 1 view .LVU241
+ 191:quantum/process_keycode/process_music.c ****         } else {
+ 981              		.loc 1 191 18 is_stmt 0 view .LVU242
+ 982 014a 6444     		add	r4, r4, ip
+ 983              	.L119:
+ 984              	.LBB30:
+ 194:quantum/process_keycode/process_music.c ****         }
+ 985              		.loc 1 194 30 view .LVU243
+ 986 014c E4B2     		uxtb	r4, r4
+ 987              	.LVL44:
+ 194:quantum/process_keycode/process_music.c ****         }
+ 988              		.loc 1 194 30 view .LVU244
+ 989              	.LBE30:
+ 209:quantum/process_keycode/process_music.c ****             music_noteon(note);
+ 990              		.loc 1 209 9 is_stmt 1 view .LVU245
+ 209:quantum/process_keycode/process_music.c ****             music_noteon(note);
+ 991              		.loc 1 209 12 is_stmt 0 view .LVU246
+ 992 014e 002E     		cmp	r6, #0
+ 993 0150 38D0     		beq	.L76
+ 210:quantum/process_keycode/process_music.c ****             if (music_sequence_recording) {
+ 994              		.loc 1 210 13 is_stmt 1 view .LVU247
+ 995              	.LVL45:
+ 996              	.LBB31:
+ 997              	.LBI31:
+  76:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 998              		.loc 1 76 13 view .LVU248
+ 999              	.LBB32:
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 1000              		.loc 1 78 5 view .LVU249
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 1001              		.loc 1 78 8 is_stmt 0 view .LVU250
+ 1002 0152 12B1     		cbz	r2, .L77
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 1003              		.loc 1 78 26 is_stmt 1 view .LVU251
+ 1004 0154 2046     		mov	r0, r4
+ 1005 0156 FFF7FEFF 		bl	process_audio_noteon
+ 1006              	.LVL46:
+ 1007              	.L77:
+  78:quantum/process_keycode/process_music.c **** #    endif
+ 1008              		.loc 1 78 26 is_stmt 0 view .LVU252
+ 1009              	.LBE32:
+ 1010              	.LBE31:
+ 211:quantum/process_keycode/process_music.c ****                 music_sequence[music_sequence_count] = note;
+ 1011              		.loc 1 211 13 is_stmt 1 view .LVU253
+ 211:quantum/process_keycode/process_music.c ****                 music_sequence[music_sequence_count] = note;
+ 1012              		.loc 1 211 17 is_stmt 0 view .LVU254
+ 1013 015a 204B     		ldr	r3, .L123+8
+ 211:quantum/process_keycode/process_music.c ****                 music_sequence[music_sequence_count] = note;
+ 1014              		.loc 1 211 16 view .LVU255
+ 1015 015c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1016 015e 2BB1     		cbz	r3, .L79
+ 212:quantum/process_keycode/process_music.c ****                 music_sequence_count++;
+ 1017              		.loc 1 212 17 is_stmt 1 view .LVU256
+ 212:quantum/process_keycode/process_music.c ****                 music_sequence_count++;
+ 1018              		.loc 1 212 31 is_stmt 0 view .LVU257
+ 1019 0160 214A     		ldr	r2, .L123+20
+ 212:quantum/process_keycode/process_music.c ****                 music_sequence_count++;
+ 1020              		.loc 1 212 54 view .LVU258
+ 1021 0162 2949     		ldr	r1, .L123+52
+ 212:quantum/process_keycode/process_music.c ****                 music_sequence_count++;
+ 1022              		.loc 1 212 31 view .LVU259
+ 1023 0164 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 212:quantum/process_keycode/process_music.c ****                 music_sequence_count++;
+ 1024              		.loc 1 212 54 view .LVU260
+ 1025 0166 CC54     		strb	r4, [r1, r3]
+ 213:quantum/process_keycode/process_music.c ****             }
+ 1026              		.loc 1 213 17 is_stmt 1 view .LVU261
+ 213:quantum/process_keycode/process_music.c ****             }
+ 1027              		.loc 1 213 37 is_stmt 0 view .LVU262
+ 1028 0168 0133     		adds	r3, r3, #1
+ 1029 016a 1370     		strb	r3, [r2]
+ 1030              	.L79:
+ 219:quantum/process_keycode/process_music.c ****     }
+ 1031              		.loc 1 219 9 is_stmt 1 view .LVU263
+ 1032              	.LVL47:
+ 1033              	.LBB33:
+ 1034              	.LBI33:
+ 225:quantum/process_keycode/process_music.c **** #    ifdef MUSIC_MASK
+ 1035              		.loc 1 225 6 view .LVU264
+ 1036              	.LBB34:
+ 229:quantum/process_keycode/process_music.c **** #    endif
+ 1037              		.loc 1 229 5 view .LVU265
+ 229:quantum/process_keycode/process_music.c **** #    endif
+ 1038              		.loc 1 229 12 is_stmt 0 view .LVU266
+ 1039 016c 2846     		mov	r0, r5
+ 1040 016e FFF7FEFF 		bl	music_mask_kb
+ 1041              	.LVL48:
+ 229:quantum/process_keycode/process_music.c **** #    endif
+ 1042              		.loc 1 229 12 view .LVU267
+ 1043              	.LBE34:
+ 1044              	.LBE33:
+ 219:quantum/process_keycode/process_music.c ****     }
+ 1045              		.loc 1 219 12 view .LVU268
+ 1046 0172 80F00100 		eor	r0, r0, #1
+ 1047 0176 C0B2     		uxtb	r0, r0
+ 1048 0178 A5E7     		b	.L56
+ 1049              	.LVL49:
+ 1050              	.L73:
+ 1051              	.LBB35:
+ 193:quantum/process_keycode/process_music.c ****             note             = music_starting_note + music_offset + 36 + SCALE[position % 7] + (pos
+ 1052              		.loc 1 193 13 is_stmt 1 view .LVU269
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1053              		.loc 1 194 13 view .LVU270
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1054              		.loc 1 194 74 is_stmt 0 view .LVU271
+ 1055 017a 244B     		ldr	r3, .L123+56
+ 1056 017c 01AF     		add	r7, sp, #4
+ 1057 017e 03F12008 		add	r8, r3, #32
+ 1058              	.LVL50:
+ 1059              	.L75:
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1060              		.loc 1 194 74 view .LVU272
+ 1061 0182 1868     		ldr	r0, [r3]	@ unaligned
+ 1062 0184 5968     		ldr	r1, [r3, #4]	@ unaligned
+ 1063 0186 BE46     		mov	lr, r7
+ 1064 0188 AEE80300 		stmia	lr!, {r0, r1}
+ 1065 018c 0833     		adds	r3, r3, #8
+ 1066 018e 4345     		cmp	r3, r8
+ 1067 0190 7746     		mov	r7, lr
+ 1068 0192 F6D1     		bne	.L75
+ 1069 0194 1988     		ldrh	r1, [r3]	@ unaligned
+ 1070 0196 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 1071 0198 AEF80010 		strh	r1, [lr]	@ unaligned
+ 1072 019c 8EF80230 		strb	r3, [lr, #2]
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1073              		.loc 1 194 94 view .LVU273
+ 1074 01a0 0723     		movs	r3, #7
+ 1075 01a2 BCFBF3F3 		udiv	r3, ip, r3
+ 1076 01a6 03EB4301 		add	r1, r3, r3, lsl #1
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1077              		.loc 1 194 89 view .LVU274
+ 1078 01aa C3EBC303 		rsb	r3, r3, r3, lsl #3
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1079              		.loc 1 194 30 view .LVU275
+ 1080 01ae 04EB8104 		add	r4, r4, r1, lsl #2
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1081              		.loc 1 194 89 view .LVU276
+ 1082 01b2 ACEB0303 		sub	r3, ip, r3
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1083              		.loc 1 194 79 view .LVU277
+ 1084 01b6 0AA9     		add	r1, sp, #40
+ 1085 01b8 51FA83F3 		uxtab	r3, r1, r3
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1086              		.loc 1 194 30 view .LVU278
+ 1087 01bc 13F8243C 		ldrb	r3, [r3, #-36]	@ zero_extendqisi2
+ 1088 01c0 1C44     		add	r4, r4, r3
+ 1089 01c2 C3E7     		b	.L119
+ 1090              	.LVL51:
+ 1091              	.L76:
+ 194:quantum/process_keycode/process_music.c ****         }
+ 1092              		.loc 1 194 30 view .LVU279
+ 1093              	.LBE35:
+ 216:quantum/process_keycode/process_music.c ****         }
+ 1094              		.loc 1 216 13 is_stmt 1 view .LVU280
+ 1095              	.LBB36:
+ 1096              	.LBI36:
+  85:quantum/process_keycode/process_music.c **** #    ifdef AUDIO_ENABLE
+ 1097              		.loc 1 85 13 view .LVU281
+ 1098              	.LBB37:
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 1099              		.loc 1 87 5 view .LVU282
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 1100              		.loc 1 87 8 is_stmt 0 view .LVU283
+ 1101 01c4 002A     		cmp	r2, #0
+ 1102 01c6 D1D0     		beq	.L79
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 1103              		.loc 1 87 26 is_stmt 1 view .LVU284
+ 1104 01c8 2046     		mov	r0, r4
+ 1105 01ca FFF7FEFF 		bl	process_audio_noteoff
+ 1106              	.LVL52:
+ 1107 01ce CDE7     		b	.L79
+ 1108              	.LVL53:
+ 1109              	.L81:
+  87:quantum/process_keycode/process_music.c **** #    endif
+ 1110              		.loc 1 87 26 is_stmt 0 view .LVU285
+ 1111              	.LBE37:
+ 1112              	.LBE36:
+ 1113              	.LBE39:
+ 222:quantum/process_keycode/process_music.c **** }
+ 1114              		.loc 1 222 12 view .LVU286
+ 1115 01d0 0120     		movs	r0, #1
+ 1116              	.LVL54:
+ 222:quantum/process_keycode/process_music.c **** }
+ 1117              		.loc 1 222 12 view .LVU287
+ 1118 01d2 78E7     		b	.L56
+ 1119              	.L124:
+ 1120              		.align	2
+ 1121              	.L123:
+ 1122 01d4 00000000 		.word	.LANCHOR0
+ 1123 01d8 00000000 		.word	.LANCHOR2
+ 1124 01dc 00000000 		.word	.LANCHOR14
+ 1125 01e0 00000000 		.word	.LANCHOR15
+ 1126 01e4 00000000 		.word	.LANCHOR6
+ 1127 01e8 00000000 		.word	.LANCHOR10
+ 1128 01ec 00000000 		.word	.LANCHOR8
+ 1129 01f0 00000000 		.word	.LANCHOR7
+ 1130 01f4 00000000 		.word	.LANCHOR9
+ 1131 01f8 00000000 		.word	music_map
+ 1132 01fc 00000000 		.word	.LANCHOR16
+ 1133 0200 00000000 		.word	.LANCHOR17
+ 1134 0204 00000000 		.word	.LANCHOR4
+ 1135 0208 00000000 		.word	.LANCHOR11
+ 1136 020c 00000000 		.word	.LANCHOR18
+ 1137              		.cfi_endproc
+ 1138              	.LFE344:
+ 1140              		.section	.text.midi_toggle,"ax",%progbits
+ 1141              		.align	1
+ 1142              		.global	midi_toggle
+ 1143              		.syntax unified
+ 1144              		.thumb
+ 1145              		.thumb_func
+ 1146              		.fpu fpv4-sp-d16
+ 1148              	midi_toggle:
+ 1149              	.LFB353:
+ 265:quantum/process_keycode/process_music.c ****     if (!midi_activated) {
+ 1150              		.loc 1 265 24 is_stmt 1 view -0
+ 1151              		.cfi_startproc
+ 1152              		@ args = 0, pretend = 0, frame = 0
+ 1153              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1154              		@ link register save eliminated.
+ 266:quantum/process_keycode/process_music.c ****         midi_on();
+ 1155              		.loc 1 266 5 view .LVU289
+ 266:quantum/process_keycode/process_music.c ****         midi_on();
+ 1156              		.loc 1 266 9 is_stmt 0 view .LVU290
+ 1157 0000 034B     		ldr	r3, .L127
+ 266:quantum/process_keycode/process_music.c ****         midi_on();
+ 1158              		.loc 1 266 8 view .LVU291
+ 1159 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1160 0004 0BB9     		cbnz	r3, .L126
+ 267:quantum/process_keycode/process_music.c ****     } else {
+ 1161              		.loc 1 267 9 is_stmt 1 view .LVU292
+ 1162 0006 FFF7FEBF 		b	midi_on
+ 1163              	.LVL55:
+ 1164              	.L126:
+ 269:quantum/process_keycode/process_music.c ****     }
+ 1165              		.loc 1 269 9 view .LVU293
+ 1166 000a FFF7FEBF 		b	midi_off
+ 1167              	.LVL56:
+ 1168              	.L128:
+ 1169 000e 00BF     		.align	2
+ 1170              	.L127:
+ 1171 0010 00000000 		.word	.LANCHOR2
+ 1172              		.cfi_endproc
+ 1173              	.LFE353:
+ 1175              		.section	.text.music_scale_user,"ax",%progbits
+ 1176              		.align	1
+ 1177              		.weak	music_scale_user
+ 1178              		.syntax unified
+ 1179              		.thumb
+ 1180              		.thumb_func
+ 1181              		.fpu fpv4-sp-d16
+ 1183              	music_scale_user:
+ 1184              	.LFB364:
+ 1185              		.cfi_startproc
+ 1186              		@ args = 0, pretend = 0, frame = 0
+ 1187              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1188              		@ link register save eliminated.
+ 1189 0000 7047     		bx	lr
+ 1190              		.cfi_endproc
+ 1191              	.LFE364:
+ 1193              		.global	midi_off_song
+ 1194              		.global	midi_on_song
+ 1195              		.global	music_off_song
+ 1196              		.global	music_on_song
+ 1197              		.global	music_mode_songs
+ 1198              		.global	music_mode
+ 1199              		.global	music_offset
+ 1200              		.global	music_starting_note
+ 1201              		.global	midi_activated
+ 1202              		.global	music_activated
+ 1203              		.section	.rodata
+ 1204              		.set	.LANCHOR18,. + 0
+ 1205              	.LC0:
+ 1206 0000 00       		.byte	0
+ 1207 0001 02       		.byte	2
+ 1208 0002 04       		.byte	4
+ 1209 0003 05       		.byte	5
+ 1210 0004 07       		.byte	7
+ 1211 0005 09       		.byte	9
+ 1212 0006 0B       		.byte	11
+ 1213 0007 0C       		.byte	12
+ 1214 0008 0E       		.byte	14
+ 1215 0009 10       		.byte	16
+ 1216 000a 11       		.byte	17
+ 1217 000b 13       		.byte	19
+ 1218 000c 15       		.byte	21
+ 1219 000d 17       		.byte	23
+ 1220 000e 18       		.byte	24
+ 1221 000f 1A       		.byte	26
+ 1222 0010 1C       		.byte	28
+ 1223 0011 1D       		.byte	29
+ 1224 0012 1F       		.byte	31
+ 1225 0013 21       		.byte	33
+ 1226 0014 23       		.byte	35
+ 1227 0015 24       		.byte	36
+ 1228 0016 26       		.byte	38
+ 1229 0017 28       		.byte	40
+ 1230 0018 29       		.byte	41
+ 1231 0019 2B       		.byte	43
+ 1232 001a 2D       		.byte	45
+ 1233 001b 2F       		.byte	47
+ 1234 001c 30       		.byte	48
+ 1235 001d 32       		.byte	50
+ 1236 001e 34       		.byte	52
+ 1237 001f 35       		.byte	53
+ 1238 0020 37       		.byte	55
+ 1239 0021 39       		.byte	57
+ 1240 0022 3B       		.byte	59
+ 1241              		.section	.bss.midi_activated,"aw",%nobits
+ 1242              		.set	.LANCHOR2,. + 0
+ 1245              	midi_activated:
+ 1246 0000 00       		.space	1
+ 1247              		.section	.bss.music_activated,"aw",%nobits
+ 1248              		.set	.LANCHOR0,. + 0
+ 1251              	music_activated:
+ 1252 0000 00       		.space	1
+ 1253              		.section	.bss.music_sequence,"aw",%nobits
+ 1254              		.set	.LANCHOR11,. + 0
+ 1257              	music_sequence:
+ 1258 0000 00000000 		.space	16
+ 1258      00000000 
+ 1258      00000000 
+ 1258      00000000 
+ 1259              		.section	.bss.music_sequence_count,"aw",%nobits
+ 1260              		.set	.LANCHOR10,. + 0
+ 1263              	music_sequence_count:
+ 1264 0000 00       		.space	1
+ 1265              		.section	.bss.music_sequence_playing,"aw",%nobits
+ 1266              		.set	.LANCHOR6,. + 0
+ 1269              	music_sequence_playing:
+ 1270 0000 00       		.space	1
+ 1271              		.section	.bss.music_sequence_position,"aw",%nobits
+ 1272              		.set	.LANCHOR8,. + 0
+ 1275              	music_sequence_position:
+ 1276 0000 00       		.space	1
+ 1277              		.section	.bss.music_sequence_recorded,"aw",%nobits
+ 1278              		.set	.LANCHOR15,. + 0
+ 1281              	music_sequence_recorded:
+ 1282 0000 00       		.space	1
+ 1283              		.section	.bss.music_sequence_recording,"aw",%nobits
+ 1284              		.set	.LANCHOR14,. + 0
+ 1287              	music_sequence_recording:
+ 1288 0000 00       		.space	1
+ 1289              		.section	.bss.music_sequence_timer,"aw",%nobits
+ 1290              		.align	1
+ 1291              		.set	.LANCHOR7,. + 0
+ 1294              	music_sequence_timer:
+ 1295 0000 0000     		.space	2
+ 1296              		.section	.data.midi_off_song,"aw"
+ 1297              		.align	2
+ 1298              		.set	.LANCHOR3,. + 0
+ 1301              	midi_off_song:
+ 1302 0000 0000DC44 		.word	1155268608
+ 1303 0004 00000041 		.word	1090519040
+ 1304 0008 0AA7CF44 		.word	1154459402
+ 1305 000c 00000041 		.word	1090519040
+ 1306 0010 5CFFB844 		.word	1152974684
+ 1307 0014 00000041 		.word	1090519040
+ 1308 0018 52D0A444 		.word	1151651922
+ 1309 001c 00000041 		.word	1090519040
+ 1310 0020 1FD59244 		.word	1150473503
+ 1311 0024 00000041 		.word	1090519040
+ 1312 0028 5C978A44 		.word	1149933404
+ 1313 002c 00000041 		.word	1090519040
+ 1314 0030 48F17644 		.word	1148645704
+ 1315 0034 00000041 		.word	1090519040
+ 1316 0038 00005C44 		.word	1146880000
+ 1317 003c 00000041 		.word	1090519040
+ 1318              		.section	.data.midi_on_song,"aw"
+ 1319              		.align	2
+ 1320              		.set	.LANCHOR13,. + 0
+ 1323              	midi_on_song:
+ 1324 0000 00005C44 		.word	1146880000
+ 1325 0004 00000041 		.word	1090519040
+ 1326 0008 48F17644 		.word	1148645704
+ 1327 000c 00000041 		.word	1090519040
+ 1328 0010 5C978A44 		.word	1149933404
+ 1329 0014 00000041 		.word	1090519040
+ 1330 0018 1FD59244 		.word	1150473503
+ 1331 001c 00000041 		.word	1090519040
+ 1332 0020 52D0A444 		.word	1151651922
+ 1333 0024 00000041 		.word	1090519040
+ 1334 0028 5CFFB844 		.word	1152974684
+ 1335 002c 00000041 		.word	1090519040
+ 1336 0030 0AA7CF44 		.word	1154459402
+ 1337 0034 00000041 		.word	1090519040
+ 1338 0038 0000DC44 		.word	1155268608
+ 1339 003c 00000041 		.word	1090519040
+ 1340              		.section	.data.music_mode,"aw"
+ 1341              		.set	.LANCHOR4,. + 0
+ 1344              	music_mode:
+ 1345 0000 03       		.byte	3
+ 1346              		.section	.data.music_mode_songs,"aw"
+ 1347              		.align	2
+ 1348              		.set	.LANCHOR5,. + 0
+ 1351              	music_mode_songs:
+ 1352 0000 00005C44 		.word	1146880000
+ 1353 0004 00008041 		.word	1098907648
+ 1354 0008 1F156944 		.word	1147737375
+ 1355 000c 00008041 		.word	1098907648
+ 1356 0010 48F17644 		.word	1148645704
+ 1357 0014 00008041 		.word	1098907648
+ 1358 0018 00D08244 		.word	1149423616
+ 1359 001c 00008041 		.word	1098907648
+ 1360 0020 5C978A44 		.word	1149933404
+ 1361 0024 00008041 		.word	1098907648
+ 1362 0028 A4D02444 		.word	1143263396
+ 1363 002c 00008041 		.word	1098907648
+ 1364 0030 00005C44 		.word	1146880000
+ 1365 0034 00008041 		.word	1098907648
+ 1366 0038 1FD59244 		.word	1150473503
+ 1367 003c 00008041 		.word	1098907648
+ 1368 0040 5CFFC344 		.word	1153695580
+ 1369 0044 00008041 		.word	1098907648
+ 1370 0048 00000000 		.space	8
+ 1370      00000000 
+ 1371 0050 5CFF4344 		.word	1145306972
+ 1372 0054 00008041 		.word	1098907648
+ 1373 0058 1FD59244 		.word	1150473503
+ 1374 005c 00008041 		.word	1098907648
+ 1375 0060 0000DC44 		.word	1155268608
+ 1376 0064 00008041 		.word	1098907648
+ 1377 0068 52D02445 		.word	1160040530
+ 1378 006c 00008041 		.word	1098907648
+ 1379 0070 00000000 		.space	8
+ 1379      00000000 
+ 1380 0078 00005C44 		.word	1146880000
+ 1381 007c 00008041 		.word	1098907648
+ 1382 0080 48F17644 		.word	1148645704
+ 1383 0084 00008041 		.word	1098907648
+ 1384 0088 5C978A44 		.word	1149933404
+ 1385 008c 00008041 		.word	1098907648
+ 1386 0090 1FD59244 		.word	1150473503
+ 1387 0094 00008041 		.word	1098907648
+ 1388 0098 52D0A444 		.word	1151651922
+ 1389 009c 00008041 		.word	1098907648
+ 1390              		.section	.data.music_off_song,"aw"
+ 1391              		.align	2
+ 1392              		.set	.LANCHOR1,. + 0
+ 1395              	music_off_song:
+ 1396 0000 0000DC44 		.word	1155268608
+ 1397 0004 00000041 		.word	1090519040
+ 1398 0008 0AA7CF44 		.word	1154459402
+ 1399 000c 00000041 		.word	1090519040
+ 1400 0010 5CFFB844 		.word	1152974684
+ 1401 0014 00000041 		.word	1090519040
+ 1402 0018 52D0A444 		.word	1151651922
+ 1403 001c 00000041 		.word	1090519040
+ 1404 0020 1FD59244 		.word	1150473503
+ 1405 0024 00000041 		.word	1090519040
+ 1406 0028 5C978A44 		.word	1149933404
+ 1407 002c 00000041 		.word	1090519040
+ 1408 0030 48F17644 		.word	1148645704
+ 1409 0034 00000041 		.word	1090519040
+ 1410 0038 00005C44 		.word	1146880000
+ 1411 003c 00000041 		.word	1090519040
+ 1412              		.section	.data.music_offset,"aw"
+ 1413              		.align	2
+ 1414              		.set	.LANCHOR17,. + 0
+ 1417              	music_offset:
+ 1418 0000 07000000 		.word	7
+ 1419              		.section	.data.music_on_song,"aw"
+ 1420              		.align	2
+ 1421              		.set	.LANCHOR12,. + 0
+ 1424              	music_on_song:
+ 1425 0000 00005C44 		.word	1146880000
+ 1426 0004 00000041 		.word	1090519040
+ 1427 0008 48F17644 		.word	1148645704
+ 1428 000c 00000041 		.word	1090519040
+ 1429 0010 5C978A44 		.word	1149933404
+ 1430 0014 00000041 		.word	1090519040
+ 1431 0018 1FD59244 		.word	1150473503
+ 1432 001c 00000041 		.word	1090519040
+ 1433 0020 52D0A444 		.word	1151651922
+ 1434 0024 00000041 		.word	1090519040
+ 1435 0028 5CFFB844 		.word	1152974684
+ 1436 002c 00000041 		.word	1090519040
+ 1437 0030 0AA7CF44 		.word	1154459402
+ 1438 0034 00000041 		.word	1090519040
+ 1439 0038 0000DC44 		.word	1155268608
+ 1440 003c 00000041 		.word	1090519040
+ 1441              		.section	.data.music_sequence_interval,"aw"
+ 1442              		.align	1
+ 1443              		.set	.LANCHOR9,. + 0
+ 1446              	music_sequence_interval:
+ 1447 0000 6400     		.short	100
+ 1448              		.section	.data.music_starting_note,"aw"
+ 1449              		.set	.LANCHOR16,. + 0
+ 1452              	music_starting_note:
+ 1453 0000 0C       		.byte	12
+ 1454              		.text
+ 1455              	.Letext0:
+ 1456              		.file 2 "/usr/lib/gcc/arm-none-eabi/11.2.0/include/stddef.h"
+ 1457              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1458              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1459              		.file 5 "quantum/keyboard.h"
+ 1460              		.file 6 "quantum/action.h"
+ 1461              		.file 7 "quantum/keycode.h"
+ 1462              		.file 8 "quantum/quantum_keycodes.h"
+ 1463              		.file 9 "quantum/process_keycode/process_music.h"
+ 1464              		.file 10 "quantum/audio/audio.h"
+ 1465              		.file 11 "quantum/process_keycode/process_audio.h"
+ 1466              		.file 12 "tmk_core/common/timer.h"
+ 1467              		.file 13 "quantum/sequencer/sequencer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 process_music.c
+     /tmp/ccwYhFui.s:18     .text.music_all_notes_off:0000000000000000 $t
+     /tmp/ccwYhFui.s:26     .text.music_all_notes_off:0000000000000000 music_all_notes_off
+     /tmp/ccwYhFui.s:49     .text.music_all_notes_off:000000000000000c $d
+     /tmp/ccwYhFui.s:54     .text.music_mask_user:0000000000000000 $t
+     /tmp/ccwYhFui.s:61     .text.music_mask_user:0000000000000000 music_mask_user
+     /tmp/ccwYhFui.s:82     .text.music_mask_kb:0000000000000000 $t
+     /tmp/ccwYhFui.s:89     .text.music_mask_kb:0000000000000000 music_mask_kb
+     /tmp/ccwYhFui.s:111    .text.music_mask:0000000000000000 $t
+     /tmp/ccwYhFui.s:118    .text.music_mask:0000000000000000 music_mask
+     /tmp/ccwYhFui.s:140    .text.is_music_on:0000000000000000 $t
+     /tmp/ccwYhFui.s:147    .text.is_music_on:0000000000000000 is_music_on
+     /tmp/ccwYhFui.s:162    .text.is_music_on:0000000000000008 $d
+     /tmp/ccwYhFui.s:167    .text.music_off:0000000000000000 $t
+     /tmp/ccwYhFui.s:174    .text.music_off:0000000000000000 music_off
+     /tmp/ccwYhFui.s:210    .text.music_off:0000000000000018 $d
+     /tmp/ccwYhFui.s:216    .text.is_midi_on:0000000000000000 $t
+     /tmp/ccwYhFui.s:223    .text.is_midi_on:0000000000000000 is_midi_on
+     /tmp/ccwYhFui.s:238    .text.is_midi_on:0000000000000008 $d
+     /tmp/ccwYhFui.s:243    .text.midi_off:0000000000000000 $t
+     /tmp/ccwYhFui.s:250    .text.midi_off:0000000000000000 midi_off
+     /tmp/ccwYhFui.s:274    .text.midi_off:0000000000000010 $d
+     /tmp/ccwYhFui.s:280    .text.music_mode_cycle:0000000000000000 $t
+     /tmp/ccwYhFui.s:287    .text.music_mode_cycle:0000000000000000 music_mode_cycle
+     /tmp/ccwYhFui.s:330    .text.music_mode_cycle:0000000000000028 $d
+     /tmp/ccwYhFui.s:336    .text.music_task:0000000000000000 $t
+     /tmp/ccwYhFui.s:343    .text.music_task:0000000000000000 music_task
+     /tmp/ccwYhFui.s:479    .text.music_task:0000000000000060 $d
+     /tmp/ccwYhFui.s:490    .text.music_on_user:0000000000000000 $t
+     /tmp/ccwYhFui.s:497    .text.music_on_user:0000000000000000 music_on_user
+     /tmp/ccwYhFui.s:510    .text.music_on:0000000000000000 $t
+     /tmp/ccwYhFui.s:517    .text.music_on:0000000000000000 music_on
+     /tmp/ccwYhFui.s:549    .text.music_on:0000000000000018 $d
+     /tmp/ccwYhFui.s:555    .text.music_toggle:0000000000000000 $t
+     /tmp/ccwYhFui.s:562    .text.music_toggle:0000000000000000 music_toggle
+     /tmp/ccwYhFui.s:585    .text.music_toggle:0000000000000010 $d
+     /tmp/ccwYhFui.s:590    .text.midi_on_user:0000000000000000 $t
+     /tmp/ccwYhFui.s:597    .text.midi_on_user:0000000000000000 midi_on_user
+     /tmp/ccwYhFui.s:608    .text.midi_on:0000000000000000 $t
+     /tmp/ccwYhFui.s:615    .text.midi_on:0000000000000000 midi_on
+     /tmp/ccwYhFui.s:647    .text.midi_on:0000000000000018 $d
+     /tmp/ccwYhFui.s:653    .text.process_music:0000000000000000 $t
+     /tmp/ccwYhFui.s:660    .text.process_music:0000000000000000 process_music
+     /tmp/ccwYhFui.s:1122   .text.process_music:00000000000001d4 $d
+     /tmp/ccwYhFui.s:1141   .text.midi_toggle:0000000000000000 $t
+     /tmp/ccwYhFui.s:1148   .text.midi_toggle:0000000000000000 midi_toggle
+     /tmp/ccwYhFui.s:1171   .text.midi_toggle:0000000000000010 $d
+     /tmp/ccwYhFui.s:1176   .text.music_scale_user:0000000000000000 $t
+     /tmp/ccwYhFui.s:1183   .text.music_scale_user:0000000000000000 music_scale_user
+     /tmp/ccwYhFui.s:1301   .data.midi_off_song:0000000000000000 midi_off_song
+     /tmp/ccwYhFui.s:1323   .data.midi_on_song:0000000000000000 midi_on_song
+     /tmp/ccwYhFui.s:1395   .data.music_off_song:0000000000000000 music_off_song
+     /tmp/ccwYhFui.s:1424   .data.music_on_song:0000000000000000 music_on_song
+     /tmp/ccwYhFui.s:1351   .data.music_mode_songs:0000000000000000 music_mode_songs
+     /tmp/ccwYhFui.s:1344   .data.music_mode:0000000000000000 music_mode
+     /tmp/ccwYhFui.s:1417   .data.music_offset:0000000000000000 music_offset
+     /tmp/ccwYhFui.s:1452   .data.music_starting_note:0000000000000000 music_starting_note
+     /tmp/ccwYhFui.s:1245   .bss.midi_activated:0000000000000000 midi_activated
+     /tmp/ccwYhFui.s:1251   .bss.music_activated:0000000000000000 music_activated
+     /tmp/ccwYhFui.s:1246   .bss.midi_activated:0000000000000000 $d
+     /tmp/ccwYhFui.s:1252   .bss.music_activated:0000000000000000 $d
+     /tmp/ccwYhFui.s:1257   .bss.music_sequence:0000000000000000 music_sequence
+     /tmp/ccwYhFui.s:1258   .bss.music_sequence:0000000000000000 $d
+     /tmp/ccwYhFui.s:1263   .bss.music_sequence_count:0000000000000000 music_sequence_count
+     /tmp/ccwYhFui.s:1264   .bss.music_sequence_count:0000000000000000 $d
+     /tmp/ccwYhFui.s:1269   .bss.music_sequence_playing:0000000000000000 music_sequence_playing
+     /tmp/ccwYhFui.s:1270   .bss.music_sequence_playing:0000000000000000 $d
+     /tmp/ccwYhFui.s:1275   .bss.music_sequence_position:0000000000000000 music_sequence_position
+     /tmp/ccwYhFui.s:1276   .bss.music_sequence_position:0000000000000000 $d
+     /tmp/ccwYhFui.s:1281   .bss.music_sequence_recorded:0000000000000000 music_sequence_recorded
+     /tmp/ccwYhFui.s:1282   .bss.music_sequence_recorded:0000000000000000 $d
+     /tmp/ccwYhFui.s:1287   .bss.music_sequence_recording:0000000000000000 music_sequence_recording
+     /tmp/ccwYhFui.s:1288   .bss.music_sequence_recording:0000000000000000 $d
+     /tmp/ccwYhFui.s:1290   .bss.music_sequence_timer:0000000000000000 $d
+     /tmp/ccwYhFui.s:1294   .bss.music_sequence_timer:0000000000000000 music_sequence_timer
+     /tmp/ccwYhFui.s:1297   .data.midi_off_song:0000000000000000 $d
+     /tmp/ccwYhFui.s:1319   .data.midi_on_song:0000000000000000 $d
+     /tmp/ccwYhFui.s:1347   .data.music_mode_songs:0000000000000000 $d
+     /tmp/ccwYhFui.s:1391   .data.music_off_song:0000000000000000 $d
+     /tmp/ccwYhFui.s:1413   .data.music_offset:0000000000000000 $d
+     /tmp/ccwYhFui.s:1420   .data.music_on_song:0000000000000000 $d
+     /tmp/ccwYhFui.s:1442   .data.music_sequence_interval:0000000000000000 $d
+     /tmp/ccwYhFui.s:1446   .data.music_sequence_interval:0000000000000000 music_sequence_interval
+
+UNDEFINED SYMBOLS
+process_audio_all_notes_off
+audio_play_melody
+timer_read
+timer_elapsed
+process_audio_noteoff
+process_audio_noteon
+music_map

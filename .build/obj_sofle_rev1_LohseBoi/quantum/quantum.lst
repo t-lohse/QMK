@@ -1,0 +1,2088 @@
+   1               		.file	"quantum.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.extract_mod_bits,"ax",@progbits
+  11               	.global	extract_mod_bits
+  13               	extract_mod_bits:
+  14               	.LVL0:
+  15               	.LFB26:
+  16               		.file 1 "quantum/quantum.c"
+   1:quantum/quantum.c **** /* Copyright 2016-2017 Jack Humbert
+   2:quantum/quantum.c ****  *
+   3:quantum/quantum.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/quantum.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/quantum.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:quantum/quantum.c ****  * (at your option) any later version.
+   7:quantum/quantum.c ****  *
+   8:quantum/quantum.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/quantum.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/quantum.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/quantum.c ****  * GNU General Public License for more details.
+  12:quantum/quantum.c ****  *
+  13:quantum/quantum.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/quantum.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/quantum.c ****  */
+  16:quantum/quantum.c **** 
+  17:quantum/quantum.c **** #include "quantum.h"
+  18:quantum/quantum.c **** #include "magic.h"
+  19:quantum/quantum.c **** 
+  20:quantum/quantum.c **** #ifdef BLUETOOTH_ENABLE
+  21:quantum/quantum.c **** #    include "outputselect.h"
+  22:quantum/quantum.c **** #endif
+  23:quantum/quantum.c **** 
+  24:quantum/quantum.c **** #ifdef BACKLIGHT_ENABLE
+  25:quantum/quantum.c **** #    include "backlight.h"
+  26:quantum/quantum.c **** #endif
+  27:quantum/quantum.c **** 
+  28:quantum/quantum.c **** #ifdef API_ENABLE
+  29:quantum/quantum.c **** #    include "api.h"
+  30:quantum/quantum.c **** #endif
+  31:quantum/quantum.c **** 
+  32:quantum/quantum.c **** #ifdef MIDI_ENABLE
+  33:quantum/quantum.c **** #    include "process_midi.h"
+  34:quantum/quantum.c **** #endif
+  35:quantum/quantum.c **** 
+  36:quantum/quantum.c **** #ifdef VELOCIKEY_ENABLE
+  37:quantum/quantum.c **** #    include "velocikey.h"
+  38:quantum/quantum.c **** #endif
+  39:quantum/quantum.c **** 
+  40:quantum/quantum.c **** #ifdef HAPTIC_ENABLE
+  41:quantum/quantum.c **** #    include "haptic.h"
+  42:quantum/quantum.c **** #endif
+  43:quantum/quantum.c **** 
+  44:quantum/quantum.c **** #ifdef AUDIO_ENABLE
+  45:quantum/quantum.c **** #    ifndef GOODBYE_SONG
+  46:quantum/quantum.c **** #        define GOODBYE_SONG SONG(GOODBYE_SOUND)
+  47:quantum/quantum.c **** #    endif
+  48:quantum/quantum.c **** float goodbye_song[][2] = GOODBYE_SONG;
+  49:quantum/quantum.c **** #    ifdef DEFAULT_LAYER_SONGS
+  50:quantum/quantum.c **** float default_layer_songs[][16][2] = DEFAULT_LAYER_SONGS;
+  51:quantum/quantum.c **** #    endif
+  52:quantum/quantum.c **** #endif
+  53:quantum/quantum.c **** 
+  54:quantum/quantum.c **** #ifdef AUTO_SHIFT_ENABLE
+  55:quantum/quantum.c **** #    include "process_auto_shift.h"
+  56:quantum/quantum.c **** #endif
+  57:quantum/quantum.c **** 
+  58:quantum/quantum.c **** uint8_t extract_mod_bits(uint16_t code) {
+  17               		.loc 1 58 41 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  59:quantum/quantum.c ****     switch (code) {
+  23               		.loc 1 59 5 view .LVU1
+  24 0000 9C01      		movw r18,r24
+  25 0002 3A95      		dec r19
+  26 0004 2115      		cp r18,__zero_reg__
+  27 0006 3F41      		sbci r19,31
+  28 0008 00F4      		brsh .L10
+  60:quantum/quantum.c ****         case QK_MODS ... QK_MODS_MAX:
+  61:quantum/quantum.c ****             break;
+  29               		.loc 1 61 13 view .LVU2
+  62:quantum/quantum.c ****         default:
+  63:quantum/quantum.c ****             return 0;
+  64:quantum/quantum.c ****     }
+  65:quantum/quantum.c **** 
+  66:quantum/quantum.c ****     uint8_t mods_to_send = 0;
+  30               		.loc 1 66 5 view .LVU3
+  31               	.LVL1:
+  67:quantum/quantum.c **** 
+  68:quantum/quantum.c ****     if (code & QK_RMODS_MIN) {  // Right mod flag is set
+  32               		.loc 1 68 5 view .LVU4
+  33 000a FC01      		movw r30,r24
+  34 000c EE27      		clr r30
+  35 000e F170      		andi r31,1
+  36 0010 BC01      		movw r22,r24
+  37 0012 6627      		clr r22
+  38 0014 7270      		andi r23,2
+  39 0016 AC01      		movw r20,r24
+  40 0018 4427      		clr r20
+  41 001a 5470      		andi r21,4
+  42 001c 9C01      		movw r18,r24
+  43 001e 2227      		clr r18
+  44 0020 3870      		andi r19,8
+  45               		.loc 1 68 8 is_stmt 0 view .LVU5
+  46 0022 94FF      		sbrs r25,4
+  47 0024 00C0      		rjmp .L3
+  69:quantum/quantum.c ****         if (code & QK_LCTL) mods_to_send |= MOD_BIT(KC_RCTL);
+  48               		.loc 1 69 9 is_stmt 1 view .LVU6
+  49               		.loc 1 69 42 is_stmt 0 view .LVU7
+  50 0026 80E1      		ldi r24,lo8(16)
+  51               	.LVL2:
+  52               		.loc 1 69 12 view .LVU8
+  53 0028 EF2B      		or r30,r31
+  54 002a 01F4      		brne .L4
+  66:quantum/quantum.c **** 
+  55               		.loc 1 66 13 view .LVU9
+  56 002c 80E0      		ldi r24,0
+  57               	.L4:
+  58               	.LVL3:
+  70:quantum/quantum.c ****         if (code & QK_LSFT) mods_to_send |= MOD_BIT(KC_RSFT);
+  59               		.loc 1 70 9 is_stmt 1 view .LVU10
+  60               		.loc 1 70 12 is_stmt 0 view .LVU11
+  61 002e 672B      		or r22,r23
+  62 0030 01F0      		breq .L5
+  63               		.loc 1 70 29 is_stmt 1 discriminator 1 view .LVU12
+  64               		.loc 1 70 42 is_stmt 0 discriminator 1 view .LVU13
+  65 0032 8062      		ori r24,lo8(32)
+  66               	.LVL4:
+  67               	.L5:
+  71:quantum/quantum.c ****         if (code & QK_LALT) mods_to_send |= MOD_BIT(KC_RALT);
+  68               		.loc 1 71 9 is_stmt 1 view .LVU14
+  69               		.loc 1 71 12 is_stmt 0 view .LVU15
+  70 0034 452B      		or r20,r21
+  71 0036 01F0      		breq .L6
+  72               		.loc 1 71 29 is_stmt 1 discriminator 1 view .LVU16
+  73               		.loc 1 71 42 is_stmt 0 discriminator 1 view .LVU17
+  74 0038 8064      		ori r24,lo8(64)
+  75               	.LVL5:
+  76               	.L6:
+  72:quantum/quantum.c ****         if (code & QK_LGUI) mods_to_send |= MOD_BIT(KC_RGUI);
+  77               		.loc 1 72 9 is_stmt 1 view .LVU18
+  78               		.loc 1 72 12 is_stmt 0 view .LVU19
+  79 003a 232B      		or r18,r19
+  80 003c 01F0      		breq .L1
+  81               		.loc 1 72 29 is_stmt 1 discriminator 1 view .LVU20
+  82               		.loc 1 72 42 is_stmt 0 discriminator 1 view .LVU21
+  83 003e 8068      		ori r24,lo8(-128)
+  84               	.LVL6:
+  85               		.loc 1 72 42 discriminator 1 view .LVU22
+  86 0040 0895      		ret
+  87               	.LVL7:
+  88               	.L3:
+  73:quantum/quantum.c ****     } else {
+  74:quantum/quantum.c ****         if (code & QK_LCTL) mods_to_send |= MOD_BIT(KC_LCTL);
+  89               		.loc 1 74 9 is_stmt 1 view .LVU23
+  90               		.loc 1 74 12 is_stmt 0 view .LVU24
+  91 0042 81E0      		ldi r24,lo8(1)
+  92               	.LVL8:
+  93               		.loc 1 74 12 view .LVU25
+  94 0044 EF2B      		or r30,r31
+  95 0046 01F4      		brne .L7
+  96 0048 80E0      		ldi r24,0
+  97               	.L7:
+  98               	.LVL9:
+  75:quantum/quantum.c ****         if (code & QK_LSFT) mods_to_send |= MOD_BIT(KC_LSFT);
+  99               		.loc 1 75 9 is_stmt 1 view .LVU26
+ 100               		.loc 1 75 12 is_stmt 0 view .LVU27
+ 101 004a 672B      		or r22,r23
+ 102 004c 01F0      		breq .L8
+ 103               		.loc 1 75 29 is_stmt 1 discriminator 1 view .LVU28
+ 104               		.loc 1 75 42 is_stmt 0 discriminator 1 view .LVU29
+ 105 004e 8260      		ori r24,lo8(2)
+ 106               	.LVL10:
+ 107               	.L8:
+  76:quantum/quantum.c ****         if (code & QK_LALT) mods_to_send |= MOD_BIT(KC_LALT);
+ 108               		.loc 1 76 9 is_stmt 1 view .LVU30
+ 109               		.loc 1 76 12 is_stmt 0 view .LVU31
+ 110 0050 452B      		or r20,r21
+ 111 0052 01F0      		breq .L9
+ 112               		.loc 1 76 29 is_stmt 1 discriminator 1 view .LVU32
+ 113               		.loc 1 76 42 is_stmt 0 discriminator 1 view .LVU33
+ 114 0054 8460      		ori r24,lo8(4)
+ 115               	.LVL11:
+ 116               	.L9:
+  77:quantum/quantum.c ****         if (code & QK_LGUI) mods_to_send |= MOD_BIT(KC_LGUI);
+ 117               		.loc 1 77 9 is_stmt 1 view .LVU34
+ 118               		.loc 1 77 12 is_stmt 0 view .LVU35
+ 119 0056 232B      		or r18,r19
+ 120 0058 01F0      		breq .L1
+ 121               		.loc 1 77 29 is_stmt 1 discriminator 1 view .LVU36
+ 122               		.loc 1 77 42 is_stmt 0 discriminator 1 view .LVU37
+ 123 005a 8860      		ori r24,lo8(8)
+ 124               	.LVL12:
+ 125               		.loc 1 77 42 discriminator 1 view .LVU38
+ 126 005c 0895      		ret
+ 127               	.LVL13:
+ 128               	.L10:
+  63:quantum/quantum.c ****     }
+ 129               		.loc 1 63 20 view .LVU39
+ 130 005e 80E0      		ldi r24,0
+ 131               	.LVL14:
+ 132               	.L1:
+ 133               	/* epilogue start */
+  78:quantum/quantum.c ****     }
+  79:quantum/quantum.c **** 
+  80:quantum/quantum.c ****     return mods_to_send;
+  81:quantum/quantum.c **** }
+ 134               		.loc 1 81 1 view .LVU40
+ 135 0060 0895      		ret
+ 136               		.cfi_endproc
+ 137               	.LFE26:
+ 139               		.section	.text.register_code16,"ax",@progbits
+ 140               	.global	register_code16
+ 142               	register_code16:
+ 143               	.LVL15:
+ 144               	.LFB28:
+  82:quantum/quantum.c **** 
+  83:quantum/quantum.c **** static void do_code16(uint16_t code, void (*f)(uint8_t)) { f(extract_mod_bits(code)); }
+  84:quantum/quantum.c **** 
+  85:quantum/quantum.c **** void register_code16(uint16_t code) {
+ 145               		.loc 1 85 37 is_stmt 1 view -0
+ 146               		.cfi_startproc
+ 147               		.loc 1 85 37 is_stmt 0 view .LVU42
+ 148 0000 CF93      		push r28
+ 149               	.LCFI0:
+ 150               		.cfi_def_cfa_offset 3
+ 151               		.cfi_offset 28, -2
+ 152 0002 DF93      		push r29
+ 153               	.LCFI1:
+ 154               		.cfi_def_cfa_offset 4
+ 155               		.cfi_offset 29, -3
+ 156               	/* prologue: function */
+ 157               	/* frame size = 0 */
+ 158               	/* stack size = 2 */
+ 159               	.L__stack_usage = 2
+ 160 0004 EC01      		movw r28,r24
+  86:quantum/quantum.c ****     if (IS_MOD(code) || code == KC_NO) {
+ 161               		.loc 1 86 5 is_stmt 1 view .LVU43
+ 162 0006 0E94 0000 		call extract_mod_bits
+ 163               	.LVL16:
+ 164               		.loc 1 86 9 is_stmt 0 view .LVU44
+ 165 000a 9E01      		movw r18,r28
+ 166 000c 205E      		subi r18,-32
+ 167 000e 3109      		sbc r19,__zero_reg__
+ 168               		.loc 1 86 8 view .LVU45
+ 169 0010 2830      		cpi r18,8
+ 170 0012 3105      		cpc r19,__zero_reg__
+ 171 0014 00F0      		brlo .L31
+ 172               		.loc 1 86 22 discriminator 1 view .LVU46
+ 173 0016 2097      		sbiw r28,0
+ 174 0018 01F4      		brne .L32
+ 175               	.L31:
+  87:quantum/quantum.c ****         do_code16(code, register_mods);
+ 176               		.loc 1 87 9 is_stmt 1 view .LVU47
+ 177               	.LVL17:
+ 178               	.LBB10:
+ 179               	.LBI10:
+  83:quantum/quantum.c **** 
+ 180               		.loc 1 83 13 view .LVU48
+ 181               	.LBB11:
+  83:quantum/quantum.c **** 
+ 182               		.loc 1 83 60 view .LVU49
+ 183 001a 0E94 0000 		call register_mods
+ 184               	.LVL18:
+ 185               	.L33:
+  83:quantum/quantum.c **** 
+ 186               		.loc 1 83 60 is_stmt 0 view .LVU50
+ 187               	.LBE11:
+ 188               	.LBE10:
+  88:quantum/quantum.c ****     } else {
+  89:quantum/quantum.c ****         do_code16(code, register_weak_mods);
+  90:quantum/quantum.c ****     }
+  91:quantum/quantum.c ****     register_code(code);
+ 189               		.loc 1 91 5 is_stmt 1 view .LVU51
+ 190 001e 8C2F      		mov r24,r28
+ 191               	/* epilogue start */
+  92:quantum/quantum.c **** }
+ 192               		.loc 1 92 1 is_stmt 0 view .LVU52
+ 193 0020 DF91      		pop r29
+ 194 0022 CF91      		pop r28
+ 195               	.LVL19:
+  91:quantum/quantum.c **** }
+ 196               		.loc 1 91 5 view .LVU53
+ 197 0024 0C94 0000 		jmp register_code
+ 198               	.LVL20:
+ 199               	.L32:
+  89:quantum/quantum.c ****     }
+ 200               		.loc 1 89 9 is_stmt 1 view .LVU54
+ 201               	.LBB12:
+ 202               	.LBI12:
+  83:quantum/quantum.c **** 
+ 203               		.loc 1 83 13 view .LVU55
+ 204               	.LBB13:
+  83:quantum/quantum.c **** 
+ 205               		.loc 1 83 60 view .LVU56
+ 206 0028 0E94 0000 		call register_weak_mods
+ 207               	.LVL21:
+ 208 002c 00C0      		rjmp .L33
+ 209               	.LBE13:
+ 210               	.LBE12:
+ 211               		.cfi_endproc
+ 212               	.LFE28:
+ 214               		.section	.text.unregister_code16,"ax",@progbits
+ 215               	.global	unregister_code16
+ 217               	unregister_code16:
+ 218               	.LVL22:
+ 219               	.LFB29:
+  93:quantum/quantum.c **** 
+  94:quantum/quantum.c **** void unregister_code16(uint16_t code) {
+ 220               		.loc 1 94 39 view -0
+ 221               		.cfi_startproc
+ 222               		.loc 1 94 39 is_stmt 0 view .LVU58
+ 223 0000 CF93      		push r28
+ 224               	.LCFI2:
+ 225               		.cfi_def_cfa_offset 3
+ 226               		.cfi_offset 28, -2
+ 227 0002 DF93      		push r29
+ 228               	.LCFI3:
+ 229               		.cfi_def_cfa_offset 4
+ 230               		.cfi_offset 29, -3
+ 231               	/* prologue: function */
+ 232               	/* frame size = 0 */
+ 233               	/* stack size = 2 */
+ 234               	.L__stack_usage = 2
+ 235 0004 EC01      		movw r28,r24
+  95:quantum/quantum.c ****     unregister_code(code);
+ 236               		.loc 1 95 5 is_stmt 1 view .LVU59
+ 237 0006 0E94 0000 		call unregister_code
+ 238               	.LVL23:
+  96:quantum/quantum.c ****     if (IS_MOD(code) || code == KC_NO) {
+ 239               		.loc 1 96 5 view .LVU60
+ 240 000a CE01      		movw r24,r28
+ 241 000c 0E94 0000 		call extract_mod_bits
+ 242               	.LVL24:
+ 243               		.loc 1 96 9 is_stmt 0 view .LVU61
+ 244 0010 9E01      		movw r18,r28
+ 245 0012 205E      		subi r18,-32
+ 246 0014 3109      		sbc r19,__zero_reg__
+ 247               		.loc 1 96 8 view .LVU62
+ 248 0016 2830      		cpi r18,8
+ 249 0018 3105      		cpc r19,__zero_reg__
+ 250 001a 00F0      		brlo .L35
+ 251               		.loc 1 96 22 discriminator 1 view .LVU63
+ 252 001c CD2B      		or r28,r29
+ 253 001e 01F4      		brne .L36
+ 254               	.L35:
+  97:quantum/quantum.c ****         do_code16(code, unregister_mods);
+ 255               		.loc 1 97 9 is_stmt 1 view .LVU64
+ 256               	.LVL25:
+ 257               	.LBB18:
+ 258               	.LBI18:
+  83:quantum/quantum.c **** 
+ 259               		.loc 1 83 13 view .LVU65
+ 260               	.LBB19:
+  83:quantum/quantum.c **** 
+ 261               		.loc 1 83 60 view .LVU66
+ 262               	/* epilogue start */
+ 263               	.LBE19:
+ 264               	.LBE18:
+  98:quantum/quantum.c ****     } else {
+  99:quantum/quantum.c ****         do_code16(code, unregister_weak_mods);
+ 100:quantum/quantum.c ****     }
+ 101:quantum/quantum.c **** }
+ 265               		.loc 1 101 1 is_stmt 0 view .LVU67
+ 266 0020 DF91      		pop r29
+ 267 0022 CF91      		pop r28
+ 268               	.LVL26:
+ 269               	.LBB21:
+ 270               	.LBB20:
+  83:quantum/quantum.c **** 
+ 271               		.loc 1 83 60 view .LVU68
+ 272 0024 0C94 0000 		jmp unregister_mods
+ 273               	.LVL27:
+ 274               	.L36:
+  83:quantum/quantum.c **** 
+ 275               		.loc 1 83 60 view .LVU69
+ 276               	.LBE20:
+ 277               	.LBE21:
+  99:quantum/quantum.c ****     }
+ 278               		.loc 1 99 9 is_stmt 1 view .LVU70
+ 279               	.LBB22:
+ 280               	.LBI22:
+  83:quantum/quantum.c **** 
+ 281               		.loc 1 83 13 view .LVU71
+ 282               	.LBB23:
+  83:quantum/quantum.c **** 
+ 283               		.loc 1 83 60 view .LVU72
+ 284               	/* epilogue start */
+ 285               	.LBE23:
+ 286               	.LBE22:
+ 287               		.loc 1 101 1 is_stmt 0 view .LVU73
+ 288 0028 DF91      		pop r29
+ 289 002a CF91      		pop r28
+ 290               	.LVL28:
+ 291               	.LBB25:
+ 292               	.LBB24:
+  83:quantum/quantum.c **** 
+ 293               		.loc 1 83 60 view .LVU74
+ 294 002c 0C94 0000 		jmp unregister_weak_mods
+ 295               	.LVL29:
+  83:quantum/quantum.c **** 
+ 296               		.loc 1 83 60 view .LVU75
+ 297               	.LBE24:
+ 298               	.LBE25:
+ 299               		.cfi_endproc
+ 300               	.LFE29:
+ 302               		.section	.text.tap_code16,"ax",@progbits
+ 303               	.global	tap_code16
+ 305               	tap_code16:
+ 306               	.LVL30:
+ 307               	.LFB30:
+ 102:quantum/quantum.c **** 
+ 103:quantum/quantum.c **** void tap_code16(uint16_t code) {
+ 308               		.loc 1 103 32 is_stmt 1 view -0
+ 309               		.cfi_startproc
+ 310               		.loc 1 103 32 is_stmt 0 view .LVU77
+ 311 0000 CF93      		push r28
+ 312               	.LCFI4:
+ 313               		.cfi_def_cfa_offset 3
+ 314               		.cfi_offset 28, -2
+ 315 0002 DF93      		push r29
+ 316               	.LCFI5:
+ 317               		.cfi_def_cfa_offset 4
+ 318               		.cfi_offset 29, -3
+ 319               	/* prologue: function */
+ 320               	/* frame size = 0 */
+ 321               	/* stack size = 2 */
+ 322               	.L__stack_usage = 2
+ 323 0004 EC01      		movw r28,r24
+ 104:quantum/quantum.c ****     register_code16(code);
+ 324               		.loc 1 104 5 is_stmt 1 view .LVU78
+ 325 0006 0E94 0000 		call register_code16
+ 326               	.LVL31:
+ 105:quantum/quantum.c **** #if TAP_CODE_DELAY > 0
+ 106:quantum/quantum.c ****     wait_ms(TAP_CODE_DELAY);
+ 327               		.loc 1 106 5 view .LVU79
+ 328               		.loc 1 106 5 view .LVU80
+ 329               		.loc 1 106 5 view .LVU81
+ 330               	.LBB26:
+ 331               	.LBI26:
+ 332               		.file 2 "/usr/avr/include/util/delay.h"
+   1:/usr/avr/include/util/delay.h **** /* Copyright (c) 2002, Marek Michalkiewicz
+   2:/usr/avr/include/util/delay.h ****    Copyright (c) 2004,2005,2007 Joerg Wunsch
+   3:/usr/avr/include/util/delay.h ****    Copyright (c) 2007  Florin-Viorel Petrov
+   4:/usr/avr/include/util/delay.h ****    All rights reserved.
+   5:/usr/avr/include/util/delay.h **** 
+   6:/usr/avr/include/util/delay.h ****    Redistribution and use in source and binary forms, with or without
+   7:/usr/avr/include/util/delay.h ****    modification, are permitted provided that the following conditions are met:
+   8:/usr/avr/include/util/delay.h **** 
+   9:/usr/avr/include/util/delay.h ****    * Redistributions of source code must retain the above copyright
+  10:/usr/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer.
+  11:/usr/avr/include/util/delay.h **** 
+  12:/usr/avr/include/util/delay.h ****    * Redistributions in binary form must reproduce the above copyright
+  13:/usr/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer in
+  14:/usr/avr/include/util/delay.h ****      the documentation and/or other materials provided with the
+  15:/usr/avr/include/util/delay.h ****      distribution.
+  16:/usr/avr/include/util/delay.h **** 
+  17:/usr/avr/include/util/delay.h ****    * Neither the name of the copyright holders nor the names of
+  18:/usr/avr/include/util/delay.h ****      contributors may be used to endorse or promote products derived
+  19:/usr/avr/include/util/delay.h ****      from this software without specific prior written permission.
+  20:/usr/avr/include/util/delay.h **** 
+  21:/usr/avr/include/util/delay.h ****   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  22:/usr/avr/include/util/delay.h ****   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  23:/usr/avr/include/util/delay.h ****   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  24:/usr/avr/include/util/delay.h ****   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  25:/usr/avr/include/util/delay.h ****   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  26:/usr/avr/include/util/delay.h ****   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  27:/usr/avr/include/util/delay.h ****   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:/usr/avr/include/util/delay.h ****   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:/usr/avr/include/util/delay.h ****   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  30:/usr/avr/include/util/delay.h ****   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  31:/usr/avr/include/util/delay.h ****   POSSIBILITY OF SUCH DAMAGE. */
+  32:/usr/avr/include/util/delay.h **** 
+  33:/usr/avr/include/util/delay.h **** /* $Id: delay.h.in 2506 2016-02-08 10:05:45Z joerg_wunsch $ */
+  34:/usr/avr/include/util/delay.h **** 
+  35:/usr/avr/include/util/delay.h **** #ifndef _UTIL_DELAY_H_
+  36:/usr/avr/include/util/delay.h **** #define _UTIL_DELAY_H_ 1
+  37:/usr/avr/include/util/delay.h **** 
+  38:/usr/avr/include/util/delay.h **** #ifndef __DOXYGEN__
+  39:/usr/avr/include/util/delay.h **** #  ifndef __HAS_DELAY_CYCLES
+  40:/usr/avr/include/util/delay.h **** #    define __HAS_DELAY_CYCLES 1
+  41:/usr/avr/include/util/delay.h **** #  endif
+  42:/usr/avr/include/util/delay.h **** #endif  /* __DOXYGEN__ */
+  43:/usr/avr/include/util/delay.h **** 
+  44:/usr/avr/include/util/delay.h **** #include <inttypes.h>
+  45:/usr/avr/include/util/delay.h **** #include <util/delay_basic.h>
+  46:/usr/avr/include/util/delay.h **** #include <math.h>
+  47:/usr/avr/include/util/delay.h **** 
+  48:/usr/avr/include/util/delay.h **** /** \file */
+  49:/usr/avr/include/util/delay.h **** /** \defgroup util_delay <util/delay.h>: Convenience functions for busy-wait delay loops
+  50:/usr/avr/include/util/delay.h ****     \code
+  51:/usr/avr/include/util/delay.h ****     #define F_CPU 1000000UL  // 1 MHz
+  52:/usr/avr/include/util/delay.h ****     //#define F_CPU 14.7456E6
+  53:/usr/avr/include/util/delay.h ****     #include <util/delay.h>
+  54:/usr/avr/include/util/delay.h ****     \endcode
+  55:/usr/avr/include/util/delay.h **** 
+  56:/usr/avr/include/util/delay.h ****     \note As an alternative method, it is possible to pass the
+  57:/usr/avr/include/util/delay.h ****     F_CPU macro down to the compiler from the Makefile.
+  58:/usr/avr/include/util/delay.h ****     Obviously, in that case, no \c \#define statement should be
+  59:/usr/avr/include/util/delay.h ****     used.
+  60:/usr/avr/include/util/delay.h **** 
+  61:/usr/avr/include/util/delay.h ****     The functions in this header file are wrappers around the basic
+  62:/usr/avr/include/util/delay.h ****     busy-wait functions from <util/delay_basic.h>.  They are meant as
+  63:/usr/avr/include/util/delay.h ****     convenience functions where actual time values can be specified
+  64:/usr/avr/include/util/delay.h ****     rather than a number of cycles to wait for.  The idea behind is
+  65:/usr/avr/include/util/delay.h ****     that compile-time constant expressions will be eliminated by
+  66:/usr/avr/include/util/delay.h ****     compiler optimization so floating-point expressions can be used
+  67:/usr/avr/include/util/delay.h ****     to calculate the number of delay cycles needed based on the CPU
+  68:/usr/avr/include/util/delay.h ****     frequency passed by the macro F_CPU.
+  69:/usr/avr/include/util/delay.h **** 
+  70:/usr/avr/include/util/delay.h ****     \note In order for these functions to work as intended, compiler
+  71:/usr/avr/include/util/delay.h ****     optimizations <em>must</em> be enabled, and the delay time
+  72:/usr/avr/include/util/delay.h ****     <em>must</em> be an expression that is a known constant at
+  73:/usr/avr/include/util/delay.h ****     compile-time.  If these requirements are not met, the resulting
+  74:/usr/avr/include/util/delay.h ****     delay will be much longer (and basically unpredictable), and
+  75:/usr/avr/include/util/delay.h ****     applications that otherwise do not use floating-point calculations
+  76:/usr/avr/include/util/delay.h ****     will experience severe code bloat by the floating-point library
+  77:/usr/avr/include/util/delay.h ****     routines linked into the application.
+  78:/usr/avr/include/util/delay.h **** 
+  79:/usr/avr/include/util/delay.h ****     The functions available allow the specification of microsecond, and
+  80:/usr/avr/include/util/delay.h ****     millisecond delays directly, using the application-supplied macro
+  81:/usr/avr/include/util/delay.h ****     F_CPU as the CPU clock frequency (in Hertz).
+  82:/usr/avr/include/util/delay.h **** 
+  83:/usr/avr/include/util/delay.h **** */
+  84:/usr/avr/include/util/delay.h **** 
+  85:/usr/avr/include/util/delay.h **** #if !defined(__DOXYGEN__)
+  86:/usr/avr/include/util/delay.h **** static __inline__ void _delay_us(double __us) __attribute__((__always_inline__));
+  87:/usr/avr/include/util/delay.h **** static __inline__ void _delay_ms(double __ms) __attribute__((__always_inline__));
+  88:/usr/avr/include/util/delay.h **** #endif
+  89:/usr/avr/include/util/delay.h **** 
+  90:/usr/avr/include/util/delay.h **** #ifndef F_CPU
+  91:/usr/avr/include/util/delay.h **** /* prevent compiler error by supplying a default */
+  92:/usr/avr/include/util/delay.h **** # warning "F_CPU not defined for <util/delay.h>"
+  93:/usr/avr/include/util/delay.h **** /** \ingroup util_delay
+  94:/usr/avr/include/util/delay.h ****     \def F_CPU
+  95:/usr/avr/include/util/delay.h ****     \brief CPU frequency in Hz
+  96:/usr/avr/include/util/delay.h **** 
+  97:/usr/avr/include/util/delay.h ****     The macro F_CPU specifies the CPU frequency to be considered by
+  98:/usr/avr/include/util/delay.h ****     the delay macros.  This macro is normally supplied by the
+  99:/usr/avr/include/util/delay.h ****     environment (e.g. from within a project header, or the project's
+ 100:/usr/avr/include/util/delay.h ****     Makefile).  The value 1 MHz here is only provided as a "vanilla"
+ 101:/usr/avr/include/util/delay.h ****     fallback if no such user-provided definition could be found.
+ 102:/usr/avr/include/util/delay.h **** 
+ 103:/usr/avr/include/util/delay.h ****     In terms of the delay functions, the CPU frequency can be given as
+ 104:/usr/avr/include/util/delay.h ****     a floating-point constant (e.g. 3.6864E6 for 3.6864 MHz).
+ 105:/usr/avr/include/util/delay.h ****     However, the macros in <util/setbaud.h> require it to be an
+ 106:/usr/avr/include/util/delay.h ****     integer value.
+ 107:/usr/avr/include/util/delay.h ****  */
+ 108:/usr/avr/include/util/delay.h **** # define F_CPU 1000000UL
+ 109:/usr/avr/include/util/delay.h **** #endif
+ 110:/usr/avr/include/util/delay.h **** 
+ 111:/usr/avr/include/util/delay.h **** #ifndef __OPTIMIZE__
+ 112:/usr/avr/include/util/delay.h **** # warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+ 113:/usr/avr/include/util/delay.h **** #endif
+ 114:/usr/avr/include/util/delay.h **** 
+ 115:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 116:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 117:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 118:/usr/avr/include/util/delay.h **** #  include <math.h>
+ 119:/usr/avr/include/util/delay.h **** #endif
+ 120:/usr/avr/include/util/delay.h **** 
+ 121:/usr/avr/include/util/delay.h **** /**
+ 122:/usr/avr/include/util/delay.h ****    \ingroup util_delay
+ 123:/usr/avr/include/util/delay.h **** 
+ 124:/usr/avr/include/util/delay.h ****    Perform a delay of \c __ms milliseconds, using _delay_loop_2().
+ 125:/usr/avr/include/util/delay.h **** 
+ 126:/usr/avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 127:/usr/avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 128:/usr/avr/include/util/delay.h **** 
+ 129:/usr/avr/include/util/delay.h ****    The maximal possible delay is 262.14 ms / F_CPU in MHz.
+ 130:/usr/avr/include/util/delay.h **** 
+ 131:/usr/avr/include/util/delay.h ****    When the user request delay which exceed the maximum possible one,
+ 132:/usr/avr/include/util/delay.h ****    _delay_ms() provides a decreased resolution functionality. In this
+ 133:/usr/avr/include/util/delay.h ****    mode _delay_ms() will work with a resolution of 1/10 ms, providing
+ 134:/usr/avr/include/util/delay.h ****    delays up to 6.5535 seconds (independent from CPU frequency).  The
+ 135:/usr/avr/include/util/delay.h ****    user will not be informed about decreased resolution.
+ 136:/usr/avr/include/util/delay.h **** 
+ 137:/usr/avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles()
+ 138:/usr/avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 ms/ F_CPU in MHz. For
+ 139:/usr/avr/include/util/delay.h ****    values greater than the maximal possible delay, overflows results in
+ 140:/usr/avr/include/util/delay.h ****    no delay i.e., 0ms.
+ 141:/usr/avr/include/util/delay.h **** 
+ 142:/usr/avr/include/util/delay.h ****    Conversion of \c __ms into clock cycles may not always result in
+ 143:/usr/avr/include/util/delay.h ****    integer.  By default, the clock cycles rounded up to next
+ 144:/usr/avr/include/util/delay.h ****    integer. This ensures that the user gets at least \c __ms
+ 145:/usr/avr/include/util/delay.h ****    microseconds of delay.
+ 146:/usr/avr/include/util/delay.h **** 
+ 147:/usr/avr/include/util/delay.h ****    Alternatively, by defining the macro \c __DELAY_ROUND_DOWN__, or
+ 148:/usr/avr/include/util/delay.h ****    \c __DELAY_ROUND_CLOSEST__, before including this header file, the
+ 149:/usr/avr/include/util/delay.h ****    algorithm can be made to round down, or round to closest integer,
+ 150:/usr/avr/include/util/delay.h ****    respectively.
+ 151:/usr/avr/include/util/delay.h **** 
+ 152:/usr/avr/include/util/delay.h ****    \note
+ 153:/usr/avr/include/util/delay.h **** 
+ 154:/usr/avr/include/util/delay.h ****    The implementation of _delay_ms() based on
+ 155:/usr/avr/include/util/delay.h ****    __builtin_avr_delay_cycles() is not backward compatible with older
+ 156:/usr/avr/include/util/delay.h ****    implementations.  In order to get functionality backward compatible
+ 157:/usr/avr/include/util/delay.h ****    with previous versions, the macro \c "__DELAY_BACKWARD_COMPATIBLE__"
+ 158:/usr/avr/include/util/delay.h ****    must be defined before including this header file. Also, the
+ 159:/usr/avr/include/util/delay.h ****    backward compatible algorithm will be chosen if the code is
+ 160:/usr/avr/include/util/delay.h ****    compiled in a <em>freestanding environment</em> (GCC option
+ 161:/usr/avr/include/util/delay.h ****    \c -ffreestanding), as the math functions required for rounding are
+ 162:/usr/avr/include/util/delay.h ****    not available to the compiler then.
+ 163:/usr/avr/include/util/delay.h **** 
+ 164:/usr/avr/include/util/delay.h ****  */
+ 165:/usr/avr/include/util/delay.h **** void
+ 166:/usr/avr/include/util/delay.h **** _delay_ms(double __ms)
+ 333               		.loc 2 166 1 view .LVU82
+ 334               	.LBB27:
+ 167:/usr/avr/include/util/delay.h **** {
+ 168:/usr/avr/include/util/delay.h **** 	double __tmp ;
+ 335               		.loc 2 168 2 view .LVU83
+ 169:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 170:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 171:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 172:/usr/avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 336               		.loc 2 172 2 view .LVU84
+ 173:/usr/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 337               		.loc 2 173 2 view .LVU85
+ 174:/usr/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e3) * __ms;
+ 338               		.loc 2 174 2 view .LVU86
+ 175:/usr/avr/include/util/delay.h **** 
+ 176:/usr/avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 177:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 178:/usr/avr/include/util/delay.h **** 
+ 179:/usr/avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 180:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 181:/usr/avr/include/util/delay.h **** 
+ 182:/usr/avr/include/util/delay.h **** 	#else
+ 183:/usr/avr/include/util/delay.h **** 		//round up by default
+ 184:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 339               		.loc 2 184 3 view .LVU87
+ 185:/usr/avr/include/util/delay.h **** 	#endif
+ 186:/usr/avr/include/util/delay.h **** 
+ 187:/usr/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 340               		.loc 2 187 2 view .LVU88
+ 341 000a 8FE3      		ldi r24,lo8(-25537)
+ 342 000c 9CE9      		ldi r25,hi8(-25537)
+ 343 000e 0197      	1:	sbiw r24,1
+ 344 0010 01F4      		brne 1b
+ 345 0012 00C0      		rjmp .
+ 346 0014 0000      		nop
+ 347               	.LVL32:
+ 348               		.loc 2 187 2 is_stmt 0 view .LVU89
+ 349               	.LBE27:
+ 350               	.LBE26:
+ 107:quantum/quantum.c **** #endif
+ 108:quantum/quantum.c ****     unregister_code16(code);
+ 351               		.loc 1 108 5 is_stmt 1 view .LVU90
+ 352 0016 CE01      		movw r24,r28
+ 353               	/* epilogue start */
+ 109:quantum/quantum.c **** }
+ 354               		.loc 1 109 1 is_stmt 0 view .LVU91
+ 355 0018 DF91      		pop r29
+ 356 001a CF91      		pop r28
+ 357               	.LVL33:
+ 108:quantum/quantum.c **** }
+ 358               		.loc 1 108 5 view .LVU92
+ 359 001c 0C94 0000 		jmp unregister_code16
+ 360               	.LVL34:
+ 108:quantum/quantum.c **** }
+ 361               		.loc 1 108 5 view .LVU93
+ 362               		.cfi_endproc
+ 363               	.LFE30:
+ 365               		.section	.text.process_action_kb,"ax",@progbits
+ 366               		.weak	process_action_kb
+ 368               	process_action_kb:
+ 369               	.LVL35:
+ 370               	.LFB31:
+ 110:quantum/quantum.c **** 
+ 111:quantum/quantum.c **** __attribute__((weak)) bool process_action_kb(keyrecord_t *record) { return true; }
+ 371               		.loc 1 111 67 is_stmt 1 view -0
+ 372               		.cfi_startproc
+ 373               	/* prologue: function */
+ 374               	/* frame size = 0 */
+ 375               	/* stack size = 0 */
+ 376               	.L__stack_usage = 0
+ 377               		.loc 1 111 69 view .LVU95
+ 378               		.loc 1 111 1 is_stmt 0 view .LVU96
+ 379 0000 81E0      		ldi r24,lo8(1)
+ 380               	.LVL36:
+ 381               	/* epilogue start */
+ 382               		.loc 1 111 1 view .LVU97
+ 383 0002 0895      		ret
+ 384               		.cfi_endproc
+ 385               	.LFE31:
+ 387               		.section	.text.process_record_user,"ax",@progbits
+ 388               		.weak	process_record_user
+ 390               	process_record_user:
+ 391               	.LVL37:
+ 392               	.LFB33:
+ 112:quantum/quantum.c **** 
+ 113:quantum/quantum.c **** __attribute__((weak)) bool process_record_kb(uint16_t keycode, keyrecord_t *record) { return proces
+ 114:quantum/quantum.c **** 
+ 115:quantum/quantum.c **** __attribute__((weak)) bool process_record_user(uint16_t keycode, keyrecord_t *record) { return true
+ 393               		.loc 1 115 87 is_stmt 1 view -0
+ 394               		.cfi_startproc
+ 395               	/* prologue: function */
+ 396               	/* frame size = 0 */
+ 397               	/* stack size = 0 */
+ 398               	.L__stack_usage = 0
+ 399               		.loc 1 115 89 view .LVU99
+ 400               		.loc 1 115 1 is_stmt 0 view .LVU100
+ 401 0000 81E0      		ldi r24,lo8(1)
+ 402               	.LVL38:
+ 403               	/* epilogue start */
+ 404               		.loc 1 115 1 view .LVU101
+ 405 0002 0895      		ret
+ 406               		.cfi_endproc
+ 407               	.LFE33:
+ 409               		.section	.text.process_record_kb,"ax",@progbits
+ 410               		.weak	process_record_kb
+ 412               	process_record_kb:
+ 413               	.LVL39:
+ 414               	.LFB32:
+ 113:quantum/quantum.c **** 
+ 415               		.loc 1 113 85 is_stmt 1 view -0
+ 416               		.cfi_startproc
+ 417               	/* prologue: function */
+ 418               	/* frame size = 0 */
+ 419               	/* stack size = 0 */
+ 420               	.L__stack_usage = 0
+ 113:quantum/quantum.c **** 
+ 421               		.loc 1 113 87 view .LVU103
+ 113:quantum/quantum.c **** 
+ 422               		.loc 1 113 94 is_stmt 0 view .LVU104
+ 423 0000 0C94 0000 		jmp process_record_user
+ 424               	.LVL40:
+ 113:quantum/quantum.c **** 
+ 425               		.loc 1 113 94 view .LVU105
+ 426               		.cfi_endproc
+ 427               	.LFE32:
+ 429               		.section	.text.post_process_record_user,"ax",@progbits
+ 430               		.weak	post_process_record_user
+ 432               	post_process_record_user:
+ 433               	.LVL41:
+ 434               	.LFB35:
+ 116:quantum/quantum.c **** 
+ 117:quantum/quantum.c **** __attribute__((weak)) void post_process_record_kb(uint16_t keycode, keyrecord_t *record) { post_pro
+ 118:quantum/quantum.c **** 
+ 119:quantum/quantum.c **** __attribute__((weak)) void post_process_record_user(uint16_t keycode, keyrecord_t *record) {}
+ 435               		.loc 1 119 92 is_stmt 1 view -0
+ 436               		.cfi_startproc
+ 437               	/* prologue: function */
+ 438               	/* frame size = 0 */
+ 439               	/* stack size = 0 */
+ 440               	.L__stack_usage = 0
+ 441               		.loc 1 119 93 view .LVU107
+ 442               	/* epilogue start */
+ 443               		.loc 1 119 1 is_stmt 0 view .LVU108
+ 444 0000 0895      		ret
+ 445               		.cfi_endproc
+ 446               	.LFE35:
+ 448               		.section	.text.post_process_record_kb,"ax",@progbits
+ 449               		.weak	post_process_record_kb
+ 451               	post_process_record_kb:
+ 452               	.LVL42:
+ 453               	.LFB34:
+ 117:quantum/quantum.c **** 
+ 454               		.loc 1 117 90 is_stmt 1 view -0
+ 455               		.cfi_startproc
+ 456               	/* prologue: function */
+ 457               	/* frame size = 0 */
+ 458               	/* stack size = 0 */
+ 459               	.L__stack_usage = 0
+ 117:quantum/quantum.c **** 
+ 460               		.loc 1 117 92 view .LVU110
+ 461 0000 0C94 0000 		jmp post_process_record_user
+ 462               	.LVL43:
+ 117:quantum/quantum.c **** 
+ 463               		.loc 1 117 92 is_stmt 0 view .LVU111
+ 464               		.cfi_endproc
+ 465               	.LFE34:
+ 467               		.section	.text.get_event_keycode,"ax",@progbits
+ 468               	.global	get_event_keycode
+ 470               	get_event_keycode:
+ 471               	.LVL44:
+ 472               	.LFB38:
+ 120:quantum/quantum.c **** 
+ 121:quantum/quantum.c **** void reset_keyboard(void) {
+ 122:quantum/quantum.c ****     clear_keyboard();
+ 123:quantum/quantum.c **** #if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+ 124:quantum/quantum.c ****     process_midi_all_notes_off();
+ 125:quantum/quantum.c **** #endif
+ 126:quantum/quantum.c **** #ifdef AUDIO_ENABLE
+ 127:quantum/quantum.c **** #    ifndef NO_MUSIC_MODE
+ 128:quantum/quantum.c ****     music_all_notes_off();
+ 129:quantum/quantum.c **** #    endif
+ 130:quantum/quantum.c ****     uint16_t timer_start = timer_read();
+ 131:quantum/quantum.c ****     PLAY_SONG(goodbye_song);
+ 132:quantum/quantum.c ****     shutdown_user();
+ 133:quantum/quantum.c ****     while (timer_elapsed(timer_start) < 250) wait_ms(1);
+ 134:quantum/quantum.c ****     stop_all_notes();
+ 135:quantum/quantum.c **** #else
+ 136:quantum/quantum.c ****     shutdown_user();
+ 137:quantum/quantum.c ****     wait_ms(250);
+ 138:quantum/quantum.c **** #endif
+ 139:quantum/quantum.c **** #ifdef HAPTIC_ENABLE
+ 140:quantum/quantum.c ****     haptic_shutdown();
+ 141:quantum/quantum.c **** #endif
+ 142:quantum/quantum.c ****     bootloader_jump();
+ 143:quantum/quantum.c **** }
+ 144:quantum/quantum.c **** 
+ 145:quantum/quantum.c **** /* Convert record into usable keycode via the contained event. */
+ 146:quantum/quantum.c **** uint16_t get_record_keycode(keyrecord_t *record, bool update_layer_cache) {
+ 147:quantum/quantum.c **** #ifdef COMBO_ENABLE
+ 148:quantum/quantum.c ****     if (record->keycode) { return record->keycode; }
+ 149:quantum/quantum.c **** #endif
+ 150:quantum/quantum.c ****     return get_event_keycode(record->event, update_layer_cache);
+ 151:quantum/quantum.c **** }
+ 152:quantum/quantum.c **** 
+ 153:quantum/quantum.c **** 
+ 154:quantum/quantum.c **** /* Convert event into usable keycode. Checks the layer cache to ensure that it
+ 155:quantum/quantum.c ****  * retains the correct keycode after a layer change, if the key is still pressed.
+ 156:quantum/quantum.c ****  * "update_layer_cache" is to ensure that it only updates the layer cache when
+ 157:quantum/quantum.c ****  * appropriate, otherwise, it will update it and cause layer tap (and other keys)
+ 158:quantum/quantum.c ****  * from triggering properly.
+ 159:quantum/quantum.c ****  */
+ 160:quantum/quantum.c **** uint16_t get_event_keycode(keyevent_t event, bool update_layer_cache) {
+ 473               		.loc 1 160 71 is_stmt 1 view -0
+ 474               		.cfi_startproc
+ 475               		.loc 1 160 71 is_stmt 0 view .LVU113
+ 476 0000 1F93      		push r17
+ 477               	.LCFI6:
+ 478               		.cfi_def_cfa_offset 3
+ 479               		.cfi_offset 17, -2
+ 480 0002 CF93      		push r28
+ 481               	.LCFI7:
+ 482               		.cfi_def_cfa_offset 4
+ 483               		.cfi_offset 28, -3
+ 484 0004 DF93      		push r29
+ 485               	.LCFI8:
+ 486               		.cfi_def_cfa_offset 5
+ 487               		.cfi_offset 29, -4
+ 488 0006 00D0      		rcall .
+ 489 0008 00D0      		rcall .
+ 490 000a 0F92      		push __tmp_reg__
+ 491               	.LCFI9:
+ 492               		.cfi_def_cfa_offset 10
+ 493 000c CDB7      		in r28,__SP_L__
+ 494 000e DEB7      		in r29,__SP_H__
+ 495               	.LCFI10:
+ 496               		.cfi_def_cfa_register 28
+ 497               	/* prologue: function */
+ 498               	/* frame size = 5 */
+ 499               	/* stack size = 8 */
+ 500               	.L__stack_usage = 8
+ 501 0010 4983      		std Y+1,r20
+ 502 0012 5A83      		std Y+2,r21
+ 503 0014 6B83      		std Y+3,r22
+ 161:quantum/quantum.c **** #if !defined(NO_ACTION_LAYER) && !defined(STRICT_LAYER_RELEASE)
+ 162:quantum/quantum.c ****     /* TODO: Use store_or_get_action() or a similar function. */
+ 163:quantum/quantum.c ****     if (!disable_action_cache) {
+ 504               		.loc 1 163 5 is_stmt 1 view .LVU114
+ 505               		.loc 1 163 8 is_stmt 0 view .LVU115
+ 506 0016 3091 0000 		lds r19,disable_action_cache
+ 507 001a 8981      		ldd r24,Y+1
+ 508 001c 9A81      		ldd r25,Y+2
+ 509 001e 3111      		cpse r19,__zero_reg__
+ 510 0020 00C0      		rjmp .L44
+ 511               	.LBB28:
+ 164:quantum/quantum.c ****         uint8_t layer;
+ 512               		.loc 1 164 9 is_stmt 1 view .LVU116
+ 165:quantum/quantum.c **** 
+ 166:quantum/quantum.c ****         if (event.pressed && update_layer_cache) {
+ 513               		.loc 1 166 9 view .LVU117
+ 514               		.loc 1 166 12 is_stmt 0 view .LVU118
+ 515 0022 6623      		tst r22
+ 516 0024 01F0      		breq .L45
+ 517               		.loc 1 166 27 discriminator 1 view .LVU119
+ 518 0026 2223      		tst r18
+ 519 0028 01F0      		breq .L45
+ 167:quantum/quantum.c ****             layer = layer_switch_get_layer(event.key);
+ 520               		.loc 1 167 13 is_stmt 1 view .LVU120
+ 521               		.loc 1 167 21 is_stmt 0 view .LVU121
+ 522 002a 0E94 0000 		call layer_switch_get_layer
+ 523               	.LVL45:
+ 524               		.loc 1 167 21 view .LVU122
+ 525 002e 182F      		mov r17,r24
+ 526               	.LVL46:
+ 168:quantum/quantum.c ****             update_source_layers_cache(event.key, layer);
+ 527               		.loc 1 168 13 is_stmt 1 view .LVU123
+ 528 0030 682F      		mov r22,r24
+ 529 0032 8981      		ldd r24,Y+1
+ 530 0034 9A81      		ldd r25,Y+2
+ 531 0036 0E94 0000 		call update_source_layers_cache
+ 532               	.LVL47:
+ 533               	.L46:
+ 169:quantum/quantum.c ****         } else {
+ 170:quantum/quantum.c ****             layer = read_source_layers_cache(event.key);
+ 171:quantum/quantum.c ****         }
+ 172:quantum/quantum.c ****         return keymap_key_to_keycode(layer, event.key);
+ 534               		.loc 1 172 9 view .LVU124
+ 535               		.loc 1 172 16 is_stmt 0 view .LVU125
+ 536 003a 6981      		ldd r22,Y+1
+ 537 003c 7A81      		ldd r23,Y+2
+ 538 003e 812F      		mov r24,r17
+ 539               	.LVL48:
+ 540               	.L53:
+ 541               	/* epilogue start */
+ 542               		.loc 1 172 16 view .LVU126
+ 543               	.LBE28:
+ 173:quantum/quantum.c ****     } else
+ 174:quantum/quantum.c **** #endif
+ 175:quantum/quantum.c ****         return keymap_key_to_keycode(layer_switch_get_layer(event.key), event.key);
+ 176:quantum/quantum.c **** }
+ 544               		.loc 1 176 1 view .LVU127
+ 545 0040 0F90      		pop __tmp_reg__
+ 546 0042 0F90      		pop __tmp_reg__
+ 547 0044 0F90      		pop __tmp_reg__
+ 548 0046 0F90      		pop __tmp_reg__
+ 549 0048 0F90      		pop __tmp_reg__
+ 550 004a DF91      		pop r29
+ 551 004c CF91      		pop r28
+ 552 004e 1F91      		pop r17
+ 175:quantum/quantum.c **** }
+ 553               		.loc 1 175 16 view .LVU128
+ 554 0050 0C94 0000 		jmp keymap_key_to_keycode
+ 555               	.LVL49:
+ 556               	.L45:
+ 557               	.LBB29:
+ 170:quantum/quantum.c ****         }
+ 558               		.loc 1 170 13 is_stmt 1 view .LVU129
+ 170:quantum/quantum.c ****         }
+ 559               		.loc 1 170 21 is_stmt 0 view .LVU130
+ 560 0054 0E94 0000 		call read_source_layers_cache
+ 561               	.LVL50:
+ 170:quantum/quantum.c ****         }
+ 562               		.loc 1 170 21 view .LVU131
+ 563 0058 182F      		mov r17,r24
+ 564               	.LVL51:
+ 170:quantum/quantum.c ****         }
+ 565               		.loc 1 170 21 view .LVU132
+ 566 005a 00C0      		rjmp .L46
+ 567               	.LVL52:
+ 568               	.L44:
+ 170:quantum/quantum.c ****         }
+ 569               		.loc 1 170 21 view .LVU133
+ 570               	.LBE29:
+ 175:quantum/quantum.c **** }
+ 571               		.loc 1 175 9 is_stmt 1 view .LVU134
+ 175:quantum/quantum.c **** }
+ 572               		.loc 1 175 16 is_stmt 0 view .LVU135
+ 573 005c 0E94 0000 		call layer_switch_get_layer
+ 574               	.LVL53:
+ 175:quantum/quantum.c **** }
+ 575               		.loc 1 175 16 view .LVU136
+ 576 0060 6981      		ldd r22,Y+1
+ 577 0062 7A81      		ldd r23,Y+2
+ 578 0064 00C0      		rjmp .L53
+ 579               		.cfi_endproc
+ 580               	.LFE38:
+ 582               		.section	.text.get_record_keycode,"ax",@progbits
+ 583               	.global	get_record_keycode
+ 585               	get_record_keycode:
+ 586               	.LVL54:
+ 587               	.LFB37:
+ 146:quantum/quantum.c **** #ifdef COMBO_ENABLE
+ 588               		.loc 1 146 75 is_stmt 1 view -0
+ 589               		.cfi_startproc
+ 590               	/* prologue: function */
+ 591               	/* frame size = 0 */
+ 592               	/* stack size = 0 */
+ 593               	.L__stack_usage = 0
+ 146:quantum/quantum.c **** #ifdef COMBO_ENABLE
+ 594               		.loc 1 146 75 is_stmt 0 view .LVU138
+ 595 0000 FC01      		movw r30,r24
+ 596 0002 262F      		mov r18,r22
+ 150:quantum/quantum.c **** }
+ 597               		.loc 1 150 5 is_stmt 1 view .LVU139
+ 150:quantum/quantum.c **** }
+ 598               		.loc 1 150 12 is_stmt 0 view .LVU140
+ 599 0004 4081      		ld r20,Z
+ 600 0006 5181      		ldd r21,Z+1
+ 601 0008 6281      		ldd r22,Z+2
+ 602               	.LVL55:
+ 150:quantum/quantum.c **** }
+ 603               		.loc 1 150 12 view .LVU141
+ 604 000a 7381      		ldd r23,Z+3
+ 605 000c 8481      		ldd r24,Z+4
+ 606               	.LVL56:
+ 150:quantum/quantum.c **** }
+ 607               		.loc 1 150 12 view .LVU142
+ 608 000e 0C94 0000 		jmp get_event_keycode
+ 609               	.LVL57:
+ 150:quantum/quantum.c **** }
+ 610               		.loc 1 150 12 view .LVU143
+ 611               		.cfi_endproc
+ 612               	.LFE37:
+ 614               		.section	.text.pre_process_record_quantum,"ax",@progbits
+ 615               	.global	pre_process_record_quantum
+ 617               	pre_process_record_quantum:
+ 618               	.LVL58:
+ 619               	.LFB39:
+ 177:quantum/quantum.c **** 
+ 178:quantum/quantum.c **** /* Get keycode, and then process pre tapping functionality */
+ 179:quantum/quantum.c **** bool pre_process_record_quantum(keyrecord_t *record) {
+ 620               		.loc 1 179 54 is_stmt 1 view -0
+ 621               		.cfi_startproc
+ 622               	/* prologue: function */
+ 623               	/* frame size = 0 */
+ 624               	/* stack size = 0 */
+ 625               	.L__stack_usage = 0
+ 180:quantum/quantum.c ****     if (!(
+ 626               		.loc 1 180 5 view .LVU145
+ 181:quantum/quantum.c **** #ifdef COMBO_ENABLE
+ 182:quantum/quantum.c ****         process_combo(get_record_keycode(record, true), record) &&
+ 183:quantum/quantum.c **** #endif
+ 184:quantum/quantum.c ****         true)) {
+ 185:quantum/quantum.c ****         return false;
+ 186:quantum/quantum.c ****     }
+ 187:quantum/quantum.c ****     return true; // continue processing
+ 627               		.loc 1 187 5 view .LVU146
+ 188:quantum/quantum.c **** }
+ 628               		.loc 1 188 1 is_stmt 0 view .LVU147
+ 629 0000 81E0      		ldi r24,lo8(1)
+ 630               	.LVL59:
+ 631               	/* epilogue start */
+ 632               		.loc 1 188 1 view .LVU148
+ 633 0002 0895      		ret
+ 634               		.cfi_endproc
+ 635               	.LFE39:
+ 637               		.section	.text.post_process_record_quantum,"ax",@progbits
+ 638               	.global	post_process_record_quantum
+ 640               	post_process_record_quantum:
+ 641               	.LVL60:
+ 642               	.LFB40:
+ 189:quantum/quantum.c **** 
+ 190:quantum/quantum.c **** /* Get keycode, and then call keyboard function */
+ 191:quantum/quantum.c **** void post_process_record_quantum(keyrecord_t *record) {
+ 643               		.loc 1 191 55 is_stmt 1 view -0
+ 644               		.cfi_startproc
+ 645               		.loc 1 191 55 is_stmt 0 view .LVU150
+ 646 0000 CF93      		push r28
+ 647               	.LCFI11:
+ 648               		.cfi_def_cfa_offset 3
+ 649               		.cfi_offset 28, -2
+ 650 0002 DF93      		push r29
+ 651               	.LCFI12:
+ 652               		.cfi_def_cfa_offset 4
+ 653               		.cfi_offset 29, -3
+ 654               	/* prologue: function */
+ 655               	/* frame size = 0 */
+ 656               	/* stack size = 2 */
+ 657               	.L__stack_usage = 2
+ 658 0004 EC01      		movw r28,r24
+ 192:quantum/quantum.c ****     uint16_t keycode = get_record_keycode(record, false);
+ 659               		.loc 1 192 5 is_stmt 1 view .LVU151
+ 660               		.loc 1 192 24 is_stmt 0 view .LVU152
+ 661 0006 60E0      		ldi r22,0
+ 662 0008 0E94 0000 		call get_record_keycode
+ 663               	.LVL61:
+ 193:quantum/quantum.c ****     post_process_record_kb(keycode, record);
+ 664               		.loc 1 193 5 is_stmt 1 view .LVU153
+ 665 000c BE01      		movw r22,r28
+ 666               	/* epilogue start */
+ 194:quantum/quantum.c **** }
+ 667               		.loc 1 194 1 is_stmt 0 view .LVU154
+ 668 000e DF91      		pop r29
+ 669 0010 CF91      		pop r28
+ 670               	.LVL62:
+ 193:quantum/quantum.c ****     post_process_record_kb(keycode, record);
+ 671               		.loc 1 193 5 view .LVU155
+ 672 0012 0C94 0000 		jmp post_process_record_kb
+ 673               	.LVL63:
+ 193:quantum/quantum.c ****     post_process_record_kb(keycode, record);
+ 674               		.loc 1 193 5 view .LVU156
+ 675               		.cfi_endproc
+ 676               	.LFE40:
+ 678               		.section	.text.set_single_persistent_default_layer,"ax",@progbits
+ 679               	.global	set_single_persistent_default_layer
+ 681               	set_single_persistent_default_layer:
+ 682               	.LVL64:
+ 683               	.LFB42:
+ 195:quantum/quantum.c **** 
+ 196:quantum/quantum.c **** /* Core keycode function, hands off handling to other functions,
+ 197:quantum/quantum.c ****     then processes internal quantum keycodes, and then processes
+ 198:quantum/quantum.c ****     ACTIONs.                                                      */
+ 199:quantum/quantum.c **** bool process_record_quantum(keyrecord_t *record) {
+ 200:quantum/quantum.c ****     uint16_t keycode = get_record_keycode(record, true);
+ 201:quantum/quantum.c **** 
+ 202:quantum/quantum.c ****     // This is how you use actions here
+ 203:quantum/quantum.c ****     // if (keycode == KC_LEAD) {
+ 204:quantum/quantum.c ****     //   action_t action;
+ 205:quantum/quantum.c ****     //   action.code = ACTION_DEFAULT_LAYER_SET(0);
+ 206:quantum/quantum.c ****     //   process_action(record, action);
+ 207:quantum/quantum.c ****     //   return false;
+ 208:quantum/quantum.c ****     // }
+ 209:quantum/quantum.c **** 
+ 210:quantum/quantum.c **** #ifdef VELOCIKEY_ENABLE
+ 211:quantum/quantum.c ****     if (velocikey_enabled() && record->event.pressed) {
+ 212:quantum/quantum.c ****         velocikey_accelerate();
+ 213:quantum/quantum.c ****     }
+ 214:quantum/quantum.c **** #endif
+ 215:quantum/quantum.c **** 
+ 216:quantum/quantum.c **** #ifdef WPM_ENABLE
+ 217:quantum/quantum.c ****     if (record->event.pressed) {
+ 218:quantum/quantum.c ****         update_wpm(keycode);
+ 219:quantum/quantum.c ****     }
+ 220:quantum/quantum.c **** #endif
+ 221:quantum/quantum.c **** 
+ 222:quantum/quantum.c **** #ifdef TAP_DANCE_ENABLE
+ 223:quantum/quantum.c ****     preprocess_tap_dance(keycode, record);
+ 224:quantum/quantum.c **** #endif
+ 225:quantum/quantum.c **** 
+ 226:quantum/quantum.c ****     if (!(
+ 227:quantum/quantum.c **** #if defined(KEY_LOCK_ENABLE)
+ 228:quantum/quantum.c ****             // Must run first to be able to mask key_up events.
+ 229:quantum/quantum.c ****             process_key_lock(&keycode, record) &&
+ 230:quantum/quantum.c **** #endif
+ 231:quantum/quantum.c **** #if defined(DYNAMIC_MACRO_ENABLE) && !defined(DYNAMIC_MACRO_USER_CALL)
+ 232:quantum/quantum.c ****             // Must run asap to ensure all keypresses are recorded.
+ 233:quantum/quantum.c ****             process_dynamic_macro(keycode, record) &&
+ 234:quantum/quantum.c **** #endif
+ 235:quantum/quantum.c **** #if defined(AUDIO_ENABLE) && defined(AUDIO_CLICKY)
+ 236:quantum/quantum.c ****             process_clicky(keycode, record) &&
+ 237:quantum/quantum.c **** #endif
+ 238:quantum/quantum.c **** #ifdef HAPTIC_ENABLE
+ 239:quantum/quantum.c ****             process_haptic(keycode, record) &&
+ 240:quantum/quantum.c **** #endif
+ 241:quantum/quantum.c **** #if defined(VIA_ENABLE)
+ 242:quantum/quantum.c ****             process_record_via(keycode, record) &&
+ 243:quantum/quantum.c **** #endif
+ 244:quantum/quantum.c ****             process_record_kb(keycode, record) &&
+ 245:quantum/quantum.c **** #if defined(SEQUENCER_ENABLE)
+ 246:quantum/quantum.c ****             process_sequencer(keycode, record) &&
+ 247:quantum/quantum.c **** #endif
+ 248:quantum/quantum.c **** #if defined(MIDI_ENABLE) && defined(MIDI_ADVANCED)
+ 249:quantum/quantum.c ****             process_midi(keycode, record) &&
+ 250:quantum/quantum.c **** #endif
+ 251:quantum/quantum.c **** #ifdef AUDIO_ENABLE
+ 252:quantum/quantum.c ****             process_audio(keycode, record) &&
+ 253:quantum/quantum.c **** #endif
+ 254:quantum/quantum.c **** #if defined(BACKLIGHT_ENABLE) || defined(LED_MATRIX_ENABLE)
+ 255:quantum/quantum.c ****             process_backlight(keycode, record) &&
+ 256:quantum/quantum.c **** #endif
+ 257:quantum/quantum.c **** #ifdef STENO_ENABLE
+ 258:quantum/quantum.c ****             process_steno(keycode, record) &&
+ 259:quantum/quantum.c **** #endif
+ 260:quantum/quantum.c **** #if (defined(AUDIO_ENABLE) || (defined(MIDI_ENABLE) && defined(MIDI_BASIC))) && !defined(NO_MUSIC_M
+ 261:quantum/quantum.c ****             process_music(keycode, record) &&
+ 262:quantum/quantum.c **** #endif
+ 263:quantum/quantum.c **** #ifdef KEY_OVERRIDE_ENABLE
+ 264:quantum/quantum.c ****             process_key_override(keycode, record) &&
+ 265:quantum/quantum.c **** #endif
+ 266:quantum/quantum.c **** #ifdef TAP_DANCE_ENABLE
+ 267:quantum/quantum.c ****             process_tap_dance(keycode, record) &&
+ 268:quantum/quantum.c **** #endif
+ 269:quantum/quantum.c **** #if defined(UNICODE_ENABLE) || defined(UNICODEMAP_ENABLE) || defined(UCIS_ENABLE)
+ 270:quantum/quantum.c ****             process_unicode_common(keycode, record) &&
+ 271:quantum/quantum.c **** #endif
+ 272:quantum/quantum.c **** #ifdef LEADER_ENABLE
+ 273:quantum/quantum.c ****             process_leader(keycode, record) &&
+ 274:quantum/quantum.c **** #endif
+ 275:quantum/quantum.c **** #ifdef PRINTING_ENABLE
+ 276:quantum/quantum.c ****             process_printer(keycode, record) &&
+ 277:quantum/quantum.c **** #endif
+ 278:quantum/quantum.c **** #ifdef AUTO_SHIFT_ENABLE
+ 279:quantum/quantum.c ****             process_auto_shift(keycode, record) &&
+ 280:quantum/quantum.c **** #endif
+ 281:quantum/quantum.c **** #ifdef TERMINAL_ENABLE
+ 282:quantum/quantum.c ****             process_terminal(keycode, record) &&
+ 283:quantum/quantum.c **** #endif
+ 284:quantum/quantum.c **** #ifdef SPACE_CADET_ENABLE
+ 285:quantum/quantum.c ****             process_space_cadet(keycode, record) &&
+ 286:quantum/quantum.c **** #endif
+ 287:quantum/quantum.c **** #ifdef MAGIC_KEYCODE_ENABLE
+ 288:quantum/quantum.c ****             process_magic(keycode, record) &&
+ 289:quantum/quantum.c **** #endif
+ 290:quantum/quantum.c **** #ifdef GRAVE_ESC_ENABLE
+ 291:quantum/quantum.c ****             process_grave_esc(keycode, record) &&
+ 292:quantum/quantum.c **** #endif
+ 293:quantum/quantum.c **** #if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
+ 294:quantum/quantum.c ****             process_rgb(keycode, record) &&
+ 295:quantum/quantum.c **** #endif
+ 296:quantum/quantum.c **** #ifdef JOYSTICK_ENABLE
+ 297:quantum/quantum.c ****             process_joystick(keycode, record) &&
+ 298:quantum/quantum.c **** #endif
+ 299:quantum/quantum.c ****             true)) {
+ 300:quantum/quantum.c ****         return false;
+ 301:quantum/quantum.c ****     }
+ 302:quantum/quantum.c **** 
+ 303:quantum/quantum.c ****     if (record->event.pressed) {
+ 304:quantum/quantum.c ****         switch (keycode) {
+ 305:quantum/quantum.c **** #ifndef NO_RESET
+ 306:quantum/quantum.c ****             case RESET:
+ 307:quantum/quantum.c ****                 reset_keyboard();
+ 308:quantum/quantum.c ****                 return false;
+ 309:quantum/quantum.c **** #endif
+ 310:quantum/quantum.c **** #ifndef NO_DEBUG
+ 311:quantum/quantum.c ****             case DEBUG:
+ 312:quantum/quantum.c ****                 debug_enable ^= 1;
+ 313:quantum/quantum.c ****                 if (debug_enable) {
+ 314:quantum/quantum.c ****                     print("DEBUG: enabled.\n");
+ 315:quantum/quantum.c ****                 } else {
+ 316:quantum/quantum.c ****                     print("DEBUG: disabled.\n");
+ 317:quantum/quantum.c ****                 }
+ 318:quantum/quantum.c **** #endif
+ 319:quantum/quantum.c ****                 return false;
+ 320:quantum/quantum.c ****             case EEPROM_RESET:
+ 321:quantum/quantum.c ****                 eeconfig_init();
+ 322:quantum/quantum.c ****                 return false;
+ 323:quantum/quantum.c **** #ifdef VELOCIKEY_ENABLE
+ 324:quantum/quantum.c ****             case VLK_TOG:
+ 325:quantum/quantum.c ****                 velocikey_toggle();
+ 326:quantum/quantum.c ****                 return false;
+ 327:quantum/quantum.c **** #endif
+ 328:quantum/quantum.c **** #ifdef BLUETOOTH_ENABLE
+ 329:quantum/quantum.c ****             case OUT_AUTO:
+ 330:quantum/quantum.c ****                 set_output(OUTPUT_AUTO);
+ 331:quantum/quantum.c ****                 return false;
+ 332:quantum/quantum.c ****             case OUT_USB:
+ 333:quantum/quantum.c ****                 set_output(OUTPUT_USB);
+ 334:quantum/quantum.c ****                 return false;
+ 335:quantum/quantum.c ****             case OUT_BT:
+ 336:quantum/quantum.c ****                 set_output(OUTPUT_BLUETOOTH);
+ 337:quantum/quantum.c ****                 return false;
+ 338:quantum/quantum.c **** #endif
+ 339:quantum/quantum.c **** #ifndef NO_ACTION_ONESHOT
+ 340:quantum/quantum.c ****             case ONESHOT_TOGGLE:
+ 341:quantum/quantum.c ****                 oneshot_toggle();
+ 342:quantum/quantum.c ****                 break;
+ 343:quantum/quantum.c ****             case ONESHOT_ENABLE:
+ 344:quantum/quantum.c ****                 oneshot_enable();
+ 345:quantum/quantum.c ****                 break;
+ 346:quantum/quantum.c ****             case ONESHOT_DISABLE:
+ 347:quantum/quantum.c ****                 oneshot_disable();
+ 348:quantum/quantum.c ****                 break;
+ 349:quantum/quantum.c **** #endif
+ 350:quantum/quantum.c ****         }
+ 351:quantum/quantum.c ****     }
+ 352:quantum/quantum.c **** 
+ 353:quantum/quantum.c ****     return process_action_kb(record);
+ 354:quantum/quantum.c **** }
+ 355:quantum/quantum.c **** 
+ 356:quantum/quantum.c **** void set_single_persistent_default_layer(uint8_t default_layer) {
+ 684               		.loc 1 356 65 is_stmt 1 view -0
+ 685               		.cfi_startproc
+ 686               		.loc 1 356 65 is_stmt 0 view .LVU158
+ 687 0000 CF92      		push r12
+ 688               	.LCFI13:
+ 689               		.cfi_def_cfa_offset 3
+ 690               		.cfi_offset 12, -2
+ 691 0002 DF92      		push r13
+ 692               	.LCFI14:
+ 693               		.cfi_def_cfa_offset 4
+ 694               		.cfi_offset 13, -3
+ 695 0004 EF92      		push r14
+ 696               	.LCFI15:
+ 697               		.cfi_def_cfa_offset 5
+ 698               		.cfi_offset 14, -4
+ 699 0006 FF92      		push r15
+ 700               	.LCFI16:
+ 701               		.cfi_def_cfa_offset 6
+ 702               		.cfi_offset 15, -5
+ 703               	/* prologue: function */
+ 704               	/* frame size = 0 */
+ 705               	/* stack size = 4 */
+ 706               	.L__stack_usage = 4
+ 357:quantum/quantum.c **** #if defined(AUDIO_ENABLE) && defined(DEFAULT_LAYER_SONGS)
+ 358:quantum/quantum.c ****     PLAY_SONG(default_layer_songs[default_layer]);
+ 359:quantum/quantum.c **** #endif
+ 360:quantum/quantum.c ****     eeconfig_update_default_layer((layer_state_t)1 << default_layer);
+ 707               		.loc 1 360 5 is_stmt 1 view .LVU159
+ 708               		.loc 1 360 52 is_stmt 0 view .LVU160
+ 709 0008 C12C      		mov r12,__zero_reg__
+ 710 000a D12C      		mov r13,__zero_reg__
+ 711 000c 7601      		movw r14,r12
+ 712 000e C394      		inc r12
+ 713 0010 00C0      		rjmp 2f
+ 714               		1:
+ 715 0012 CC0C      		lsl r12
+ 716 0014 DD1C      		rol r13
+ 717 0016 EE1C      		rol r14
+ 718 0018 FF1C      		rol r15
+ 719               		2:
+ 720 001a 8A95      		dec r24
+ 721 001c 02F4      		brpl 1b
+ 722               		.loc 1 360 5 view .LVU161
+ 723 001e 8C2D      		mov r24,r12
+ 724               	.LVL65:
+ 725               		.loc 1 360 5 view .LVU162
+ 726 0020 0E94 0000 		call eeconfig_update_default_layer
+ 727               	.LVL66:
+ 361:quantum/quantum.c ****     default_layer_set((layer_state_t)1 << default_layer);
+ 728               		.loc 1 361 5 is_stmt 1 view .LVU163
+ 729 0024 C701      		movw r24,r14
+ 730 0026 B601      		movw r22,r12
+ 731               	/* epilogue start */
+ 362:quantum/quantum.c **** }
+ 732               		.loc 1 362 1 is_stmt 0 view .LVU164
+ 733 0028 FF90      		pop r15
+ 734 002a EF90      		pop r14
+ 735 002c DF90      		pop r13
+ 736 002e CF90      		pop r12
+ 361:quantum/quantum.c ****     default_layer_set((layer_state_t)1 << default_layer);
+ 737               		.loc 1 361 5 view .LVU165
+ 738 0030 0C94 0000 		jmp default_layer_set
+ 739               	.LVL67:
+ 740               		.cfi_endproc
+ 741               	.LFE42:
+ 743               		.section	.text.update_tri_layer_state,"ax",@progbits
+ 744               	.global	update_tri_layer_state
+ 746               	update_tri_layer_state:
+ 747               	.LVL68:
+ 748               	.LFB43:
+ 363:quantum/quantum.c **** 
+ 364:quantum/quantum.c **** layer_state_t update_tri_layer_state(layer_state_t state, uint8_t layer1, uint8_t layer2, uint8_t l
+ 749               		.loc 1 364 107 is_stmt 1 view -0
+ 750               		.cfi_startproc
+ 751               		.loc 1 364 107 is_stmt 0 view .LVU167
+ 752 0000 8F92      		push r8
+ 753               	.LCFI17:
+ 754               		.cfi_def_cfa_offset 3
+ 755               		.cfi_offset 8, -2
+ 756 0002 9F92      		push r9
+ 757               	.LCFI18:
+ 758               		.cfi_def_cfa_offset 4
+ 759               		.cfi_offset 9, -3
+ 760 0004 AF92      		push r10
+ 761               	.LCFI19:
+ 762               		.cfi_def_cfa_offset 5
+ 763               		.cfi_offset 10, -4
+ 764 0006 BF92      		push r11
+ 765               	.LCFI20:
+ 766               		.cfi_def_cfa_offset 6
+ 767               		.cfi_offset 11, -5
+ 768 0008 CF92      		push r12
+ 769               	.LCFI21:
+ 770               		.cfi_def_cfa_offset 7
+ 771               		.cfi_offset 12, -6
+ 772 000a DF92      		push r13
+ 773               	.LCFI22:
+ 774               		.cfi_def_cfa_offset 8
+ 775               		.cfi_offset 13, -7
+ 776 000c EF92      		push r14
+ 777               	.LCFI23:
+ 778               		.cfi_def_cfa_offset 9
+ 779               		.cfi_offset 14, -8
+ 780 000e FF92      		push r15
+ 781               	.LCFI24:
+ 782               		.cfi_def_cfa_offset 10
+ 783               		.cfi_offset 15, -9
+ 784 0010 0F93      		push r16
+ 785               	.LCFI25:
+ 786               		.cfi_def_cfa_offset 11
+ 787               		.cfi_offset 16, -10
+ 788 0012 1F93      		push r17
+ 789               	.LCFI26:
+ 790               		.cfi_def_cfa_offset 12
+ 791               		.cfi_offset 17, -11
+ 792               	/* prologue: function */
+ 793               	/* frame size = 0 */
+ 794               	/* stack size = 10 */
+ 795               	.L__stack_usage = 10
+ 796 0014 6B01      		movw r12,r22
+ 797 0016 7C01      		movw r14,r24
+ 365:quantum/quantum.c ****     layer_state_t mask12 = ((layer_state_t)1 << layer1) | ((layer_state_t)1 << layer2);
+ 798               		.loc 1 365 5 is_stmt 1 view .LVU168
+ 799               		.loc 1 365 46 is_stmt 0 view .LVU169
+ 800 0018 81E0      		ldi r24,lo8(1)
+ 801 001a 90E0      		ldi r25,0
+ 802 001c A0E0      		ldi r26,0
+ 803 001e B0E0      		ldi r27,0
+ 804 0020 4C01      		movw r8,r24
+ 805 0022 5D01      		movw r10,r26
+ 806 0024 00C0      		rjmp 2f
+ 807               		1:
+ 808 0026 880C      		lsl r8
+ 809 0028 991C      		rol r9
+ 810 002a AA1C      		rol r10
+ 811 002c BB1C      		rol r11
+ 812               		2:
+ 813 002e 4A95      		dec r20
+ 814 0030 02F4      		brpl 1b
+ 815 0032 B501      		movw r22,r10
+ 816               	.LVL69:
+ 817               		.loc 1 365 46 view .LVU170
+ 818 0034 A401      		movw r20,r8
+ 819               	.LVL70:
+ 820               		.loc 1 365 77 view .LVU171
+ 821 0036 4C01      		movw r8,r24
+ 822 0038 5D01      		movw r10,r26
+ 823 003a 00C0      		rjmp 2f
+ 824               		1:
+ 825 003c 880C      		lsl r8
+ 826 003e 991C      		rol r9
+ 827 0040 AA1C      		rol r10
+ 828 0042 BB1C      		rol r11
+ 829               		2:
+ 830 0044 2A95      		dec r18
+ 831 0046 02F4      		brpl 1b
+ 832               		.loc 1 365 19 view .LVU172
+ 833 0048 4829      		or r20,r8
+ 834 004a 5929      		or r21,r9
+ 835 004c 6A29      		or r22,r10
+ 836 004e 7B29      		or r23,r11
+ 837               	.LVL71:
+ 366:quantum/quantum.c ****     layer_state_t mask3  = (layer_state_t)1 << layer3;
+ 838               		.loc 1 366 5 is_stmt 1 view .LVU173
+ 839               		.loc 1 366 19 is_stmt 0 view .LVU174
+ 840 0050 00C0      		rjmp 2f
+ 841               		1:
+ 842 0052 880F      		lsl r24
+ 843 0054 991F      		rol r25
+ 844 0056 AA1F      		rol r26
+ 845 0058 BB1F      		rol r27
+ 846               		2:
+ 847 005a 0A95      		dec r16
+ 848 005c 02F4      		brpl 1b
+ 849               	.LVL72:
+ 367:quantum/quantum.c ****     return (state & mask12) == mask12 ? (state | mask3) : (state & ~mask3);
+ 850               		.loc 1 367 5 is_stmt 1 view .LVU175
+ 851               		.loc 1 367 19 is_stmt 0 view .LVU176
+ 852 005e 8A01      		movw r16,r20
+ 853               	.LVL73:
+ 854               		.loc 1 367 19 view .LVU177
+ 855 0060 9B01      		movw r18,r22
+ 856               	.LVL74:
+ 857               		.loc 1 367 19 view .LVU178
+ 858 0062 0C21      		and r16,r12
+ 859 0064 1D21      		and r17,r13
+ 860 0066 2E21      		and r18,r14
+ 861 0068 3F21      		and r19,r15
+ 862               		.loc 1 367 57 view .LVU179
+ 863 006a 0417      		cp r16,r20
+ 864 006c 1507      		cpc r17,r21
+ 865 006e 2607      		cpc r18,r22
+ 866 0070 3707      		cpc r19,r23
+ 867 0072 01F4      		brne .L59
+ 868               		.loc 1 367 57 discriminator 1 view .LVU180
+ 869 0074 8C29      		or r24,r12
+ 870               	.LVL75:
+ 871               		.loc 1 367 57 discriminator 1 view .LVU181
+ 872 0076 9D29      		or r25,r13
+ 873 0078 AE29      		or r26,r14
+ 874 007a BF29      		or r27,r15
+ 875               	.L58:
+ 368:quantum/quantum.c **** }
+ 876               		.loc 1 368 1 view .LVU182
+ 877 007c BC01      		movw r22,r24
+ 878 007e CD01      		movw r24,r26
+ 879               	/* epilogue start */
+ 880 0080 1F91      		pop r17
+ 881               	.LVL76:
+ 882               		.loc 1 368 1 view .LVU183
+ 883 0082 0F91      		pop r16
+ 884               	.LVL77:
+ 885               		.loc 1 368 1 view .LVU184
+ 886 0084 FF90      		pop r15
+ 887 0086 EF90      		pop r14
+ 888 0088 DF90      		pop r13
+ 889 008a CF90      		pop r12
+ 890 008c BF90      		pop r11
+ 891 008e AF90      		pop r10
+ 892 0090 9F90      		pop r9
+ 893 0092 8F90      		pop r8
+ 894               	.LVL78:
+ 895               		.loc 1 368 1 view .LVU185
+ 896 0094 0895      		ret
+ 897               	.LVL79:
+ 898               	.L59:
+ 367:quantum/quantum.c ****     return (state & mask12) == mask12 ? (state | mask3) : (state & ~mask3);
+ 899               		.loc 1 367 68 discriminator 2 view .LVU186
+ 900 0096 8095      		com r24
+ 901 0098 9095      		com r25
+ 902 009a A095      		com r26
+ 903 009c B095      		com r27
+ 904               	.LVL80:
+ 367:quantum/quantum.c ****     return (state & mask12) == mask12 ? (state | mask3) : (state & ~mask3);
+ 905               		.loc 1 367 57 discriminator 2 view .LVU187
+ 906 009e 8C21      		and r24,r12
+ 907               	.LVL81:
+ 367:quantum/quantum.c ****     return (state & mask12) == mask12 ? (state | mask3) : (state & ~mask3);
+ 908               		.loc 1 367 57 discriminator 2 view .LVU188
+ 909 00a0 9D21      		and r25,r13
+ 910 00a2 AE21      		and r26,r14
+ 911 00a4 BF21      		and r27,r15
+ 912 00a6 00C0      		rjmp .L58
+ 913               		.cfi_endproc
+ 914               	.LFE43:
+ 916               		.section	.text.update_tri_layer,"ax",@progbits
+ 917               	.global	update_tri_layer
+ 919               	update_tri_layer:
+ 920               	.LVL82:
+ 921               	.LFB44:
+ 369:quantum/quantum.c **** 
+ 370:quantum/quantum.c **** void update_tri_layer(uint8_t layer1, uint8_t layer2, uint8_t layer3) { layer_state_set(update_tri_
+ 922               		.loc 1 370 71 is_stmt 1 view -0
+ 923               		.cfi_startproc
+ 924               		.loc 1 370 71 is_stmt 0 view .LVU190
+ 925 0000 0F93      		push r16
+ 926               	.LCFI27:
+ 927               		.cfi_def_cfa_offset 3
+ 928               		.cfi_offset 16, -2
+ 929               	/* prologue: function */
+ 930               	/* frame size = 0 */
+ 931               	/* stack size = 1 */
+ 932               	.L__stack_usage = 1
+ 933 0002 382F      		mov r19,r24
+ 934 0004 262F      		mov r18,r22
+ 935               		.loc 1 370 73 is_stmt 1 view .LVU191
+ 936 0006 6091 0000 		lds r22,layer_state
+ 937 000a 7091 0000 		lds r23,layer_state+1
+ 938 000e 8091 0000 		lds r24,layer_state+2
+ 939 0012 9091 0000 		lds r25,layer_state+3
+ 940               	.LVL83:
+ 941               		.loc 1 370 73 is_stmt 0 view .LVU192
+ 942 0016 042F      		mov r16,r20
+ 943 0018 432F      		mov r20,r19
+ 944               	.LVL84:
+ 945               		.loc 1 370 73 view .LVU193
+ 946 001a 0E94 0000 		call update_tri_layer_state
+ 947               	.LVL85:
+ 948               	/* epilogue start */
+ 949               		.loc 1 370 1 view .LVU194
+ 950 001e 0F91      		pop r16
+ 951               	.LVL86:
+ 952               		.loc 1 370 73 view .LVU195
+ 953 0020 0C94 0000 		jmp layer_state_set
+ 954               	.LVL87:
+ 955               		.cfi_endproc
+ 956               	.LFE44:
+ 958               		.section	.text.matrix_init_quantum,"ax",@progbits
+ 959               	.global	matrix_init_quantum
+ 961               	matrix_init_quantum:
+ 962               	.LFB45:
+ 371:quantum/quantum.c **** 
+ 372:quantum/quantum.c **** void matrix_init_quantum() {
+ 963               		.loc 1 372 28 is_stmt 1 view -0
+ 964               		.cfi_startproc
+ 965               	/* prologue: function */
+ 966               	/* frame size = 0 */
+ 967               	/* stack size = 0 */
+ 968               	.L__stack_usage = 0
+ 373:quantum/quantum.c ****     magic();
+ 969               		.loc 1 373 5 view .LVU197
+ 970 0000 0E94 0000 		call magic
+ 971               	.LVL88:
+ 374:quantum/quantum.c ****     led_init_ports();
+ 972               		.loc 1 374 5 view .LVU198
+ 973 0004 0E94 0000 		call led_init_ports
+ 974               	.LVL89:
+ 375:quantum/quantum.c **** #ifdef BACKLIGHT_ENABLE
+ 376:quantum/quantum.c ****     backlight_init_ports();
+ 377:quantum/quantum.c **** #endif
+ 378:quantum/quantum.c **** #ifdef AUDIO_ENABLE
+ 379:quantum/quantum.c ****     audio_init();
+ 380:quantum/quantum.c **** #endif
+ 381:quantum/quantum.c **** #ifdef LED_MATRIX_ENABLE
+ 382:quantum/quantum.c ****     led_matrix_init();
+ 383:quantum/quantum.c **** #endif
+ 384:quantum/quantum.c **** #ifdef RGB_MATRIX_ENABLE
+ 385:quantum/quantum.c ****     rgb_matrix_init();
+ 386:quantum/quantum.c **** #endif
+ 387:quantum/quantum.c **** #if defined(UNICODE_ENABLE) || defined(UNICODEMAP_ENABLE) || defined(UCIS_ENABLE)
+ 388:quantum/quantum.c ****     unicode_input_mode_init();
+ 389:quantum/quantum.c **** #endif
+ 390:quantum/quantum.c **** #ifdef HAPTIC_ENABLE
+ 391:quantum/quantum.c ****     haptic_init();
+ 392:quantum/quantum.c **** #endif
+ 393:quantum/quantum.c **** #if defined(BLUETOOTH_ENABLE) && defined(OUTPUT_AUTO_ENABLE)
+ 394:quantum/quantum.c ****     set_output(OUTPUT_AUTO);
+ 395:quantum/quantum.c **** #endif
+ 396:quantum/quantum.c **** 
+ 397:quantum/quantum.c ****     matrix_init_kb();
+ 975               		.loc 1 397 5 view .LVU199
+ 976 0008 0C94 0000 		jmp matrix_init_kb
+ 977               	.LVL90:
+ 978               		.cfi_endproc
+ 979               	.LFE45:
+ 981               		.section	.text.matrix_scan_quantum,"ax",@progbits
+ 982               	.global	matrix_scan_quantum
+ 984               	matrix_scan_quantum:
+ 985               	.LFB46:
+ 398:quantum/quantum.c **** }
+ 399:quantum/quantum.c **** 
+ 400:quantum/quantum.c **** void matrix_scan_quantum() {
+ 986               		.loc 1 400 28 view -0
+ 987               		.cfi_startproc
+ 988               	/* prologue: function */
+ 989               	/* frame size = 0 */
+ 990               	/* stack size = 0 */
+ 991               	.L__stack_usage = 0
+ 401:quantum/quantum.c **** #if defined(AUDIO_ENABLE) && defined(AUDIO_INIT_DELAY)
+ 402:quantum/quantum.c ****     // There are some tasks that need to be run a little bit
+ 403:quantum/quantum.c ****     // after keyboard startup, or else they will not work correctly
+ 404:quantum/quantum.c ****     // because of interaction with the USB device state, which
+ 405:quantum/quantum.c ****     // may still be in flux...
+ 406:quantum/quantum.c ****     //
+ 407:quantum/quantum.c ****     // At the moment the only feature that needs this is the
+ 408:quantum/quantum.c ****     // startup song.
+ 409:quantum/quantum.c ****     static bool     delayed_tasks_run  = false;
+ 410:quantum/quantum.c ****     static uint16_t delayed_task_timer = 0;
+ 411:quantum/quantum.c ****     if (!delayed_tasks_run) {
+ 412:quantum/quantum.c ****         if (!delayed_task_timer) {
+ 413:quantum/quantum.c ****             delayed_task_timer = timer_read();
+ 414:quantum/quantum.c ****         } else if (timer_elapsed(delayed_task_timer) > 300) {
+ 415:quantum/quantum.c ****             audio_startup();
+ 416:quantum/quantum.c ****             delayed_tasks_run = true;
+ 417:quantum/quantum.c ****         }
+ 418:quantum/quantum.c ****     }
+ 419:quantum/quantum.c **** #endif
+ 420:quantum/quantum.c **** 
+ 421:quantum/quantum.c **** #if defined(AUDIO_ENABLE) && !defined(NO_MUSIC_MODE)
+ 422:quantum/quantum.c ****     music_task();
+ 423:quantum/quantum.c **** #endif
+ 424:quantum/quantum.c **** 
+ 425:quantum/quantum.c **** #ifdef KEY_OVERRIDE_ENABLE
+ 426:quantum/quantum.c ****     key_override_task();
+ 427:quantum/quantum.c **** #endif
+ 428:quantum/quantum.c **** 
+ 429:quantum/quantum.c **** #ifdef SEQUENCER_ENABLE
+ 430:quantum/quantum.c ****     sequencer_task();
+ 431:quantum/quantum.c **** #endif
+ 432:quantum/quantum.c **** 
+ 433:quantum/quantum.c **** #ifdef TAP_DANCE_ENABLE
+ 434:quantum/quantum.c ****     tap_dance_task();
+ 435:quantum/quantum.c **** #endif
+ 436:quantum/quantum.c **** 
+ 437:quantum/quantum.c **** #ifdef COMBO_ENABLE
+ 438:quantum/quantum.c ****     combo_task();
+ 439:quantum/quantum.c **** #endif
+ 440:quantum/quantum.c **** 
+ 441:quantum/quantum.c **** #ifdef LED_MATRIX_ENABLE
+ 442:quantum/quantum.c ****     led_matrix_task();
+ 443:quantum/quantum.c **** #endif
+ 444:quantum/quantum.c **** 
+ 445:quantum/quantum.c **** #ifdef WPM_ENABLE
+ 446:quantum/quantum.c ****     decay_wpm();
+ 992               		.loc 1 446 5 view .LVU201
+ 993 0000 0E94 0000 		call decay_wpm
+ 994               	.LVL91:
+ 447:quantum/quantum.c **** #endif
+ 448:quantum/quantum.c **** 
+ 449:quantum/quantum.c **** #ifdef HAPTIC_ENABLE
+ 450:quantum/quantum.c ****     haptic_task();
+ 451:quantum/quantum.c **** #endif
+ 452:quantum/quantum.c **** 
+ 453:quantum/quantum.c **** #ifdef DIP_SWITCH_ENABLE
+ 454:quantum/quantum.c ****     dip_switch_read(false);
+ 455:quantum/quantum.c **** #endif
+ 456:quantum/quantum.c **** 
+ 457:quantum/quantum.c **** #ifdef AUTO_SHIFT_ENABLE
+ 458:quantum/quantum.c ****     autoshift_matrix_scan();
+ 459:quantum/quantum.c **** #endif
+ 460:quantum/quantum.c **** 
+ 461:quantum/quantum.c ****     matrix_scan_kb();
+ 995               		.loc 1 461 5 view .LVU202
+ 996 0004 0C94 0000 		jmp matrix_scan_kb
+ 997               	.LVL92:
+ 998               		.cfi_endproc
+ 999               	.LFE46:
+ 1001               		.section	.text.api_send_unicode,"ax",@progbits
+ 1002               	.global	api_send_unicode
+ 1004               	api_send_unicode:
+ 1005               	.LVL93:
+ 1006               	.LFB47:
+ 462:quantum/quantum.c **** }
+ 463:quantum/quantum.c **** 
+ 464:quantum/quantum.c **** #ifdef HD44780_ENABLED
+ 465:quantum/quantum.c **** #    include "hd44780.h"
+ 466:quantum/quantum.c **** #endif
+ 467:quantum/quantum.c **** 
+ 468:quantum/quantum.c **** void api_send_unicode(uint32_t unicode) {
+ 1007               		.loc 1 468 41 view -0
+ 1008               		.cfi_startproc
+ 1009               	/* prologue: function */
+ 1010               	/* frame size = 0 */
+ 1011               	/* stack size = 0 */
+ 1012               	.L__stack_usage = 0
+ 469:quantum/quantum.c **** #ifdef API_ENABLE
+ 470:quantum/quantum.c ****     uint8_t chunk[4];
+ 471:quantum/quantum.c ****     dword_to_bytes(unicode, chunk);
+ 472:quantum/quantum.c ****     MT_SEND_DATA(DT_UNICODE, chunk, 5);
+ 473:quantum/quantum.c **** #endif
+ 474:quantum/quantum.c **** }
+ 1013               		.loc 1 474 1 view .LVU204
+ 1014               	/* epilogue start */
+ 1015 0000 0895      		ret
+ 1016               		.cfi_endproc
+ 1017               	.LFE47:
+ 1019               		.section	.text.startup_user,"ax",@progbits
+ 1020               		.weak	startup_user
+ 1022               	startup_user:
+ 1023               	.LFB48:
+ 475:quantum/quantum.c **** 
+ 476:quantum/quantum.c **** //------------------------------------------------------------------------------
+ 477:quantum/quantum.c **** // Override these functions in your keymap file to play different tunes on
+ 478:quantum/quantum.c **** // different events such as startup and bootloader jump
+ 479:quantum/quantum.c **** 
+ 480:quantum/quantum.c **** __attribute__((weak)) void startup_user() {}
+ 1024               		.loc 1 480 43 view -0
+ 1025               		.cfi_startproc
+ 1026               	/* prologue: function */
+ 1027               	/* frame size = 0 */
+ 1028               	/* stack size = 0 */
+ 1029               	.L__stack_usage = 0
+ 1030               		.loc 1 480 44 view .LVU206
+ 1031               	/* epilogue start */
+ 1032               		.loc 1 480 1 is_stmt 0 view .LVU207
+ 1033 0000 0895      		ret
+ 1034               		.cfi_endproc
+ 1035               	.LFE48:
+ 1037               		.section	.text.shutdown_user,"ax",@progbits
+ 1038               		.weak	shutdown_user
+ 1040               	shutdown_user:
+ 1041               	.LFB51:
+ 1042               		.cfi_startproc
+ 1043               	/* prologue: function */
+ 1044               	/* frame size = 0 */
+ 1045               	/* stack size = 0 */
+ 1046               	.L__stack_usage = 0
+ 1047               	/* epilogue start */
+ 1048 0000 0895      		ret
+ 1049               		.cfi_endproc
+ 1050               	.LFE51:
+ 1052               		.section	.text.reset_keyboard,"ax",@progbits
+ 1053               	.global	reset_keyboard
+ 1055               	reset_keyboard:
+ 1056               	.LFB36:
+ 121:quantum/quantum.c ****     clear_keyboard();
+ 1057               		.loc 1 121 27 is_stmt 1 view -0
+ 1058               		.cfi_startproc
+ 1059               	/* prologue: function */
+ 1060               	/* frame size = 0 */
+ 1061               	/* stack size = 0 */
+ 1062               	.L__stack_usage = 0
+ 122:quantum/quantum.c **** #if defined(MIDI_ENABLE) && defined(MIDI_BASIC)
+ 1063               		.loc 1 122 5 view .LVU209
+ 1064 0000 0E94 0000 		call clear_keyboard
+ 1065               	.LVL94:
+ 136:quantum/quantum.c ****     wait_ms(250);
+ 1066               		.loc 1 136 5 view .LVU210
+ 1067 0004 0E94 0000 		call shutdown_user
+ 1068               	.LVL95:
+ 137:quantum/quantum.c **** #endif
+ 1069               		.loc 1 137 5 view .LVU211
+ 137:quantum/quantum.c **** #endif
+ 1070               		.loc 1 137 5 view .LVU212
+ 137:quantum/quantum.c **** #endif
+ 1071               		.loc 1 137 5 view .LVU213
+ 1072               	.LBB30:
+ 1073               	.LBI30:
+ 166:/usr/avr/include/util/delay.h **** {
+ 1074               		.loc 2 166 1 view .LVU214
+ 1075               	.LBB31:
+ 168:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 1076               		.loc 2 168 2 view .LVU215
+ 172:/usr/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 1077               		.loc 2 172 2 view .LVU216
+ 173:/usr/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e3) * __ms;
+ 1078               		.loc 2 173 2 view .LVU217
+ 174:/usr/avr/include/util/delay.h **** 
+ 1079               		.loc 2 174 2 view .LVU218
+ 184:/usr/avr/include/util/delay.h **** 	#endif
+ 1080               		.loc 2 184 3 view .LVU219
+ 1081               		.loc 2 187 2 view .LVU220
+ 1082 0008 2FEF      		ldi r18,lo8(799999)
+ 1083 000a 84E3      		ldi r24,hi8(799999)
+ 1084 000c 9CE0      		ldi r25,hlo8(799999)
+ 1085 000e 2150      	1:	subi r18,1
+ 1086 0010 8040      		sbci r24,0
+ 1087 0012 9040      		sbci r25,0
+ 1088 0014 01F4      		brne 1b
+ 1089 0016 00C0      		rjmp .
+ 1090 0018 0000      		nop
+ 1091               	.LVL96:
+ 1092               		.loc 2 187 2 is_stmt 0 view .LVU221
+ 1093               	.LBE31:
+ 1094               	.LBE30:
+ 142:quantum/quantum.c **** }
+ 1095               		.loc 1 142 5 is_stmt 1 view .LVU222
+ 1096 001a 0C94 0000 		jmp bootloader_jump
+ 1097               	.LVL97:
+ 1098               		.cfi_endproc
+ 1099               	.LFE36:
+ 1101               		.section	.text.process_record_quantum,"ax",@progbits
+ 1102               	.global	process_record_quantum
+ 1104               	process_record_quantum:
+ 1105               	.LVL98:
+ 1106               	.LFB41:
+ 199:quantum/quantum.c ****     uint16_t keycode = get_record_keycode(record, true);
+ 1107               		.loc 1 199 50 view -0
+ 1108               		.cfi_startproc
+ 199:quantum/quantum.c ****     uint16_t keycode = get_record_keycode(record, true);
+ 1109               		.loc 1 199 50 is_stmt 0 view .LVU224
+ 1110 0000 0F93      		push r16
+ 1111               	.LCFI28:
+ 1112               		.cfi_def_cfa_offset 3
+ 1113               		.cfi_offset 16, -2
+ 1114 0002 1F93      		push r17
+ 1115               	.LCFI29:
+ 1116               		.cfi_def_cfa_offset 4
+ 1117               		.cfi_offset 17, -3
+ 1118 0004 CF93      		push r28
+ 1119               	.LCFI30:
+ 1120               		.cfi_def_cfa_offset 5
+ 1121               		.cfi_offset 28, -4
+ 1122 0006 DF93      		push r29
+ 1123               	.LCFI31:
+ 1124               		.cfi_def_cfa_offset 6
+ 1125               		.cfi_offset 29, -5
+ 1126               	/* prologue: function */
+ 1127               	/* frame size = 0 */
+ 1128               	/* stack size = 4 */
+ 1129               	.L__stack_usage = 4
+ 1130 0008 8C01      		movw r16,r24
+ 200:quantum/quantum.c **** 
+ 1131               		.loc 1 200 5 is_stmt 1 view .LVU225
+ 200:quantum/quantum.c **** 
+ 1132               		.loc 1 200 24 is_stmt 0 view .LVU226
+ 1133 000a 61E0      		ldi r22,lo8(1)
+ 1134 000c 0E94 0000 		call get_record_keycode
+ 1135               	.LVL99:
+ 200:quantum/quantum.c **** 
+ 1136               		.loc 1 200 24 view .LVU227
+ 1137 0010 EC01      		movw r28,r24
+ 1138               	.LVL100:
+ 217:quantum/quantum.c ****         update_wpm(keycode);
+ 1139               		.loc 1 217 5 is_stmt 1 view .LVU228
+ 217:quantum/quantum.c ****         update_wpm(keycode);
+ 1140               		.loc 1 217 8 is_stmt 0 view .LVU229
+ 1141 0012 F801      		movw r30,r16
+ 1142 0014 8281      		ldd r24,Z+2
+ 1143               	.LVL101:
+ 217:quantum/quantum.c ****         update_wpm(keycode);
+ 1144               		.loc 1 217 8 view .LVU230
+ 1145 0016 8823      		tst r24
+ 1146 0018 01F0      		breq .L69
+ 218:quantum/quantum.c ****     }
+ 1147               		.loc 1 218 9 is_stmt 1 view .LVU231
+ 1148 001a CE01      		movw r24,r28
+ 1149 001c 0E94 0000 		call update_wpm
+ 1150               	.LVL102:
+ 1151               	.L69:
+ 226:quantum/quantum.c **** #if defined(KEY_LOCK_ENABLE)
+ 1152               		.loc 1 226 5 view .LVU232
+ 244:quantum/quantum.c **** #if defined(SEQUENCER_ENABLE)
+ 1153               		.loc 1 244 13 is_stmt 0 view .LVU233
+ 1154 0020 B801      		movw r22,r16
+ 1155 0022 CE01      		movw r24,r28
+ 1156 0024 0E94 0000 		call process_record_kb
+ 1157               	.LVL103:
+ 288:quantum/quantum.c **** #endif
+ 1158               		.loc 1 288 44 view .LVU234
+ 1159 0028 8823      		tst r24
+ 1160 002a 01F0      		breq .L68
+ 285:quantum/quantum.c **** #endif
+ 1161               		.loc 1 285 13 view .LVU235
+ 1162 002c B801      		movw r22,r16
+ 1163 002e CE01      		movw r24,r28
+ 1164 0030 0E94 0000 		call process_space_cadet
+ 1165               	.LVL104:
+ 244:quantum/quantum.c **** #if defined(SEQUENCER_ENABLE)
+ 1166               		.loc 1 244 48 view .LVU236
+ 1167 0034 8823      		tst r24
+ 1168 0036 01F0      		breq .L68
+ 288:quantum/quantum.c **** #endif
+ 1169               		.loc 1 288 13 view .LVU237
+ 1170 0038 B801      		movw r22,r16
+ 1171 003a CE01      		movw r24,r28
+ 1172 003c 0E94 0000 		call process_magic
+ 1173               	.LVL105:
+ 285:quantum/quantum.c **** #endif
+ 1174               		.loc 1 285 50 view .LVU238
+ 1175 0040 8823      		tst r24
+ 1176 0042 01F0      		breq .L68
+ 291:quantum/quantum.c **** #endif
+ 1177               		.loc 1 291 13 discriminator 2 view .LVU239
+ 1178 0044 B801      		movw r22,r16
+ 1179 0046 CE01      		movw r24,r28
+ 1180 0048 0E94 0000 		call process_grave_esc
+ 1181               	.LVL106:
+ 288:quantum/quantum.c **** #endif
+ 1182               		.loc 1 288 44 discriminator 2 view .LVU240
+ 1183 004c 8823      		tst r24
+ 1184 004e 01F0      		breq .L68
+ 303:quantum/quantum.c ****         switch (keycode) {
+ 1185               		.loc 1 303 5 is_stmt 1 view .LVU241
+ 303:quantum/quantum.c ****         switch (keycode) {
+ 1186               		.loc 1 303 8 is_stmt 0 view .LVU242
+ 1187 0050 F801      		movw r30,r16
+ 1188 0052 8281      		ldd r24,Z+2
+ 1189 0054 8823      		tst r24
+ 1190 0056 01F0      		breq .L73
+ 304:quantum/quantum.c **** #ifndef NO_RESET
+ 1191               		.loc 1 304 9 is_stmt 1 view .LVU243
+ 1192 0058 CB35      		cpi r28,91
+ 1193 005a FDE5      		ldi r31,93
+ 1194 005c DF07      		cpc r29,r31
+ 1195 005e 01F0      		breq .L74
+ 1196 0060 00F4      		brsh .L75
+ 1197 0062 C115      		cp r28,__zero_reg__
+ 1198 0064 ECE5      		ldi r30,92
+ 1199 0066 DE07      		cpc r29,r30
+ 1200 0068 01F0      		breq .L76
+ 1201 006a CF3D      		cpi r28,-33
+ 1202 006c DC45      		sbci r29,92
+ 1203 006e 01F0      		breq .L77
+ 1204               	.L73:
+ 353:quantum/quantum.c **** }
+ 1205               		.loc 1 353 5 view .LVU244
+ 353:quantum/quantum.c **** }
+ 1206               		.loc 1 353 12 is_stmt 0 view .LVU245
+ 1207 0070 C801      		movw r24,r16
+ 1208               	/* epilogue start */
+ 354:quantum/quantum.c **** 
+ 1209               		.loc 1 354 1 view .LVU246
+ 1210 0072 DF91      		pop r29
+ 1211 0074 CF91      		pop r28
+ 1212               	.LVL107:
+ 354:quantum/quantum.c **** 
+ 1213               		.loc 1 354 1 view .LVU247
+ 1214 0076 1F91      		pop r17
+ 1215 0078 0F91      		pop r16
+ 1216               	.LVL108:
+ 353:quantum/quantum.c **** }
+ 1217               		.loc 1 353 12 view .LVU248
+ 1218 007a 0C94 0000 		jmp process_action_kb
+ 1219               	.LVL109:
+ 1220               	.L75:
+ 304:quantum/quantum.c **** #ifndef NO_RESET
+ 1221               		.loc 1 304 9 view .LVU249
+ 1222 007e CC35      		cpi r28,92
+ 1223 0080 8DE5      		ldi r24,93
+ 1224 0082 D807      		cpc r29,r24
+ 1225 0084 01F0      		breq .L78
+ 1226 0086 CD35      		cpi r28,93
+ 1227 0088 DD45      		sbci r29,93
+ 1228 008a 01F4      		brne .L73
+ 341:quantum/quantum.c ****                 break;
+ 1229               		.loc 1 341 17 is_stmt 1 view .LVU250
+ 1230 008c 0E94 0000 		call oneshot_toggle
+ 1231               	.LVL110:
+ 342:quantum/quantum.c ****             case ONESHOT_ENABLE:
+ 1232               		.loc 1 342 17 view .LVU251
+ 1233 0090 00C0      		rjmp .L73
+ 1234               	.L76:
+ 307:quantum/quantum.c ****                 return false;
+ 1235               		.loc 1 307 17 view .LVU252
+ 1236 0092 0E94 0000 		call reset_keyboard
+ 1237               	.LVL111:
+ 308:quantum/quantum.c **** #endif
+ 1238               		.loc 1 308 17 view .LVU253
+ 1239               	.L68:
+ 354:quantum/quantum.c **** 
+ 1240               		.loc 1 354 1 is_stmt 0 view .LVU254
+ 1241 0096 80E0      		ldi r24,0
+ 1242               	/* epilogue start */
+ 1243 0098 DF91      		pop r29
+ 1244 009a CF91      		pop r28
+ 1245               	.LVL112:
+ 354:quantum/quantum.c **** 
+ 1246               		.loc 1 354 1 view .LVU255
+ 1247 009c 1F91      		pop r17
+ 1248 009e 0F91      		pop r16
+ 1249               	.LVL113:
+ 354:quantum/quantum.c **** 
+ 1250               		.loc 1 354 1 view .LVU256
+ 1251 00a0 0895      		ret
+ 1252               	.LVL114:
+ 1253               	.L77:
+ 321:quantum/quantum.c ****                 return false;
+ 1254               		.loc 1 321 17 is_stmt 1 view .LVU257
+ 1255 00a2 0E94 0000 		call eeconfig_init
+ 1256               	.LVL115:
+ 322:quantum/quantum.c **** #ifdef VELOCIKEY_ENABLE
+ 1257               		.loc 1 322 17 view .LVU258
+ 322:quantum/quantum.c **** #ifdef VELOCIKEY_ENABLE
+ 1258               		.loc 1 322 24 is_stmt 0 view .LVU259
+ 1259 00a6 00C0      		rjmp .L68
+ 1260               	.L74:
+ 344:quantum/quantum.c ****                 break;
+ 1261               		.loc 1 344 17 is_stmt 1 view .LVU260
+ 1262 00a8 0E94 0000 		call oneshot_enable
+ 1263               	.LVL116:
+ 345:quantum/quantum.c ****             case ONESHOT_DISABLE:
+ 1264               		.loc 1 345 17 view .LVU261
+ 1265 00ac 00C0      		rjmp .L73
+ 1266               	.L78:
+ 347:quantum/quantum.c ****                 break;
+ 1267               		.loc 1 347 17 view .LVU262
+ 1268 00ae 0E94 0000 		call oneshot_disable
+ 1269               	.LVL117:
+ 348:quantum/quantum.c **** #endif
+ 1270               		.loc 1 348 17 view .LVU263
+ 1271 00b2 00C0      		rjmp .L73
+ 1272               		.cfi_endproc
+ 1273               	.LFE41:
+ 1275               		.text
+ 1276               	.Letext0:
+ 1277               		.file 3 "/usr/avr/include/stdint.h"
+ 1278               		.file 4 "/usr/lib/gcc/avr/8.3.0/include/stddef.h"
+ 1279               		.file 5 "quantum/keyboard.h"
+ 1280               		.file 6 "quantum/action.h"
+ 1281               		.file 7 "tmk_core/common/report.h"
+ 1282               		.file 8 "tmk_core/common/host.h"
+ 1283               		.file 9 "quantum/logging/debug.h"
+ 1284               		.file 10 "quantum/keycode_config.h"
+ 1285               		.file 11 "tmk_core/common/timer.h"
+ 1286               		.file 12 "quantum/sequencer/sequencer.h"
+ 1287               		.file 13 "quantum/keycode.h"
+ 1288               		.file 14 "quantum/quantum_keycodes.h"
+ 1289               		.file 15 "quantum/keymap.h"
+ 1290               		.file 16 "quantum/action_layer.h"
+ 1291               		.file 17 "quantum/action_util.h"
+ 1292               		.file 18 "quantum/send_string.h"
+ 1293               		.file 19 "/usr/avr/include/stdlib.h"
+ 1294               		.file 20 "quantum/wpm.h"
+ 1295               		.file 21 "quantum/matrix.h"
+ 1296               		.file 22 "quantum/bootmagic/magic.h"
+ 1297               		.file 23 "quantum/led.h"
+ 1298               		.file 24 "quantum/eeconfig.h"
+ 1299               		.file 25 "quantum/process_keycode/process_space_cadet.h"
+ 1300               		.file 26 "quantum/process_keycode/process_magic.h"
+ 1301               		.file 27 "quantum/process_keycode/process_grave_esc.h"
+ 1302               		.file 28 "tmk_core/common/bootloader.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 quantum.c
+     /tmp/cc0rH4JV.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc0rH4JV.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc0rH4JV.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc0rH4JV.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc0rH4JV.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc0rH4JV.s:13     .text.extract_mod_bits:0000000000000000 extract_mod_bits
+     /tmp/cc0rH4JV.s:142    .text.register_code16:0000000000000000 register_code16
+     /tmp/cc0rH4JV.s:217    .text.unregister_code16:0000000000000000 unregister_code16
+     /tmp/cc0rH4JV.s:305    .text.tap_code16:0000000000000000 tap_code16
+     /tmp/cc0rH4JV.s:368    .text.process_action_kb:0000000000000000 process_action_kb
+     /tmp/cc0rH4JV.s:390    .text.process_record_user:0000000000000000 process_record_user
+     /tmp/cc0rH4JV.s:412    .text.process_record_kb:0000000000000000 process_record_kb
+     /tmp/cc0rH4JV.s:432    .text.post_process_record_user:0000000000000000 post_process_record_user
+     /tmp/cc0rH4JV.s:451    .text.post_process_record_kb:0000000000000000 post_process_record_kb
+     /tmp/cc0rH4JV.s:470    .text.get_event_keycode:0000000000000000 get_event_keycode
+     /tmp/cc0rH4JV.s:585    .text.get_record_keycode:0000000000000000 get_record_keycode
+     /tmp/cc0rH4JV.s:617    .text.pre_process_record_quantum:0000000000000000 pre_process_record_quantum
+     /tmp/cc0rH4JV.s:640    .text.post_process_record_quantum:0000000000000000 post_process_record_quantum
+     /tmp/cc0rH4JV.s:681    .text.set_single_persistent_default_layer:0000000000000000 set_single_persistent_default_layer
+     /tmp/cc0rH4JV.s:746    .text.update_tri_layer_state:0000000000000000 update_tri_layer_state
+     /tmp/cc0rH4JV.s:919    .text.update_tri_layer:0000000000000000 update_tri_layer
+     /tmp/cc0rH4JV.s:961    .text.matrix_init_quantum:0000000000000000 matrix_init_quantum
+     /tmp/cc0rH4JV.s:984    .text.matrix_scan_quantum:0000000000000000 matrix_scan_quantum
+     /tmp/cc0rH4JV.s:1004   .text.api_send_unicode:0000000000000000 api_send_unicode
+     /tmp/cc0rH4JV.s:1022   .text.startup_user:0000000000000000 startup_user
+     /tmp/cc0rH4JV.s:1040   .text.shutdown_user:0000000000000000 shutdown_user
+     /tmp/cc0rH4JV.s:1055   .text.reset_keyboard:0000000000000000 reset_keyboard
+     /tmp/cc0rH4JV.s:1104   .text.process_record_quantum:0000000000000000 process_record_quantum
+
+UNDEFINED SYMBOLS
+register_mods
+register_code
+register_weak_mods
+unregister_code
+unregister_mods
+unregister_weak_mods
+disable_action_cache
+layer_switch_get_layer
+update_source_layers_cache
+keymap_key_to_keycode
+read_source_layers_cache
+eeconfig_update_default_layer
+default_layer_set
+layer_state
+layer_state_set
+magic
+led_init_ports
+matrix_init_kb
+decay_wpm
+matrix_scan_kb
+clear_keyboard
+bootloader_jump
+update_wpm
+process_space_cadet
+process_magic
+process_grave_esc
+oneshot_toggle
+eeconfig_init
+oneshot_enable
+oneshot_disable

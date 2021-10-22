@@ -1,0 +1,599 @@
+   1               		.file	"split_util.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.is_keyboard_master,"ax",@progbits
+  11               		.weak	is_keyboard_master
+  13               	is_keyboard_master:
+  14               	.LFB29:
+  15               		.file 1 "quantum/split_common/split_util.c"
+   1:quantum/split_common/split_util.c **** /* Copyright 2021 QMK
+   2:quantum/split_common/split_util.c ****  *
+   3:quantum/split_common/split_util.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/split_common/split_util.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/split_common/split_util.c ****  * the Free Software Foundation, either version 3 of the License, or
+   6:quantum/split_common/split_util.c ****  * (at your option) any later version.
+   7:quantum/split_common/split_util.c ****  *
+   8:quantum/split_common/split_util.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/split_common/split_util.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/split_common/split_util.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/split_common/split_util.c ****  * GNU General Public License for more details.
+  12:quantum/split_common/split_util.c ****  *
+  13:quantum/split_common/split_util.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/split_common/split_util.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/split_common/split_util.c ****  */
+  16:quantum/split_common/split_util.c **** #include "split_util.h"
+  17:quantum/split_common/split_util.c **** #include "matrix.h"
+  18:quantum/split_common/split_util.c **** #include "keyboard.h"
+  19:quantum/split_common/split_util.c **** #include "config.h"
+  20:quantum/split_common/split_util.c **** #include "timer.h"
+  21:quantum/split_common/split_util.c **** #include "transport.h"
+  22:quantum/split_common/split_util.c **** #include "quantum.h"
+  23:quantum/split_common/split_util.c **** #include "wait.h"
+  24:quantum/split_common/split_util.c **** #include "usb_util.h"
+  25:quantum/split_common/split_util.c **** 
+  26:quantum/split_common/split_util.c **** #ifdef EE_HANDS
+  27:quantum/split_common/split_util.c **** #    include "eeconfig.h"
+  28:quantum/split_common/split_util.c **** #endif
+  29:quantum/split_common/split_util.c **** 
+  30:quantum/split_common/split_util.c **** #if defined(RGBLIGHT_ENABLE) && defined(RGBLED_SPLIT)
+  31:quantum/split_common/split_util.c **** #    include "rgblight.h"
+  32:quantum/split_common/split_util.c **** #endif
+  33:quantum/split_common/split_util.c **** 
+  34:quantum/split_common/split_util.c **** #ifndef SPLIT_USB_TIMEOUT
+  35:quantum/split_common/split_util.c **** #    define SPLIT_USB_TIMEOUT 2000
+  36:quantum/split_common/split_util.c **** #endif
+  37:quantum/split_common/split_util.c **** 
+  38:quantum/split_common/split_util.c **** #ifndef SPLIT_USB_TIMEOUT_POLL
+  39:quantum/split_common/split_util.c **** #    define SPLIT_USB_TIMEOUT_POLL 10
+  40:quantum/split_common/split_util.c **** #endif
+  41:quantum/split_common/split_util.c **** 
+  42:quantum/split_common/split_util.c **** // Max number of consecutive failed communications (one per scan cycle) before the communication is
+  43:quantum/split_common/split_util.c **** // Set to 0 to disable the disconnection check altogether.
+  44:quantum/split_common/split_util.c **** #ifndef SPLIT_MAX_CONNECTION_ERRORS
+  45:quantum/split_common/split_util.c **** #    define SPLIT_MAX_CONNECTION_ERRORS 10
+  46:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS
+  47:quantum/split_common/split_util.c **** 
+  48:quantum/split_common/split_util.c **** // How long (in milliseconds) to block all connection attempts after the communication has been fla
+  49:quantum/split_common/split_util.c **** // One communication attempt will be allowed everytime this amount of time has passed since the las
+  50:quantum/split_common/split_util.c **** // Set to 0 to disable communication throttling while disconnected
+  51:quantum/split_common/split_util.c **** #ifndef SPLIT_CONNECTION_CHECK_TIMEOUT
+  52:quantum/split_common/split_util.c **** #    define SPLIT_CONNECTION_CHECK_TIMEOUT 500
+  53:quantum/split_common/split_util.c **** #endif  // SPLIT_CONNECTION_CHECK_TIMEOUT
+  54:quantum/split_common/split_util.c **** 
+  55:quantum/split_common/split_util.c **** static uint8_t connection_errors = 0;
+  56:quantum/split_common/split_util.c **** 
+  57:quantum/split_common/split_util.c **** volatile bool isLeftHand = true;
+  58:quantum/split_common/split_util.c **** 
+  59:quantum/split_common/split_util.c **** #if defined(SPLIT_USB_DETECT)
+  60:quantum/split_common/split_util.c **** static bool usbIsActive(void) {
+  61:quantum/split_common/split_util.c ****     for (uint8_t i = 0; i < (SPLIT_USB_TIMEOUT / SPLIT_USB_TIMEOUT_POLL); i++) {
+  62:quantum/split_common/split_util.c ****         // This will return true if a USB connection has been established
+  63:quantum/split_common/split_util.c ****         if (usb_connected_state()) {
+  64:quantum/split_common/split_util.c ****             return true;
+  65:quantum/split_common/split_util.c ****         }
+  66:quantum/split_common/split_util.c ****         wait_ms(SPLIT_USB_TIMEOUT_POLL);
+  67:quantum/split_common/split_util.c ****     }
+  68:quantum/split_common/split_util.c ****     return false;
+  69:quantum/split_common/split_util.c **** }
+  70:quantum/split_common/split_util.c **** #else
+  71:quantum/split_common/split_util.c **** static inline bool usbIsActive(void) { return usb_vbus_state(); }
+  72:quantum/split_common/split_util.c **** #endif
+  73:quantum/split_common/split_util.c **** 
+  74:quantum/split_common/split_util.c **** #ifdef SPLIT_HAND_MATRIX_GRID
+  75:quantum/split_common/split_util.c **** void matrix_io_delay(void);
+  76:quantum/split_common/split_util.c **** 
+  77:quantum/split_common/split_util.c **** static uint8_t peek_matrix_intersection(pin_t out_pin, pin_t in_pin) {
+  78:quantum/split_common/split_util.c ****     setPinInputHigh(in_pin);
+  79:quantum/split_common/split_util.c ****     setPinOutput(out_pin);
+  80:quantum/split_common/split_util.c ****     writePinLow(out_pin);
+  81:quantum/split_common/split_util.c ****     // It's almost unnecessary, but wait until it's down to low, just in case.
+  82:quantum/split_common/split_util.c ****     wait_us(1);
+  83:quantum/split_common/split_util.c ****     uint8_t pin_state = readPin(in_pin);
+  84:quantum/split_common/split_util.c ****     // Set out_pin to a setting that is less susceptible to noise.
+  85:quantum/split_common/split_util.c ****     setPinInputHigh(out_pin);
+  86:quantum/split_common/split_util.c ****     matrix_io_delay();  // Wait for the pull-up to go HIGH.
+  87:quantum/split_common/split_util.c ****     return pin_state;
+  88:quantum/split_common/split_util.c **** }
+  89:quantum/split_common/split_util.c **** #endif
+  90:quantum/split_common/split_util.c **** 
+  91:quantum/split_common/split_util.c **** __attribute__((weak)) bool is_keyboard_left(void) {
+  92:quantum/split_common/split_util.c **** #if defined(SPLIT_HAND_PIN)
+  93:quantum/split_common/split_util.c ****     // Test pin SPLIT_HAND_PIN for High/Low, if low it's right hand
+  94:quantum/split_common/split_util.c ****     setPinInput(SPLIT_HAND_PIN);
+  95:quantum/split_common/split_util.c **** #    ifdef SPLIT_HAND_PIN_LOW_IS_LEFT
+  96:quantum/split_common/split_util.c ****     return !readPin(SPLIT_HAND_PIN);
+  97:quantum/split_common/split_util.c **** #    else
+  98:quantum/split_common/split_util.c ****     return readPin(SPLIT_HAND_PIN);
+  99:quantum/split_common/split_util.c **** #    endif
+ 100:quantum/split_common/split_util.c **** #elif defined(SPLIT_HAND_MATRIX_GRID)
+ 101:quantum/split_common/split_util.c **** #    ifdef SPLIT_HAND_MATRIX_GRID_LOW_IS_RIGHT
+ 102:quantum/split_common/split_util.c ****     return peek_matrix_intersection(SPLIT_HAND_MATRIX_GRID);
+ 103:quantum/split_common/split_util.c **** #    else
+ 104:quantum/split_common/split_util.c ****     return !peek_matrix_intersection(SPLIT_HAND_MATRIX_GRID);
+ 105:quantum/split_common/split_util.c **** #    endif
+ 106:quantum/split_common/split_util.c **** #elif defined(EE_HANDS)
+ 107:quantum/split_common/split_util.c ****     return eeconfig_read_handedness();
+ 108:quantum/split_common/split_util.c **** #elif defined(MASTER_RIGHT)
+ 109:quantum/split_common/split_util.c ****     return !is_keyboard_master();
+ 110:quantum/split_common/split_util.c **** #endif
+ 111:quantum/split_common/split_util.c **** 
+ 112:quantum/split_common/split_util.c ****     return is_keyboard_master();
+ 113:quantum/split_common/split_util.c **** }
+ 114:quantum/split_common/split_util.c **** 
+ 115:quantum/split_common/split_util.c **** __attribute__((weak)) bool is_keyboard_master(void) {
+  16               		.loc 1 115 53 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+ 116:quantum/split_common/split_util.c ****     static enum { UNKNOWN, MASTER, SLAVE } usbstate = UNKNOWN;
+  22               		.loc 1 116 5 view .LVU1
+ 117:quantum/split_common/split_util.c **** 
+ 118:quantum/split_common/split_util.c ****     // only check once, as this is called often
+ 119:quantum/split_common/split_util.c ****     if (usbstate == UNKNOWN) {
+  23               		.loc 1 119 5 view .LVU2
+  24               		.loc 1 119 8 is_stmt 0 view .LVU3
+  25 0000 8091 0000 		lds r24,usbstate.4109
+  26 0004 8111      		cpse r24,__zero_reg__
+  27 0006 00C0      		rjmp .L2
+ 120:quantum/split_common/split_util.c ****         usbstate = usbIsActive() ? MASTER : SLAVE;
+  28               		.loc 1 120 9 is_stmt 1 view .LVU4
+  29               	.LBB4:
+  30               	.LBI4:
+  71:quantum/split_common/split_util.c **** #endif
+  31               		.loc 1 71 20 view .LVU5
+  32               	.LBB5:
+  71:quantum/split_common/split_util.c **** #endif
+  33               		.loc 1 71 40 view .LVU6
+  71:quantum/split_common/split_util.c **** #endif
+  34               		.loc 1 71 47 is_stmt 0 view .LVU7
+  35 0008 0E94 0000 		call usb_vbus_state
+  36               	.LVL0:
+  37               	.LBE5:
+  38               	.LBE4:
+  39               		.loc 1 120 43 view .LVU8
+  40 000c 8823      		tst r24
+  41 000e 01F0      		breq .L3
+  42               		.loc 1 120 18 view .LVU9
+  43 0010 81E0      		ldi r24,lo8(1)
+  44 0012 8093 0000 		sts usbstate.4109,r24
+ 121:quantum/split_common/split_util.c **** 
+ 122:quantum/split_common/split_util.c ****         // Avoid NO_USB_STARTUP_CHECK - Disable USB as the previous checks seem to enable it someho
+ 123:quantum/split_common/split_util.c ****         if (usbstate == SLAVE) {
+  45               		.loc 1 123 9 is_stmt 1 view .LVU10
+  46               	.L2:
+ 124:quantum/split_common/split_util.c ****             usb_disconnect();
+ 125:quantum/split_common/split_util.c ****         }
+ 126:quantum/split_common/split_util.c ****     }
+ 127:quantum/split_common/split_util.c **** 
+ 128:quantum/split_common/split_util.c ****     return (usbstate == MASTER);
+  47               		.loc 1 128 5 view .LVU11
+  48               		.loc 1 128 22 is_stmt 0 view .LVU12
+  49 0016 81E0      		ldi r24,lo8(1)
+  50 0018 9091 0000 		lds r25,usbstate.4109
+  51 001c 9130      		cpi r25,lo8(1)
+  52 001e 01F0      		breq .L4
+  53 0020 80E0      		ldi r24,0
+  54               	.L4:
+  55               	/* epilogue start */
+ 129:quantum/split_common/split_util.c **** }
+  56               		.loc 1 129 1 view .LVU13
+  57 0022 0895      		ret
+  58               	.L3:
+ 120:quantum/split_common/split_util.c **** 
+  59               		.loc 1 120 18 view .LVU14
+  60 0024 82E0      		ldi r24,lo8(2)
+  61 0026 8093 0000 		sts usbstate.4109,r24
+ 123:quantum/split_common/split_util.c ****             usb_disconnect();
+  62               		.loc 1 123 9 is_stmt 1 view .LVU15
+ 124:quantum/split_common/split_util.c ****         }
+  63               		.loc 1 124 13 view .LVU16
+  64 002a 0E94 0000 		call usb_disconnect
+  65               	.LVL1:
+  66 002e 00C0      		rjmp .L2
+  67               		.cfi_endproc
+  68               	.LFE29:
+  70               		.section	.text.is_keyboard_left,"ax",@progbits
+  71               		.weak	is_keyboard_left
+  73               	is_keyboard_left:
+  74               	.LFB28:
+  91:quantum/split_common/split_util.c **** #if defined(SPLIT_HAND_PIN)
+  75               		.loc 1 91 51 view -0
+  76               		.cfi_startproc
+  77               	/* prologue: function */
+  78               	/* frame size = 0 */
+  79               	/* stack size = 0 */
+  80               	.L__stack_usage = 0
+ 112:quantum/split_common/split_util.c **** }
+  81               		.loc 1 112 5 view .LVU18
+ 112:quantum/split_common/split_util.c **** }
+  82               		.loc 1 112 12 is_stmt 0 view .LVU19
+  83 0000 0C94 0000 		jmp is_keyboard_master
+  84               	.LVL2:
+  85               		.cfi_endproc
+  86               	.LFE28:
+  88               		.section	.text.split_pre_init,"ax",@progbits
+  89               	.global	split_pre_init
+  91               	split_pre_init:
+  92               	.LFB30:
+ 130:quantum/split_common/split_util.c **** 
+ 131:quantum/split_common/split_util.c **** // this code runs before the keyboard is fully initialized
+ 132:quantum/split_common/split_util.c **** void split_pre_init(void) {
+  93               		.loc 1 132 27 is_stmt 1 view -0
+  94               		.cfi_startproc
+  95               	/* prologue: function */
+  96               	/* frame size = 0 */
+  97               	/* stack size = 0 */
+  98               	.L__stack_usage = 0
+ 133:quantum/split_common/split_util.c ****     isLeftHand = is_keyboard_left();
+  99               		.loc 1 133 5 view .LVU21
+ 100               		.loc 1 133 18 is_stmt 0 view .LVU22
+ 101 0000 0E94 0000 		call is_keyboard_left
+ 102               	.LVL3:
+ 103               		.loc 1 133 16 view .LVU23
+ 104 0004 8093 0000 		sts isLeftHand,r24
+ 134:quantum/split_common/split_util.c **** 
+ 135:quantum/split_common/split_util.c **** #if defined(RGBLIGHT_ENABLE) && defined(RGBLED_SPLIT)
+ 136:quantum/split_common/split_util.c ****     uint8_t num_rgb_leds_split[2] = RGBLED_SPLIT;
+ 137:quantum/split_common/split_util.c ****     if (isLeftHand) {
+ 138:quantum/split_common/split_util.c ****         rgblight_set_clipping_range(0, num_rgb_leds_split[0]);
+ 139:quantum/split_common/split_util.c ****     } else {
+ 140:quantum/split_common/split_util.c ****         rgblight_set_clipping_range(num_rgb_leds_split[0], num_rgb_leds_split[1]);
+ 141:quantum/split_common/split_util.c ****     }
+ 142:quantum/split_common/split_util.c **** #endif
+ 143:quantum/split_common/split_util.c **** 
+ 144:quantum/split_common/split_util.c ****     if (is_keyboard_master()) {
+ 105               		.loc 1 144 5 is_stmt 1 view .LVU24
+ 106               		.loc 1 144 9 is_stmt 0 view .LVU25
+ 107 0008 0E94 0000 		call is_keyboard_master
+ 108               	.LVL4:
+ 109               		.loc 1 144 8 view .LVU26
+ 110 000c 8111      		cpse r24,__zero_reg__
+ 145:quantum/split_common/split_util.c **** #if defined(USE_I2C) && defined(SSD1306OLED)
+ 146:quantum/split_common/split_util.c ****         matrix_master_OLED_init();
+ 147:quantum/split_common/split_util.c **** #endif
+ 148:quantum/split_common/split_util.c ****         transport_master_init();
+ 111               		.loc 1 148 9 is_stmt 1 view .LVU27
+ 112 000e 0C94 0000 		jmp transport_master_init
+ 113               	.LVL5:
+ 114               	.L9:
+ 115               	/* epilogue start */
+ 149:quantum/split_common/split_util.c ****     }
+ 150:quantum/split_common/split_util.c **** }
+ 116               		.loc 1 150 1 is_stmt 0 view .LVU28
+ 117 0012 0895      		ret
+ 118               		.cfi_endproc
+ 119               	.LFE30:
+ 121               		.section	.text.split_post_init,"ax",@progbits
+ 122               	.global	split_post_init
+ 124               	split_post_init:
+ 125               	.LFB31:
+ 151:quantum/split_common/split_util.c **** 
+ 152:quantum/split_common/split_util.c **** // this code runs after the keyboard is fully initialized
+ 153:quantum/split_common/split_util.c **** //   - avoids race condition during matrix_init_quantum where slave can start
+ 154:quantum/split_common/split_util.c **** //     receiving before the init process has completed
+ 155:quantum/split_common/split_util.c **** void split_post_init(void) {
+ 126               		.loc 1 155 28 is_stmt 1 view -0
+ 127               		.cfi_startproc
+ 128               	/* prologue: function */
+ 129               	/* frame size = 0 */
+ 130               	/* stack size = 0 */
+ 131               	.L__stack_usage = 0
+ 156:quantum/split_common/split_util.c ****     if (!is_keyboard_master()) {
+ 132               		.loc 1 156 5 view .LVU30
+ 133               		.loc 1 156 10 is_stmt 0 view .LVU31
+ 134 0000 0E94 0000 		call is_keyboard_master
+ 135               	.LVL6:
+ 136               		.loc 1 156 8 view .LVU32
+ 137 0004 8111      		cpse r24,__zero_reg__
+ 138 0006 00C0      		rjmp .L11
+ 157:quantum/split_common/split_util.c ****         transport_slave_init();
+ 139               		.loc 1 157 9 is_stmt 1 view .LVU33
+ 140 0008 0C94 0000 		jmp transport_slave_init
+ 141               	.LVL7:
+ 142               	.L11:
+ 143               	/* epilogue start */
+ 158:quantum/split_common/split_util.c ****     }
+ 159:quantum/split_common/split_util.c **** }
+ 144               		.loc 1 159 1 is_stmt 0 view .LVU34
+ 145 000c 0895      		ret
+ 146               		.cfi_endproc
+ 147               	.LFE31:
+ 149               		.section	.text.is_transport_connected,"ax",@progbits
+ 150               	.global	is_transport_connected
+ 152               	is_transport_connected:
+ 153               	.LFB32:
+ 160:quantum/split_common/split_util.c **** 
+ 161:quantum/split_common/split_util.c **** bool is_transport_connected(void) { return connection_errors < SPLIT_MAX_CONNECTION_ERRORS; }
+ 154               		.loc 1 161 35 is_stmt 1 view -0
+ 155               		.cfi_startproc
+ 156               	/* prologue: function */
+ 157               	/* frame size = 0 */
+ 158               	/* stack size = 0 */
+ 159               	.L__stack_usage = 0
+ 160               		.loc 1 161 37 view .LVU36
+ 161               		.loc 1 161 62 is_stmt 0 view .LVU37
+ 162 0000 81E0      		ldi r24,lo8(1)
+ 163 0002 9091 0000 		lds r25,connection_errors
+ 164 0006 9A30      		cpi r25,lo8(10)
+ 165 0008 00F0      		brlo .L14
+ 166 000a 80E0      		ldi r24,0
+ 167               	.L14:
+ 168               	/* epilogue start */
+ 169               		.loc 1 161 1 view .LVU38
+ 170 000c 0895      		ret
+ 171               		.cfi_endproc
+ 172               	.LFE32:
+ 174               		.section	.text.transport_master_if_connected,"ax",@progbits
+ 175               	.global	transport_master_if_connected
+ 177               	transport_master_if_connected:
+ 178               	.LVL8:
+ 179               	.LFB33:
+ 162:quantum/split_common/split_util.c **** 
+ 163:quantum/split_common/split_util.c **** bool transport_master_if_connected(matrix_row_t master_matrix[], matrix_row_t slave_matrix[]) {
+ 180               		.loc 1 163 95 is_stmt 1 view -0
+ 181               		.cfi_startproc
+ 182               		.loc 1 163 95 is_stmt 0 view .LVU40
+ 183 0000 0F93      		push r16
+ 184               	.LCFI0:
+ 185               		.cfi_def_cfa_offset 3
+ 186               		.cfi_offset 16, -2
+ 187 0002 1F93      		push r17
+ 188               	.LCFI1:
+ 189               		.cfi_def_cfa_offset 4
+ 190               		.cfi_offset 17, -3
+ 191 0004 CF93      		push r28
+ 192               	.LCFI2:
+ 193               		.cfi_def_cfa_offset 5
+ 194               		.cfi_offset 28, -4
+ 195 0006 DF93      		push r29
+ 196               	.LCFI3:
+ 197               		.cfi_def_cfa_offset 6
+ 198               		.cfi_offset 29, -5
+ 199               	/* prologue: function */
+ 200               	/* frame size = 0 */
+ 201               	/* stack size = 4 */
+ 202               	.L__stack_usage = 4
+ 203 0008 EC01      		movw r28,r24
+ 204 000a 8B01      		movw r16,r22
+ 164:quantum/split_common/split_util.c **** #if SPLIT_MAX_CONNECTION_ERRORS > 0 && SPLIT_CONNECTION_CHECK_TIMEOUT > 0
+ 165:quantum/split_common/split_util.c ****     // Throttle transaction attempts if target doesn't seem to be connected
+ 166:quantum/split_common/split_util.c ****     // Without this, a solo half becomes unusable due to constant read timeouts
+ 167:quantum/split_common/split_util.c ****     static uint16_t connection_check_timer = 0;
+ 205               		.loc 1 167 5 is_stmt 1 view .LVU41
+ 168:quantum/split_common/split_util.c ****     const bool      is_disconnected        = !is_transport_connected();
+ 206               		.loc 1 168 5 view .LVU42
+ 207               	.LBB11:
+ 208               	.LBI11:
+ 161:quantum/split_common/split_util.c **** 
+ 209               		.loc 1 161 6 view .LVU43
+ 210               	.LBB12:
+ 161:quantum/split_common/split_util.c **** 
+ 211               		.loc 1 161 37 view .LVU44
+ 212               	.LVL9:
+ 161:quantum/split_common/split_util.c **** 
+ 213               		.loc 1 161 37 is_stmt 0 view .LVU45
+ 214               	.LBE12:
+ 215               	.LBE11:
+ 169:quantum/split_common/split_util.c ****     if (is_disconnected && timer_elapsed(connection_check_timer) < SPLIT_CONNECTION_CHECK_TIMEOUT) 
+ 216               		.loc 1 169 5 is_stmt 1 view .LVU46
+ 217               		.loc 1 169 8 is_stmt 0 view .LVU47
+ 218 000c 8091 0000 		lds r24,connection_errors
+ 219               	.LVL10:
+ 220               		.loc 1 169 8 view .LVU48
+ 221 0010 8A30      		cpi r24,lo8(10)
+ 222 0012 00F4      		brsh .L16
+ 223               	.LVL11:
+ 224               	.L20:
+ 170:quantum/split_common/split_util.c ****         return false;
+ 171:quantum/split_common/split_util.c ****     }
+ 172:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0 && SPLIT_CONNECTION_CHECK_TIMEOUT > 0
+ 173:quantum/split_common/split_util.c **** 
+ 174:quantum/split_common/split_util.c ****     __attribute__((unused)) bool okay = transport_master(master_matrix, slave_matrix);
+ 225               		.loc 1 174 5 is_stmt 1 view .LVU49
+ 226               		.loc 1 174 41 is_stmt 0 view .LVU50
+ 227 0014 B801      		movw r22,r16
+ 228 0016 CE01      		movw r24,r28
+ 229 0018 0E94 0000 		call transport_master
+ 230               	.LVL12:
+ 231 001c C82F      		mov r28,r24
+ 232               	.LVL13:
+ 175:quantum/split_common/split_util.c **** #if SPLIT_MAX_CONNECTION_ERRORS > 0
+ 176:quantum/split_common/split_util.c ****     if (!okay) {
+ 233               		.loc 1 176 5 is_stmt 1 view .LVU51
+ 234               		.loc 1 176 8 is_stmt 0 view .LVU52
+ 235 001e 8111      		cpse r24,__zero_reg__
+ 236 0020 00C0      		rjmp .L17
+ 237               	.LBB13:
+ 177:quantum/split_common/split_util.c ****         if (connection_errors < UINT8_MAX) {
+ 238               		.loc 1 177 9 is_stmt 1 view .LVU53
+ 239               		.loc 1 177 31 is_stmt 0 view .LVU54
+ 240 0022 8091 0000 		lds r24,connection_errors
+ 241               	.LVL14:
+ 242               		.loc 1 177 12 view .LVU55
+ 243 0026 8F3F      		cpi r24,lo8(-1)
+ 244 0028 01F4      		brne .L21
+ 245               	.L22:
+ 178:quantum/split_common/split_util.c ****             connection_errors++;
+ 179:quantum/split_common/split_util.c ****         }
+ 180:quantum/split_common/split_util.c **** #    if SPLIT_CONNECTION_CHECK_TIMEOUT > 0
+ 181:quantum/split_common/split_util.c ****         bool connected = is_transport_connected();
+ 182:quantum/split_common/split_util.c ****         if (!connected) {
+ 183:quantum/split_common/split_util.c ****             connection_check_timer = timer_read();
+ 246               		.loc 1 183 13 is_stmt 1 view .LVU56
+ 247               		.loc 1 183 38 is_stmt 0 view .LVU57
+ 248 002a 0E94 0000 		call timer_read
+ 249               	.LVL15:
+ 250               		.loc 1 183 36 view .LVU58
+ 251 002e 9093 0000 		sts connection_check_timer.4123+1,r25
+ 252 0032 8093 0000 		sts connection_check_timer.4123,r24
+ 253               	.LVL16:
+ 254               	.L15:
+ 255               		.loc 1 183 36 view .LVU59
+ 256               	.LBE13:
+ 184:quantum/split_common/split_util.c ****             dprintln("Target disconnected, throttling connection attempts");
+ 185:quantum/split_common/split_util.c ****         }
+ 186:quantum/split_common/split_util.c ****         return connected;
+ 187:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
+ 188:quantum/split_common/split_util.c ****         dprintln("Target connected");
+ 189:quantum/split_common/split_util.c **** #    endif  // SPLIT_CONNECTION_CHECK_TIMEOUT > 0
+ 190:quantum/split_common/split_util.c ****     }
+ 191:quantum/split_common/split_util.c **** 
+ 192:quantum/split_common/split_util.c ****     connection_errors = 0;
+ 193:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0
+ 194:quantum/split_common/split_util.c ****     return true;
+ 195:quantum/split_common/split_util.c **** }
+ 257               		.loc 1 195 1 view .LVU60
+ 258 0036 8C2F      		mov r24,r28
+ 259               	/* epilogue start */
+ 260 0038 DF91      		pop r29
+ 261 003a CF91      		pop r28
+ 262 003c 1F91      		pop r17
+ 263 003e 0F91      		pop r16
+ 264               	.LVL17:
+ 265               		.loc 1 195 1 view .LVU61
+ 266 0040 0895      		ret
+ 267               	.LVL18:
+ 268               	.L16:
+ 169:quantum/split_common/split_util.c ****         return false;
+ 269               		.loc 1 169 28 discriminator 1 view .LVU62
+ 270 0042 8091 0000 		lds r24,connection_check_timer.4123
+ 271 0046 9091 0000 		lds r25,connection_check_timer.4123+1
+ 272               	.LVL19:
+ 169:quantum/split_common/split_util.c ****         return false;
+ 273               		.loc 1 169 28 discriminator 1 view .LVU63
+ 274 004a 0E94 0000 		call timer_elapsed
+ 275               	.LVL20:
+ 169:quantum/split_common/split_util.c ****         return false;
+ 276               		.loc 1 169 25 discriminator 1 view .LVU64
+ 277 004e 843F      		cpi r24,-12
+ 278 0050 9140      		sbci r25,1
+ 279 0052 00F4      		brsh .L20
+ 170:quantum/split_common/split_util.c ****     }
+ 280               		.loc 1 170 16 view .LVU65
+ 281 0054 C0E0      		ldi r28,0
+ 282               	.LVL21:
+ 170:quantum/split_common/split_util.c ****     }
+ 283               		.loc 1 170 16 view .LVU66
+ 284 0056 00C0      		rjmp .L15
+ 285               	.LVL22:
+ 286               	.L21:
+ 287               	.LBB14:
+ 178:quantum/split_common/split_util.c ****         }
+ 288               		.loc 1 178 13 is_stmt 1 view .LVU67
+ 178:quantum/split_common/split_util.c ****         }
+ 289               		.loc 1 178 30 is_stmt 0 view .LVU68
+ 290 0058 8F5F      		subi r24,lo8(-(1))
+ 291 005a 8093 0000 		sts connection_errors,r24
+ 181:quantum/split_common/split_util.c ****         if (!connected) {
+ 292               		.loc 1 181 9 is_stmt 1 view .LVU69
+ 293               	.LBE14:
+ 161:quantum/split_common/split_util.c **** 
+ 294               		.loc 1 161 37 view .LVU70
+ 295               	.LVL23:
+ 296               	.LBB15:
+ 182:quantum/split_common/split_util.c ****             connection_check_timer = timer_read();
+ 297               		.loc 1 182 9 view .LVU71
+ 182:quantum/split_common/split_util.c ****             connection_check_timer = timer_read();
+ 298               		.loc 1 182 12 is_stmt 0 view .LVU72
+ 299 005e 8A30      		cpi r24,lo8(10)
+ 300 0060 00F4      		brsh .L22
+ 186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
+ 301               		.loc 1 186 16 view .LVU73
+ 302 0062 C1E0      		ldi r28,lo8(1)
+ 303               	.LVL24:
+ 186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
+ 304               		.loc 1 186 16 view .LVU74
+ 305 0064 00C0      		rjmp .L15
+ 306               	.LVL25:
+ 307               	.L17:
+ 186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
+ 308               		.loc 1 186 16 view .LVU75
+ 309               	.LBE15:
+ 187:quantum/split_common/split_util.c ****         dprintln("Target connected");
+ 310               		.loc 1 187 12 is_stmt 1 view .LVU76
+ 188:quantum/split_common/split_util.c **** #    endif  // SPLIT_CONNECTION_CHECK_TIMEOUT > 0
+ 311               		.loc 1 188 37 view .LVU77
+ 192:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0
+ 312               		.loc 1 192 5 view .LVU78
+ 192:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0
+ 313               		.loc 1 192 23 is_stmt 0 view .LVU79
+ 314 0066 1092 0000 		sts connection_errors,__zero_reg__
+ 194:quantum/split_common/split_util.c **** }
+ 315               		.loc 1 194 5 is_stmt 1 view .LVU80
+ 194:quantum/split_common/split_util.c **** }
+ 316               		.loc 1 194 12 is_stmt 0 view .LVU81
+ 317 006a 00C0      		rjmp .L15
+ 318               		.cfi_endproc
+ 319               	.LFE33:
+ 321               		.section	.bss.connection_check_timer.4123,"aw",@nobits
+ 324               	connection_check_timer.4123:
+ 325 0000 0000      		.zero	2
+ 326               		.section	.bss.usbstate.4109,"aw",@nobits
+ 329               	usbstate.4109:
+ 330 0000 00        		.zero	1
+ 331               	.global	isLeftHand
+ 332               		.section	.data.isLeftHand,"aw"
+ 335               	isLeftHand:
+ 336 0000 01        		.byte	1
+ 337               		.section	.bss.connection_errors,"aw",@nobits
+ 340               	connection_errors:
+ 341 0000 00        		.zero	1
+ 342               		.text
+ 343               	.Letext0:
+ 344               		.file 2 "/usr/avr/include/stdint.h"
+ 345               		.file 3 "/usr/lib/gcc/avr/8.3.0/include/stddef.h"
+ 346               		.file 4 "/usr/avr/include/stdio.h"
+ 347               		.file 5 "/usr/avr/include/stdlib.h"
+ 348               		.file 6 "quantum/matrix.h"
+ 349               		.file 7 "quantum/split_common/split_util.h"
+ 350               		.file 8 "quantum/keyboard.h"
+ 351               		.file 9 "tmk_core/common/timer.h"
+ 352               		.file 10 "quantum/action.h"
+ 353               		.file 11 "quantum/action_layer.h"
+ 354               		.file 12 "tmk_core/common/report.h"
+ 355               		.file 13 "tmk_core/common/host.h"
+ 356               		.file 14 "quantum/logging/debug.h"
+ 357               		.file 15 "quantum/keycode_config.h"
+ 358               		.file 16 "quantum/sequencer/sequencer.h"
+ 359               		.file 17 "quantum/keymap.h"
+ 360               		.file 18 "tmk_core/common/avr/gpio.h"
+ 361               		.file 19 "quantum/action_util.h"
+ 362               		.file 20 "quantum/send_string.h"
+ 363               		.file 21 "quantum/split_common/transport.h"
+ 364               		.file 22 "tmk_core/common/usb_util.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 split_util.c
+     /tmp/cc6MnWKw.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc6MnWKw.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc6MnWKw.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc6MnWKw.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc6MnWKw.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc6MnWKw.s:13     .text.is_keyboard_master:0000000000000000 is_keyboard_master
+     /tmp/cc6MnWKw.s:329    .bss.usbstate.4109:0000000000000000 usbstate.4109
+     /tmp/cc6MnWKw.s:73     .text.is_keyboard_left:0000000000000000 is_keyboard_left
+     /tmp/cc6MnWKw.s:91     .text.split_pre_init:0000000000000000 split_pre_init
+     /tmp/cc6MnWKw.s:335    .data.isLeftHand:0000000000000000 isLeftHand
+     /tmp/cc6MnWKw.s:124    .text.split_post_init:0000000000000000 split_post_init
+     /tmp/cc6MnWKw.s:152    .text.is_transport_connected:0000000000000000 is_transport_connected
+     /tmp/cc6MnWKw.s:340    .bss.connection_errors:0000000000000000 connection_errors
+     /tmp/cc6MnWKw.s:177    .text.transport_master_if_connected:0000000000000000 transport_master_if_connected
+     /tmp/cc6MnWKw.s:324    .bss.connection_check_timer.4123:0000000000000000 connection_check_timer.4123
+
+UNDEFINED SYMBOLS
+usb_vbus_state
+usb_disconnect
+transport_master_init
+transport_slave_init
+transport_master
+timer_read
+timer_elapsed
+__do_copy_data
+__do_clear_bss

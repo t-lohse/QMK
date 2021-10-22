@@ -1,0 +1,423 @@
+   1               		.file	"transport.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.transport_master_init,"ax",@progbits
+  11               	.global	transport_master_init
+  13               	transport_master_init:
+  14               	.LFB26:
+  15               		.file 1 "quantum/split_common/transport.c"
+   1:quantum/split_common/transport.c **** /* Copyright 2021 QMK
+   2:quantum/split_common/transport.c ****  *
+   3:quantum/split_common/transport.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/split_common/transport.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/split_common/transport.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:quantum/split_common/transport.c ****  * (at your option) any later version.
+   7:quantum/split_common/transport.c ****  *
+   8:quantum/split_common/transport.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/split_common/transport.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/split_common/transport.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/split_common/transport.c ****  * GNU General Public License for more details.
+  12:quantum/split_common/transport.c ****  *
+  13:quantum/split_common/transport.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/split_common/transport.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/split_common/transport.c ****  */
+  16:quantum/split_common/transport.c **** 
+  17:quantum/split_common/transport.c **** #include <string.h>
+  18:quantum/split_common/transport.c **** #include <debug.h>
+  19:quantum/split_common/transport.c **** 
+  20:quantum/split_common/transport.c **** #include "transactions.h"
+  21:quantum/split_common/transport.c **** #include "transport.h"
+  22:quantum/split_common/transport.c **** #include "transaction_id_define.h"
+  23:quantum/split_common/transport.c **** #include "atomic_util.h"
+  24:quantum/split_common/transport.c **** 
+  25:quantum/split_common/transport.c **** #ifdef USE_I2C
+  26:quantum/split_common/transport.c **** 
+  27:quantum/split_common/transport.c **** #    ifndef SLAVE_I2C_TIMEOUT
+  28:quantum/split_common/transport.c **** #        define SLAVE_I2C_TIMEOUT 100
+  29:quantum/split_common/transport.c **** #    endif  // SLAVE_I2C_TIMEOUT
+  30:quantum/split_common/transport.c **** 
+  31:quantum/split_common/transport.c **** #    ifndef SLAVE_I2C_ADDRESS
+  32:quantum/split_common/transport.c **** #        define SLAVE_I2C_ADDRESS 0x32
+  33:quantum/split_common/transport.c **** #    endif
+  34:quantum/split_common/transport.c **** 
+  35:quantum/split_common/transport.c **** #    include "i2c_master.h"
+  36:quantum/split_common/transport.c **** #    include "i2c_slave.h"
+  37:quantum/split_common/transport.c **** 
+  38:quantum/split_common/transport.c **** // Ensure the I2C buffer has enough space
+  39:quantum/split_common/transport.c **** _Static_assert(sizeof(split_shared_memory_t) <= I2C_SLAVE_REG_COUNT, "split_shared_memory_t too lar
+  40:quantum/split_common/transport.c **** 
+  41:quantum/split_common/transport.c **** split_shared_memory_t *const split_shmem = (split_shared_memory_t *)i2c_slave_reg;
+  42:quantum/split_common/transport.c **** 
+  43:quantum/split_common/transport.c **** void transport_master_init(void) { i2c_init(); }
+  44:quantum/split_common/transport.c **** void transport_slave_init(void) { i2c_slave_init(SLAVE_I2C_ADDRESS); }
+  45:quantum/split_common/transport.c **** 
+  46:quantum/split_common/transport.c **** i2c_status_t transport_trigger_callback(int8_t id) {
+  47:quantum/split_common/transport.c ****     // If there's no callback, indicate that we were successful
+  48:quantum/split_common/transport.c ****     if (!split_transaction_table[id].slave_callback) {
+  49:quantum/split_common/transport.c ****         return I2C_STATUS_SUCCESS;
+  50:quantum/split_common/transport.c ****     }
+  51:quantum/split_common/transport.c **** 
+  52:quantum/split_common/transport.c ****     // Kick off the "callback executor", now that data has been written to the slave
+  53:quantum/split_common/transport.c ****     split_shmem->transaction_id     = id;
+  54:quantum/split_common/transport.c ****     split_transaction_desc_t *trans = &split_transaction_table[I2C_EXECUTE_CALLBACK];
+  55:quantum/split_common/transport.c ****     return i2c_writeReg(SLAVE_I2C_ADDRESS, trans->initiator2target_offset, split_trans_initiator2ta
+  56:quantum/split_common/transport.c **** }
+  57:quantum/split_common/transport.c **** 
+  58:quantum/split_common/transport.c **** bool transport_execute_transaction(int8_t id, const void *initiator2target_buf, uint16_t initiator2
+  59:quantum/split_common/transport.c ****     i2c_status_t              status;
+  60:quantum/split_common/transport.c ****     split_transaction_desc_t *trans = &split_transaction_table[id];
+  61:quantum/split_common/transport.c ****     if (initiator2target_length > 0) {
+  62:quantum/split_common/transport.c ****         size_t len = trans->initiator2target_buffer_size < initiator2target_length ? trans->initiat
+  63:quantum/split_common/transport.c ****         memcpy(split_trans_initiator2target_buffer(trans), initiator2target_buf, len);
+  64:quantum/split_common/transport.c ****         if ((status = i2c_writeReg(SLAVE_I2C_ADDRESS, trans->initiator2target_offset, split_trans_i
+  65:quantum/split_common/transport.c ****             return false;
+  66:quantum/split_common/transport.c ****         }
+  67:quantum/split_common/transport.c ****     }
+  68:quantum/split_common/transport.c **** 
+  69:quantum/split_common/transport.c ****     // If we need to execute a callback on the slave, do so
+  70:quantum/split_common/transport.c ****     if ((status = transport_trigger_callback(id)) < 0) {
+  71:quantum/split_common/transport.c ****         return false;
+  72:quantum/split_common/transport.c ****     }
+  73:quantum/split_common/transport.c **** 
+  74:quantum/split_common/transport.c ****     if (target2initiator_length > 0) {
+  75:quantum/split_common/transport.c ****         size_t len = trans->target2initiator_buffer_size < target2initiator_length ? trans->target2
+  76:quantum/split_common/transport.c ****         if ((status = i2c_readReg(SLAVE_I2C_ADDRESS, trans->target2initiator_offset, split_trans_ta
+  77:quantum/split_common/transport.c ****             return false;
+  78:quantum/split_common/transport.c ****         }
+  79:quantum/split_common/transport.c ****         memcpy(target2initiator_buf, split_trans_target2initiator_buffer(trans), len);
+  80:quantum/split_common/transport.c ****     }
+  81:quantum/split_common/transport.c **** 
+  82:quantum/split_common/transport.c ****     return true;
+  83:quantum/split_common/transport.c **** }
+  84:quantum/split_common/transport.c **** 
+  85:quantum/split_common/transport.c **** #else  // USE_I2C
+  86:quantum/split_common/transport.c **** 
+  87:quantum/split_common/transport.c **** #    include "serial.h"
+  88:quantum/split_common/transport.c **** 
+  89:quantum/split_common/transport.c **** static split_shared_memory_t shared_memory;
+  90:quantum/split_common/transport.c **** split_shared_memory_t *const split_shmem = &shared_memory;
+  91:quantum/split_common/transport.c **** 
+  92:quantum/split_common/transport.c **** void transport_master_init(void) { soft_serial_initiator_init(); }
+  16               		.loc 1 92 34 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  22               		.loc 1 92 36 view .LVU1
+  23 0000 0C94 0000 		jmp soft_serial_initiator_init
+  24               	.LVL0:
+  25               		.cfi_endproc
+  26               	.LFE26:
+  28               		.section	.text.transport_slave_init,"ax",@progbits
+  29               	.global	transport_slave_init
+  31               	transport_slave_init:
+  32               	.LFB27:
+  93:quantum/split_common/transport.c **** void transport_slave_init(void) { soft_serial_target_init(); }
+  33               		.loc 1 93 33 view -0
+  34               		.cfi_startproc
+  35               	/* prologue: function */
+  36               	/* frame size = 0 */
+  37               	/* stack size = 0 */
+  38               	.L__stack_usage = 0
+  39               		.loc 1 93 35 view .LVU3
+  40 0000 0C94 0000 		jmp soft_serial_target_init
+  41               	.LVL1:
+  42               		.cfi_endproc
+  43               	.LFE27:
+  45               		.section	.text.transport_execute_transaction,"ax",@progbits
+  46               	.global	transport_execute_transaction
+  48               	transport_execute_transaction:
+  49               	.LVL2:
+  50               	.LFB28:
+  94:quantum/split_common/transport.c **** 
+  95:quantum/split_common/transport.c **** bool transport_execute_transaction(int8_t id, const void *initiator2target_buf, uint16_t initiator2
+  51               		.loc 1 95 177 view -0
+  52               		.cfi_startproc
+  53               		.loc 1 95 177 is_stmt 0 view .LVU5
+  54 0000 EF92      		push r14
+  55               	.LCFI0:
+  56               		.cfi_def_cfa_offset 3
+  57               		.cfi_offset 14, -2
+  58 0002 FF92      		push r15
+  59               	.LCFI1:
+  60               		.cfi_def_cfa_offset 4
+  61               		.cfi_offset 15, -3
+  62 0004 0F93      		push r16
+  63               	.LCFI2:
+  64               		.cfi_def_cfa_offset 5
+  65               		.cfi_offset 16, -4
+  66 0006 1F93      		push r17
+  67               	.LCFI3:
+  68               		.cfi_def_cfa_offset 6
+  69               		.cfi_offset 17, -5
+  70 0008 CF93      		push r28
+  71               	.LCFI4:
+  72               		.cfi_def_cfa_offset 7
+  73               		.cfi_offset 28, -6
+  74 000a DF93      		push r29
+  75               	.LCFI5:
+  76               		.cfi_def_cfa_offset 8
+  77               		.cfi_offset 29, -7
+  78               	/* prologue: function */
+  79               	/* frame size = 0 */
+  80               	/* stack size = 6 */
+  81               	.L__stack_usage = 6
+  82 000c 7901      		movw r14,r18
+  96:quantum/split_common/transport.c ****     split_transaction_desc_t *trans = &split_transaction_table[id];
+  83               		.loc 1 96 5 is_stmt 1 view .LVU6
+  84               		.loc 1 96 63 is_stmt 0 view .LVU7
+  85 000e C82F      		mov r28,r24
+  86 0010 880F      		lsl r24
+  87 0012 DD0B      		sbc r29,r29
+  88               	.LVL3:
+  97:quantum/split_common/transport.c ****     if (initiator2target_length > 0) {
+  89               		.loc 1 97 5 is_stmt 1 view .LVU8
+  90               		.loc 1 97 8 is_stmt 0 view .LVU9
+  91 0014 4115      		cp r20,__zero_reg__
+  92 0016 5105      		cpc r21,__zero_reg__
+  93 0018 01F0      		breq .L4
+  94               	.LBB2:
+  98:quantum/split_common/transport.c ****         size_t len = trans->initiator2target_buffer_size < initiator2target_length ? trans->initiat
+  95               		.loc 1 98 9 is_stmt 1 view .LVU10
+  96               	.LVL4:
+  99:quantum/split_common/transport.c ****         memcpy(split_trans_initiator2target_buffer(trans), initiator2target_buf, len);
+  97               		.loc 1 99 9 view .LVU11
+  98               		.loc 1 99 16 is_stmt 0 view .LVU12
+  99 001a 8AE0      		ldi r24,lo8(10)
+ 100               	.LVL5:
+ 101               		.loc 1 99 16 view .LVU13
+ 102 001c 8C9F      		mul r24,r28
+ 103 001e F001      		movw r30,r0
+ 104 0020 8D9F      		mul r24,r29
+ 105 0022 F00D      		add r31,r0
+ 106 0024 1124      		clr __zero_reg__
+ 107 0026 E050      		subi r30,lo8(-(split_transaction_table))
+ 108 0028 F040      		sbci r31,hi8(-(split_transaction_table))
+ 109               		.loc 1 99 9 view .LVU14
+ 110 002a 8381      		ldd r24,Z+3
+ 111 002c 9481      		ldd r25,Z+4
+ 112 002e 8050      		subi r24,lo8(-(shared_memory))
+ 113 0030 9040      		sbci r25,hi8(-(shared_memory))
+  98:quantum/split_common/transport.c ****         size_t len = trans->initiator2target_buffer_size < initiator2target_length ? trans->initiat
+ 114               		.loc 1 98 27 view .LVU15
+ 115 0032 2281      		ldd r18,Z+2
+ 116               	.LVL6:
+  98:quantum/split_common/transport.c ****         size_t len = trans->initiator2target_buffer_size < initiator2target_length ? trans->initiat
+ 117               		.loc 1 98 27 view .LVU16
+ 118 0034 30E0      		ldi r19,0
+  98:quantum/split_common/transport.c ****         size_t len = trans->initiator2target_buffer_size < initiator2target_length ? trans->initiat
+ 119               		.loc 1 98 16 view .LVU17
+ 120 0036 4217      		cp r20,r18
+ 121 0038 5307      		cpc r21,r19
+ 122 003a 00F4      		brsh .L5
+ 123 003c 9A01      		movw r18,r20
+ 124               	.L5:
+ 125               		.loc 1 99 9 view .LVU18
+ 126 003e A901      		movw r20,r18
+ 127               	.LVL7:
+ 128               		.loc 1 99 9 view .LVU19
+ 129 0040 0E94 0000 		call memcpy
+ 130               	.LVL8:
+ 131               	.L4:
+ 132               		.loc 1 99 9 view .LVU20
+ 133               	.LBE2:
+ 100:quantum/split_common/transport.c ****     }
+ 101:quantum/split_common/transport.c **** 
+ 102:quantum/split_common/transport.c ****     if (soft_serial_transaction(id) != TRANSACTION_END) {
+ 134               		.loc 1 102 5 is_stmt 1 view .LVU21
+ 135               		.loc 1 102 9 is_stmt 0 view .LVU22
+ 136 0044 CE01      		movw r24,r28
+ 137 0046 0E94 0000 		call soft_serial_transaction
+ 138               	.LVL9:
+ 139               		.loc 1 102 8 view .LVU23
+ 140 004a 892B      		or r24,r25
+ 141 004c 01F4      		brne .L8
+ 103:quantum/split_common/transport.c ****         return false;
+ 104:quantum/split_common/transport.c ****     }
+ 105:quantum/split_common/transport.c **** 
+ 106:quantum/split_common/transport.c ****     if (target2initiator_length > 0) {
+ 142               		.loc 1 106 5 is_stmt 1 view .LVU24
+ 143               		.loc 1 106 8 is_stmt 0 view .LVU25
+ 144 004e 0115      		cp r16,__zero_reg__
+ 145 0050 1105      		cpc r17,__zero_reg__
+ 146 0052 01F0      		breq .L9
+ 147               	.LBB3:
+ 107:quantum/split_common/transport.c ****         size_t len = trans->target2initiator_buffer_size < target2initiator_length ? trans->target2
+ 148               		.loc 1 107 9 is_stmt 1 view .LVU26
+ 149               	.LVL10:
+ 108:quantum/split_common/transport.c ****         memcpy(target2initiator_buf, split_trans_target2initiator_buffer(trans), len);
+ 150               		.loc 1 108 9 view .LVU27
+ 107:quantum/split_common/transport.c ****         size_t len = trans->target2initiator_buffer_size < target2initiator_length ? trans->target2
+ 151               		.loc 1 107 27 is_stmt 0 view .LVU28
+ 152 0054 8AE0      		ldi r24,lo8(10)
+ 153 0056 8C9F      		mul r24,r28
+ 154 0058 F001      		movw r30,r0
+ 155 005a 8D9F      		mul r24,r29
+ 156 005c F00D      		add r31,r0
+ 157 005e 1124      		clr __zero_reg__
+ 158 0060 E050      		subi r30,lo8(-(split_transaction_table))
+ 159 0062 F040      		sbci r31,hi8(-(split_transaction_table))
+ 160 0064 4581      		ldd r20,Z+5
+ 161 0066 50E0      		ldi r21,0
+ 107:quantum/split_common/transport.c ****         size_t len = trans->target2initiator_buffer_size < target2initiator_length ? trans->target2
+ 162               		.loc 1 107 16 view .LVU29
+ 163 0068 0417      		cp r16,r20
+ 164 006a 1507      		cpc r17,r21
+ 165 006c 00F4      		brsh .L7
+ 166 006e A801      		movw r20,r16
+ 167               	.L7:
+ 168               		.loc 1 108 38 view .LVU30
+ 169 0070 8AE0      		ldi r24,lo8(10)
+ 170 0072 8C9F      		mul r24,r28
+ 171 0074 F001      		movw r30,r0
+ 172 0076 8D9F      		mul r24,r29
+ 173 0078 F00D      		add r31,r0
+ 174 007a 1124      		clr __zero_reg__
+ 175 007c E050      		subi r30,lo8(-(split_transaction_table))
+ 176 007e F040      		sbci r31,hi8(-(split_transaction_table))
+ 177               		.loc 1 108 9 view .LVU31
+ 178 0080 6681      		ldd r22,Z+6
+ 179 0082 7781      		ldd r23,Z+7
+ 180 0084 6050      		subi r22,lo8(-(shared_memory))
+ 181 0086 7040      		sbci r23,hi8(-(shared_memory))
+ 182 0088 C701      		movw r24,r14
+ 183 008a 0E94 0000 		call memcpy
+ 184               	.LVL11:
+ 185               	.L9:
+ 186               		.loc 1 108 9 view .LVU32
+ 187               	.LBE3:
+ 109:quantum/split_common/transport.c ****     }
+ 110:quantum/split_common/transport.c **** 
+ 111:quantum/split_common/transport.c ****     return true;
+ 188               		.loc 1 111 12 view .LVU33
+ 189 008e 81E0      		ldi r24,lo8(1)
+ 190 0090 00C0      		rjmp .L3
+ 191               	.L8:
+ 103:quantum/split_common/transport.c ****     }
+ 192               		.loc 1 103 16 view .LVU34
+ 193 0092 80E0      		ldi r24,0
+ 194               	.L3:
+ 195               	/* epilogue start */
+ 112:quantum/split_common/transport.c **** }
+ 196               		.loc 1 112 1 view .LVU35
+ 197 0094 DF91      		pop r29
+ 198 0096 CF91      		pop r28
+ 199               	.LVL12:
+ 200               		.loc 1 112 1 view .LVU36
+ 201 0098 1F91      		pop r17
+ 202 009a 0F91      		pop r16
+ 203               	.LVL13:
+ 204               		.loc 1 112 1 view .LVU37
+ 205 009c FF90      		pop r15
+ 206 009e EF90      		pop r14
+ 207               	.LVL14:
+ 208               		.loc 1 112 1 view .LVU38
+ 209 00a0 0895      		ret
+ 210               		.cfi_endproc
+ 211               	.LFE28:
+ 213               		.section	.text.transport_master,"ax",@progbits
+ 214               	.global	transport_master
+ 216               	transport_master:
+ 217               	.LVL15:
+ 218               	.LFB29:
+ 113:quantum/split_common/transport.c **** 
+ 114:quantum/split_common/transport.c **** #endif  // USE_I2C
+ 115:quantum/split_common/transport.c **** 
+ 116:quantum/split_common/transport.c **** bool transport_master(matrix_row_t master_matrix[], matrix_row_t slave_matrix[]) { return transacti
+ 219               		.loc 1 116 82 is_stmt 1 view -0
+ 220               		.cfi_startproc
+ 221               	/* prologue: function */
+ 222               	/* frame size = 0 */
+ 223               	/* stack size = 0 */
+ 224               	.L__stack_usage = 0
+ 225               		.loc 1 116 84 view .LVU40
+ 226               		.loc 1 116 91 is_stmt 0 view .LVU41
+ 227 0000 0C94 0000 		jmp transactions_master
+ 228               	.LVL16:
+ 229               		.loc 1 116 91 view .LVU42
+ 230               		.cfi_endproc
+ 231               	.LFE29:
+ 233               		.section	.text.transport_slave,"ax",@progbits
+ 234               	.global	transport_slave
+ 236               	transport_slave:
+ 237               	.LVL17:
+ 238               	.LFB30:
+ 117:quantum/split_common/transport.c **** 
+ 118:quantum/split_common/transport.c **** void transport_slave(matrix_row_t master_matrix[], matrix_row_t slave_matrix[]) { transactions_slav
+ 239               		.loc 1 118 81 is_stmt 1 view -0
+ 240               		.cfi_startproc
+ 241               	/* prologue: function */
+ 242               	/* frame size = 0 */
+ 243               	/* stack size = 0 */
+ 244               	.L__stack_usage = 0
+ 245               		.loc 1 118 83 view .LVU44
+ 246 0000 0C94 0000 		jmp transactions_slave
+ 247               	.LVL18:
+ 248               		.loc 1 118 83 is_stmt 0 view .LVU45
+ 249               		.cfi_endproc
+ 250               	.LFE30:
+ 252               	.global	split_shmem
+ 253               		.section	.rodata.split_shmem,"a"
+ 256               	split_shmem:
+ 257 0000 0000      		.word	shared_memory
+ 258               		.section	.bss.shared_memory,"aw",@nobits
+ 261               	shared_memory:
+ 262 0000 0000 0000 		.zero	12
+ 262      0000 0000 
+ 262      0000 0000 
+ 263               		.text
+ 264               	.Letext0:
+ 265               		.file 2 "/usr/avr/include/stdint.h"
+ 266               		.file 3 "/usr/lib/gcc/avr/8.3.0/include/stddef.h"
+ 267               		.file 4 "quantum/logging/debug.h"
+ 268               		.file 5 "quantum/matrix.h"
+ 269               		.file 6 "quantum/keyboard.h"
+ 270               		.file 7 "quantum/action.h"
+ 271               		.file 8 "quantum/action_layer.h"
+ 272               		.file 9 "tmk_core/common/report.h"
+ 273               		.file 10 "tmk_core/common/host.h"
+ 274               		.file 11 "quantum/keycode_config.h"
+ 275               		.file 12 "tmk_core/common/timer.h"
+ 276               		.file 13 "quantum/sequencer/sequencer.h"
+ 277               		.file 14 "quantum/split_common/transaction_id_define.h"
+ 278               		.file 15 "quantum/keymap.h"
+ 279               		.file 16 "tmk_core/common/avr/gpio.h"
+ 280               		.file 17 "quantum/action_util.h"
+ 281               		.file 18 "quantum/send_string.h"
+ 282               		.file 19 "/usr/avr/include/stdlib.h"
+ 283               		.file 20 "quantum/split_common/transport.h"
+ 284               		.file 21 "quantum/split_common/transactions.h"
+ 285               		.file 22 "drivers/serial.h"
+ 286               		.file 23 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 transport.c
+     /tmp/ccrteNw3.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccrteNw3.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccrteNw3.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccrteNw3.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccrteNw3.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccrteNw3.s:13     .text.transport_master_init:0000000000000000 transport_master_init
+     /tmp/ccrteNw3.s:31     .text.transport_slave_init:0000000000000000 transport_slave_init
+     /tmp/ccrteNw3.s:48     .text.transport_execute_transaction:0000000000000000 transport_execute_transaction
+     /tmp/ccrteNw3.s:261    .bss.shared_memory:0000000000000000 shared_memory
+     /tmp/ccrteNw3.s:216    .text.transport_master:0000000000000000 transport_master
+     /tmp/ccrteNw3.s:236    .text.transport_slave:0000000000000000 transport_slave
+     /tmp/ccrteNw3.s:256    .rodata.split_shmem:0000000000000000 split_shmem
+
+UNDEFINED SYMBOLS
+soft_serial_initiator_init
+soft_serial_target_init
+split_transaction_table
+memcpy
+soft_serial_transaction
+transactions_master
+transactions_slave
+__do_copy_data
+__do_clear_bss
