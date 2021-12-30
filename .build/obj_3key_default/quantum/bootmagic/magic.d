@@ -1,7 +1,8 @@
 .build/obj_3key_default/quantum/bootmagic/magic.o: \
  quantum/bootmagic/magic.c keyboards/3key/config.h \
  .build/obj_3key/src/info_config.h .build/obj_3key/src/layouts.h \
- tmk_core/common/wait.h tmk_core/common/avr/_wait.h quantum/matrix.h \
+ quantum/rgblight/rgblight_post_config.h tmk_core/common/wait.h \
+ tmk_core/common/avr/_wait.h quantum/matrix.h \
  tmk_core/common/bootloader.h quantum/logging/debug.h \
  quantum/logging/print.h quantum/util.h quantum/bitwise.h \
  quantum/logging/sendchar.h tmk_core/common/progmem.h quantum/keymap.h \
@@ -108,6 +109,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 tmk_core/common/wait.h:
 tmk_core/common/avr/_wait.h:
 quantum/matrix.h:

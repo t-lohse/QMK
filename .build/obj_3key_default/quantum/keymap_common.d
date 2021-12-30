@@ -1,8 +1,8 @@
 .build/obj_3key_default/quantum/keymap_common.o: quantum/keymap_common.c \
  keyboards/3key/config.h .build/obj_3key/src/info_config.h \
- .build/obj_3key/src/layouts.h quantum/keymap.h quantum/action.h \
- quantum/keyboard.h quantum/keycode.h quantum/action_code.h \
- quantum/action_macro.h tmk_core/common/progmem.h \
+ .build/obj_3key/src/layouts.h quantum/rgblight/rgblight_post_config.h \
+ quantum/keymap.h quantum/action.h quantum/keyboard.h quantum/keycode.h \
+ quantum/action_code.h quantum/action_macro.h tmk_core/common/progmem.h \
  tmk_core/common/report.h tmk_core/protocol/usb_descriptor.h \
  lib/lufa/LUFA/Drivers/USB/USB.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Common.h \
@@ -105,7 +105,9 @@
  quantum/action_layer.h quantum/quantum.h \
  tmk_core/common/avr/platform_deps.h tmk_core/common/wait.h \
  tmk_core/common/avr/_wait.h quantum/matrix.h \
- quantum/backlight/backlight.h tmk_core/common/bootloader.h \
+ quantum/backlight/backlight.h quantum/rgblight/rgblight.h \
+ quantum/rgblight/rgblight_modes.h drivers/ws2812.h quantum/color.h \
+ quantum/rgblight/rgblight_list.h tmk_core/common/bootloader.h \
  quantum/bootmagic/bootmagic.h quantum/bootmagic/bootmagic_lite.h \
  tmk_core/common/sync_timer.h quantum/config_common.h \
  tmk_core/common/pin_defs.h tmk_core/common/avr/pin_defs.h \
@@ -118,10 +120,12 @@
  quantum/process_keycode/process_terminal_nop.h \
  quantum/process_keycode/process_space_cadet.h \
  quantum/process_keycode/process_magic.h \
- quantum/process_keycode/process_grave_esc.h
+ quantum/process_keycode/process_grave_esc.h \
+ quantum/process_keycode/process_rgb.h
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 quantum/keymap.h:
 quantum/action.h:
 quantum/keyboard.h:
@@ -245,6 +249,11 @@ tmk_core/common/wait.h:
 tmk_core/common/avr/_wait.h:
 quantum/matrix.h:
 quantum/backlight/backlight.h:
+quantum/rgblight/rgblight.h:
+quantum/rgblight/rgblight_modes.h:
+drivers/ws2812.h:
+quantum/color.h:
+quantum/rgblight/rgblight_list.h:
 tmk_core/common/bootloader.h:
 quantum/bootmagic/bootmagic.h:
 quantum/bootmagic/bootmagic_lite.h:
@@ -268,3 +277,4 @@ quantum/process_keycode/process_terminal_nop.h:
 quantum/process_keycode/process_space_cadet.h:
 quantum/process_keycode/process_magic.h:
 quantum/process_keycode/process_grave_esc.h:
+quantum/process_keycode/process_rgb.h:

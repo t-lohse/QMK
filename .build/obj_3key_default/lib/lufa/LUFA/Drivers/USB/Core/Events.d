@@ -1,6 +1,7 @@
 .build/obj_3key_default/lib/lufa/LUFA/Drivers/USB/Core/Events.o: \
  lib/lufa/LUFA/Drivers/USB/Core/Events.c keyboards/3key/config.h \
  .build/obj_3key/src/info_config.h .build/obj_3key/src/layouts.h \
+ quantum/rgblight/rgblight_post_config.h \
  lib/lufa/LUFA/Drivers/USB/Core/Events.h \
  lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Architectures.h \
@@ -13,6 +14,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 lib/lufa/LUFA/Drivers/USB/Core/Events.h:
 lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Common.h:
 lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Architectures.h:

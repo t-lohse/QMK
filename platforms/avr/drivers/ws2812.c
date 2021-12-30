@@ -22,6 +22,7 @@
  */
 #include "ws2812.h"
 #include <avr/interrupt.h>
+#include <avr/pin_defs.h>
 #include <avr/io.h>
 #include <util/delay.h>
 

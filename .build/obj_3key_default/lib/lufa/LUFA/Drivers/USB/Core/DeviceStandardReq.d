@@ -1,7 +1,8 @@
 .build/obj_3key_default/lib/lufa/LUFA/Drivers/USB/Core/DeviceStandardReq.o: \
  lib/lufa/LUFA/Drivers/USB/Core/DeviceStandardReq.c \
  keyboards/3key/config.h .build/obj_3key/src/info_config.h \
- .build/obj_3key/src/layouts.h lib/lufa/LUFA/Drivers/USB/Core/USBMode.h \
+ .build/obj_3key/src/layouts.h quantum/rgblight/rgblight_post_config.h \
+ lib/lufa/LUFA/Drivers/USB/Core/USBMode.h \
  lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Architectures.h \
  lib/lufa/LUFA/Drivers/USB/Core/../../../Common/BoardTypes.h \
@@ -45,6 +46,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 lib/lufa/LUFA/Drivers/USB/Core/USBMode.h:
 lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Common.h:
 lib/lufa/LUFA/Drivers/USB/Core/../../../Common/Architectures.h:

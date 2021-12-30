@@ -1,7 +1,7 @@
 .build/obj_3key_default/lib/lufa/LUFA/Drivers/USB/Class/Common/HIDParser.o: \
  lib/lufa/LUFA/Drivers/USB/Class/Common/HIDParser.c \
  keyboards/3key/config.h .build/obj_3key/src/info_config.h \
- .build/obj_3key/src/layouts.h \
+ .build/obj_3key/src/layouts.h quantum/rgblight/rgblight_post_config.h \
  lib/lufa/LUFA/Drivers/USB/Class/Common/HIDParser.h \
  lib/lufa/LUFA/Drivers/USB/Class/Common/../../../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/Class/Common/../../../../Common/Architectures.h \
@@ -19,6 +19,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 lib/lufa/LUFA/Drivers/USB/Class/Common/HIDParser.h:
 lib/lufa/LUFA/Drivers/USB/Class/Common/../../../../Common/Common.h:
 lib/lufa/LUFA/Drivers/USB/Class/Common/../../../../Common/Architectures.h:

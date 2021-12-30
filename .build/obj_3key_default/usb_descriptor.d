@@ -1,9 +1,9 @@
 .build/obj_3key_default/usb_descriptor.o: \
  tmk_core/protocol/usb_descriptor.c keyboards/3key/config.h \
  .build/obj_3key/src/info_config.h .build/obj_3key/src/layouts.h \
- quantum/util.h quantum/bitwise.h tmk_core/common/report.h \
- quantum/keycode.h tmk_core/protocol/usb_descriptor.h \
- lib/lufa/LUFA/Drivers/USB/USB.h \
+ quantum/rgblight/rgblight_post_config.h quantum/util.h quantum/bitwise.h \
+ tmk_core/common/report.h quantum/keycode.h \
+ tmk_core/protocol/usb_descriptor.h lib/lufa/LUFA/Drivers/USB/USB.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Architectures.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/BoardTypes.h \
@@ -100,6 +100,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 quantum/util.h:
 quantum/bitwise.h:
 tmk_core/common/report.h:

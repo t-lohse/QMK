@@ -1,6 +1,7 @@
 .build/obj_3key_default/lufa.o: tmk_core/protocol/lufa/lufa.c \
  keyboards/3key/config.h .build/obj_3key/src/info_config.h \
- .build/obj_3key/src/layouts.h tmk_core/common/report.h quantum/keycode.h \
+ .build/obj_3key/src/layouts.h quantum/rgblight/rgblight_post_config.h \
+ tmk_core/common/report.h quantum/keycode.h \
  tmk_core/protocol/usb_descriptor.h lib/lufa/LUFA/Drivers/USB/USB.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Architectures.h \
@@ -105,6 +106,8 @@
  quantum/keycode_config.h quantum/eeconfig.h quantum/quantum_keycodes.h \
  quantum/sequencer/sequencer.h tmk_core/common/timer.h \
  tmk_core/common/avr/_timer.h quantum/backlight/backlight.h \
+ quantum/rgblight/rgblight.h quantum/rgblight/rgblight_modes.h \
+ drivers/ws2812.h quantum/color.h quantum/rgblight/rgblight_list.h \
  quantum/action_layer.h tmk_core/common/bootloader.h \
  quantum/bootmagic/bootmagic.h quantum/bootmagic/bootmagic_lite.h \
  tmk_core/common/sync_timer.h quantum/config_common.h \
@@ -118,10 +121,12 @@
  quantum/process_keycode/process_terminal_nop.h \
  quantum/process_keycode/process_space_cadet.h \
  quantum/process_keycode/process_magic.h \
- quantum/process_keycode/process_grave_esc.h
+ quantum/process_keycode/process_grave_esc.h \
+ quantum/process_keycode/process_rgb.h
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 tmk_core/common/report.h:
 quantum/keycode.h:
 tmk_core/protocol/usb_descriptor.h:
@@ -247,6 +252,11 @@ quantum/sequencer/sequencer.h:
 tmk_core/common/timer.h:
 tmk_core/common/avr/_timer.h:
 quantum/backlight/backlight.h:
+quantum/rgblight/rgblight.h:
+quantum/rgblight/rgblight_modes.h:
+drivers/ws2812.h:
+quantum/color.h:
+quantum/rgblight/rgblight_list.h:
 quantum/action_layer.h:
 tmk_core/common/bootloader.h:
 quantum/bootmagic/bootmagic.h:
@@ -270,3 +280,4 @@ quantum/process_keycode/process_terminal_nop.h:
 quantum/process_keycode/process_space_cadet.h:
 quantum/process_keycode/process_magic.h:
 quantum/process_keycode/process_grave_esc.h:
+quantum/process_keycode/process_rgb.h:

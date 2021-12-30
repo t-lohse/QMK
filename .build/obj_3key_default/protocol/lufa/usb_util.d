@@ -1,7 +1,7 @@
 .build/obj_3key_default/protocol/lufa/usb_util.o: \
  tmk_core/protocol/lufa/usb_util.c keyboards/3key/config.h \
  .build/obj_3key/src/info_config.h .build/obj_3key/src/layouts.h \
- lib/lufa/LUFA/Drivers/USB/USB.h \
+ quantum/rgblight/rgblight_post_config.h lib/lufa/LUFA/Drivers/USB/USB.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Architectures.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/BoardTypes.h \
@@ -99,6 +99,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 lib/lufa/LUFA/Drivers/USB/USB.h:
 lib/lufa/LUFA/Drivers/USB/../../Common/Common.h:
 lib/lufa/LUFA/Drivers/USB/../../Common/Architectures.h:

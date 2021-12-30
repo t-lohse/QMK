@@ -1,7 +1,8 @@
 .build/obj_3key_default/common/avr/bootloader.o: \
  tmk_core/common/avr/bootloader.c keyboards/3key/config.h \
  .build/obj_3key/src/info_config.h .build/obj_3key/src/layouts.h \
- tmk_core/common/bootloader.h lib/lufa/LUFA/Drivers/USB/USB.h \
+ quantum/rgblight/rgblight_post_config.h tmk_core/common/bootloader.h \
+ lib/lufa/LUFA/Drivers/USB/USB.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Architectures.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/BoardTypes.h \
@@ -97,6 +98,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 tmk_core/common/bootloader.h:
 lib/lufa/LUFA/Drivers/USB/USB.h:
 lib/lufa/LUFA/Drivers/USB/../../Common/Common.h:

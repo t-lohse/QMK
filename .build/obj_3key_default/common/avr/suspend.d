@@ -1,7 +1,8 @@
 .build/obj_3key_default/common/avr/suspend.o: \
  tmk_core/common/avr/suspend.c keyboards/3key/config.h \
  .build/obj_3key/src/info_config.h .build/obj_3key/src/layouts.h \
- quantum/matrix.h quantum/action.h quantum/keyboard.h quantum/keycode.h \
+ quantum/rgblight/rgblight_post_config.h quantum/matrix.h \
+ quantum/action.h quantum/keyboard.h quantum/keycode.h \
  quantum/action_code.h quantum/action_macro.h tmk_core/common/progmem.h \
  tmk_core/common/suspend.h tmk_core/common/timer.h \
  tmk_core/common/avr/_timer.h quantum/led.h tmk_core/common/host.h \
@@ -104,6 +105,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 quantum/matrix.h:
 quantum/action.h:
 quantum/keyboard.h:

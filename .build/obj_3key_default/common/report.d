@@ -1,6 +1,7 @@
 .build/obj_3key_default/common/report.o: tmk_core/common/report.c \
  keyboards/3key/config.h .build/obj_3key/src/info_config.h \
- .build/obj_3key/src/layouts.h tmk_core/common/report.h quantum/keycode.h \
+ .build/obj_3key/src/layouts.h quantum/rgblight/rgblight_post_config.h \
+ tmk_core/common/report.h quantum/keycode.h \
  tmk_core/protocol/usb_descriptor.h lib/lufa/LUFA/Drivers/USB/USB.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Common.h \
  lib/lufa/LUFA/Drivers/USB/../../Common/Architectures.h \
@@ -101,6 +102,7 @@
 keyboards/3key/config.h:
 .build/obj_3key/src/info_config.h:
 .build/obj_3key/src/layouts.h:
+quantum/rgblight/rgblight_post_config.h:
 tmk_core/common/report.h:
 quantum/keycode.h:
 tmk_core/protocol/usb_descriptor.h:
