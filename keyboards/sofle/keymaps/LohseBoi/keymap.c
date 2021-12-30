@@ -449,11 +449,11 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     if (index == 0) { //left encoder
         if (turner[index] == 1) {
             if (clockwise)
-                tap_code(KC_BRIU);
-                //tap_code(KC_WH_D);  //Mouse wheel - Scroll (WORKING)
+                //tap_code(KC_BRIU);
+                tap_code(KC_WH_D);  //Mouse wheel - Scroll (WORKING)
             else
-                tap_code(KC_BRID);
-                //tap_code(KC_WH_U);
+                //tap_code(KC_BRID);
+                tap_code(KC_WH_U);
         }
     } else if (index == 1) { //right encoder
         if (turner[index] == 1) {

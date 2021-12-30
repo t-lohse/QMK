@@ -1,0 +1,2085 @@
+   1               		.file	"mousekey.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.move_unit,"ax",@progbits
+  12               	move_unit:
+  13               	.LFB105:
+  14               		.file 1 "quantum/mousekey.c"
+   1:quantum/mousekey.c **** /*
+   2:quantum/mousekey.c ****  * Copyright 2011 Jun Wako <wakojun@gmail.com>
+   3:quantum/mousekey.c ****  *
+   4:quantum/mousekey.c ****  * This program is free software: you can redistribute it and/or modify
+   5:quantum/mousekey.c ****  * it under the terms of the GNU General Public License as published by
+   6:quantum/mousekey.c ****  * the Free Software Foundation, either version 2 of the License, or
+   7:quantum/mousekey.c ****  * (at your option) any later version.
+   8:quantum/mousekey.c ****  *
+   9:quantum/mousekey.c ****  * This program is distributed in the hope that it will be useful,
+  10:quantum/mousekey.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/mousekey.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/mousekey.c ****  * GNU General Public License for more details.
+  13:quantum/mousekey.c ****  *
+  14:quantum/mousekey.c ****  * You should have received a copy of the GNU General Public License
+  15:quantum/mousekey.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/mousekey.c ****  */
+  17:quantum/mousekey.c **** 
+  18:quantum/mousekey.c **** #include <stdint.h>
+  19:quantum/mousekey.c **** #include "keycode.h"
+  20:quantum/mousekey.c **** #include "host.h"
+  21:quantum/mousekey.c **** #include "timer.h"
+  22:quantum/mousekey.c **** #include "print.h"
+  23:quantum/mousekey.c **** #include "debug.h"
+  24:quantum/mousekey.c **** #include "mousekey.h"
+  25:quantum/mousekey.c **** 
+  26:quantum/mousekey.c **** inline int8_t times_inv_sqrt2(int8_t x) {
+  27:quantum/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+  28:quantum/mousekey.c ****     // 0.70703125                 0.707106781
+  29:quantum/mousekey.c ****     // 1 too small for x=99 and x=198
+  30:quantum/mousekey.c ****     // This ends up being a mult and discard lower 8 bits
+  31:quantum/mousekey.c ****     return (x * 181) >> 8;
+  32:quantum/mousekey.c **** }
+  33:quantum/mousekey.c **** 
+  34:quantum/mousekey.c **** static report_mouse_t mouse_report = {0};
+  35:quantum/mousekey.c **** static void           mousekey_debug(void);
+  36:quantum/mousekey.c **** static uint8_t        mousekey_accel        = 0;
+  37:quantum/mousekey.c **** static uint8_t        mousekey_repeat       = 0;
+  38:quantum/mousekey.c **** static uint8_t        mousekey_wheel_repeat = 0;
+  39:quantum/mousekey.c **** #ifdef MK_KINETIC_SPEED
+  40:quantum/mousekey.c **** static uint16_t mouse_timer = 0;
+  41:quantum/mousekey.c **** #endif
+  42:quantum/mousekey.c **** 
+  43:quantum/mousekey.c **** #ifndef MK_3_SPEED
+  44:quantum/mousekey.c **** 
+  45:quantum/mousekey.c **** static uint16_t last_timer_c = 0;
+  46:quantum/mousekey.c **** static uint16_t last_timer_w = 0;
+  47:quantum/mousekey.c **** 
+  48:quantum/mousekey.c **** /*
+  49:quantum/mousekey.c ****  * Mouse keys acceleration algorithm
+  50:quantum/mousekey.c ****  *  http://en.wikipedia.org/wiki/Mouse_keys
+  51:quantum/mousekey.c ****  *
+  52:quantum/mousekey.c ****  *  speed = delta * max_speed * (repeat / time_to_max)**((1000+curve)/1000)
+  53:quantum/mousekey.c ****  */
+  54:quantum/mousekey.c **** /* milliseconds between the initial key press and first repeated motion event (0-2550) */
+  55:quantum/mousekey.c **** uint8_t mk_delay = MOUSEKEY_DELAY / 10;
+  56:quantum/mousekey.c **** /* milliseconds between repeated motion events (0-255) */
+  57:quantum/mousekey.c **** uint8_t mk_interval = MOUSEKEY_INTERVAL;
+  58:quantum/mousekey.c **** /* steady speed (in action_delta units) applied each event (0-255) */
+  59:quantum/mousekey.c **** uint8_t mk_max_speed = MOUSEKEY_MAX_SPEED;
+  60:quantum/mousekey.c **** /* number of events (count) accelerating to steady speed (0-255) */
+  61:quantum/mousekey.c **** uint8_t mk_time_to_max = MOUSEKEY_TIME_TO_MAX;
+  62:quantum/mousekey.c **** /* ramp used to reach maximum pointer speed (NOT SUPPORTED) */
+  63:quantum/mousekey.c **** // int8_t mk_curve = 0;
+  64:quantum/mousekey.c **** /* wheel params */
+  65:quantum/mousekey.c **** /* milliseconds between the initial key press and first repeated motion event (0-2550) */
+  66:quantum/mousekey.c **** uint8_t mk_wheel_delay = MOUSEKEY_WHEEL_DELAY / 10;
+  67:quantum/mousekey.c **** /* milliseconds between repeated motion events (0-255) */
+  68:quantum/mousekey.c **** uint8_t mk_wheel_interval    = MOUSEKEY_WHEEL_INTERVAL;
+  69:quantum/mousekey.c **** uint8_t mk_wheel_max_speed   = MOUSEKEY_WHEEL_MAX_SPEED;
+  70:quantum/mousekey.c **** uint8_t mk_wheel_time_to_max = MOUSEKEY_WHEEL_TIME_TO_MAX;
+  71:quantum/mousekey.c **** 
+  72:quantum/mousekey.c **** #    ifndef MK_COMBINED
+  73:quantum/mousekey.c **** 
+  74:quantum/mousekey.c **** static uint8_t move_unit(void) {
+  15               		.loc 1 74 32 view -0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  75:quantum/mousekey.c ****     uint16_t unit;
+  21               		.loc 1 75 5 view .LVU1
+  76:quantum/mousekey.c ****     if (mousekey_accel & (1 << 0)) {
+  22               		.loc 1 76 5 view .LVU2
+  23               		.loc 1 76 24 is_stmt 0 view .LVU3
+  24 0000 8091 0000 		lds r24,mousekey_accel
+  25               		.loc 1 76 8 view .LVU4
+  26 0004 80FF      		sbrs r24,0
+  27 0006 00C0      		rjmp .L2
+  77:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed) / 4;
+  28               		.loc 1 77 9 is_stmt 1 view .LVU5
+  29               		.loc 1 77 37 is_stmt 0 view .LVU6
+  30 0008 6091 0000 		lds r22,mk_max_speed
+  31 000c 85E0      		ldi r24,lo8(5)
+  32 000e 689F      		mul r22,r24
+  33 0010 B001      		movw r22,r0
+  34 0012 1124      		clr __zero_reg__
+  35               		.loc 1 77 53 view .LVU7
+  36 0014 7595      		asr r23
+  37 0016 6795      		ror r22
+  38 0018 7595      		asr r23
+  39 001a 6795      		ror r22
+  40               	.LVL0:
+  41               	.L3:
+  78:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  79:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed) / 2;
+  80:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  81:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed);
+  82:quantum/mousekey.c ****     } else if (mousekey_repeat == 0) {
+  83:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  84:quantum/mousekey.c ****     } else if (mousekey_repeat >= mk_time_to_max) {
+  85:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  86:quantum/mousekey.c ****     } else {
+  87:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed * mousekey_repeat) / mk_time_to_max;
+  88:quantum/mousekey.c ****     }
+  89:quantum/mousekey.c ****     return (unit > MOUSEKEY_MOVE_MAX ? MOUSEKEY_MOVE_MAX : (unit == 0 ? 1 : unit));
+  42               		.loc 1 89 5 is_stmt 1 view .LVU8
+  43               		.loc 1 89 58 is_stmt 0 view .LVU9
+  44 001c 6038      		cpi r22,-128
+  45 001e 7105      		cpc r23,__zero_reg__
+  46 0020 00F4      		brsh .L10
+  47               	.LVL1:
+  48               		.loc 1 89 58 discriminator 1 view .LVU10
+  49 0022 6115      		cp r22,__zero_reg__
+  50 0024 7105      		cpc r23,__zero_reg__
+  51 0026 01F0      		breq .L11
+  52               	.L6:
+  53               		.loc 1 89 58 discriminator 3 view .LVU11
+  54 0028 862F      		mov r24,r22
+  55 002a 0895      		ret
+  56               	.L2:
+  78:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  57               		.loc 1 78 12 is_stmt 1 view .LVU12
+  78:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  58               		.loc 1 78 15 is_stmt 0 view .LVU13
+  59 002c 81FF      		sbrs r24,1
+  60 002e 00C0      		rjmp .L4
+  79:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  61               		.loc 1 79 9 is_stmt 1 view .LVU14
+  79:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  62               		.loc 1 79 37 is_stmt 0 view .LVU15
+  63 0030 6091 0000 		lds r22,mk_max_speed
+  64 0034 85E0      		ldi r24,lo8(5)
+  65 0036 689F      		mul r22,r24
+  66 0038 B001      		movw r22,r0
+  67 003a 1124      		clr __zero_reg__
+  79:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  68               		.loc 1 79 53 view .LVU16
+  69 003c 7595      		asr r23
+  70 003e 6795      		ror r22
+  71               	.LVL2:
+  79:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  72               		.loc 1 79 53 view .LVU17
+  73 0040 00C0      		rjmp .L3
+  74               	.LVL3:
+  75               	.L4:
+  80:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed);
+  76               		.loc 1 80 12 is_stmt 1 view .LVU18
+  81:quantum/mousekey.c ****     } else if (mousekey_repeat == 0) {
+  77               		.loc 1 81 37 is_stmt 0 view .LVU19
+  78 0042 6091 0000 		lds r22,mk_max_speed
+  80:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed);
+  79               		.loc 1 80 15 view .LVU20
+  80 0046 82FD      		sbrc r24,2
+  81 0048 00C0      		rjmp .L12
+  82:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  82               		.loc 1 82 12 is_stmt 1 view .LVU21
+  82:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  83               		.loc 1 82 32 is_stmt 0 view .LVU22
+  84 004a 2091 0000 		lds r18,mousekey_repeat
+  82:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  85               		.loc 1 82 15 view .LVU23
+  86 004e 2223      		tst r18
+  87 0050 01F0      		breq .L9
+  84:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  88               		.loc 1 84 12 is_stmt 1 view .LVU24
+  84:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  89               		.loc 1 84 32 is_stmt 0 view .LVU25
+  90 0052 9091 0000 		lds r25,mk_time_to_max
+  77:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  91               		.loc 1 77 37 view .LVU26
+  92 0056 6091 0000 		lds r22,mk_max_speed
+  84:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  93               		.loc 1 84 15 view .LVU27
+  94 005a 2917      		cp r18,r25
+  95 005c 00F0      		brlo .L7
+  96               	.L12:
+  85:quantum/mousekey.c ****     } else {
+  97               		.loc 1 85 9 is_stmt 1 view .LVU28
+  85:quantum/mousekey.c ****     } else {
+  98               		.loc 1 85 36 is_stmt 0 view .LVU29
+  99 005e 85E0      		ldi r24,lo8(5)
+ 100 0060 689F      		mul r22,r24
+ 101 0062 B001      		movw r22,r0
+ 102 0064 1124      		clr __zero_reg__
+ 103               	.LVL4:
+  85:quantum/mousekey.c ****     } else {
+ 104               		.loc 1 85 36 view .LVU30
+ 105 0066 00C0      		rjmp .L3
+ 106               	.LVL5:
+ 107               	.L7:
+  87:quantum/mousekey.c ****     }
+ 108               		.loc 1 87 9 is_stmt 1 view .LVU31
+  87:quantum/mousekey.c ****     }
+ 109               		.loc 1 87 52 is_stmt 0 view .LVU32
+ 110 0068 269F      		mul r18,r22
+ 111 006a 9001      		movw r18,r0
+ 112 006c 1124      		clr __zero_reg__
+ 113 006e 85E0      		ldi r24,lo8(5)
+ 114 0070 829F      		mul r24,r18
+ 115 0072 A001      		movw r20,r0
+ 116 0074 839F      		mul r24,r19
+ 117 0076 500D      		add r21,r0
+ 118 0078 1124      		clr __zero_reg__
+  87:quantum/mousekey.c ****     }
+ 119               		.loc 1 87 71 view .LVU33
+ 120 007a 692F      		mov r22,r25
+ 121 007c 70E0      		ldi r23,0
+  87:quantum/mousekey.c ****     }
+ 122               		.loc 1 87 14 view .LVU34
+ 123 007e CA01      		movw r24,r20
+ 124 0080 0E94 0000 		call __divmodhi4
+ 125               	.LVL6:
+  87:quantum/mousekey.c ****     }
+ 126               		.loc 1 87 14 view .LVU35
+ 127 0084 00C0      		rjmp .L3
+ 128               	.LVL7:
+ 129               	.L9:
+  83:quantum/mousekey.c ****     } else if (mousekey_repeat >= mk_time_to_max) {
+ 130               		.loc 1 83 14 view .LVU36
+ 131 0086 65E0      		ldi r22,lo8(5)
+ 132 0088 70E0      		ldi r23,0
+ 133 008a 00C0      		rjmp .L6
+ 134               	.LVL8:
+ 135               	.L10:
+ 136               		.loc 1 89 58 view .LVU37
+ 137 008c 8FE7      		ldi r24,lo8(127)
+ 138 008e 0895      		ret
+ 139               	.LVL9:
+ 140               	.L11:
+ 141               		.loc 1 89 58 view .LVU38
+ 142 0090 81E0      		ldi r24,lo8(1)
+ 143               	/* epilogue start */
+  90:quantum/mousekey.c **** }
+ 144               		.loc 1 90 1 view .LVU39
+ 145 0092 0895      		ret
+ 146               		.cfi_endproc
+ 147               	.LFE105:
+ 149               		.section	.text.wheel_unit,"ax",@progbits
+ 151               	wheel_unit:
+ 152               	.LFB106:
+  91:quantum/mousekey.c **** 
+  92:quantum/mousekey.c **** static uint8_t wheel_unit(void) {
+ 153               		.loc 1 92 33 is_stmt 1 view -0
+ 154               		.cfi_startproc
+ 155               	/* prologue: function */
+ 156               	/* frame size = 0 */
+ 157               	/* stack size = 0 */
+ 158               	.L__stack_usage = 0
+  93:quantum/mousekey.c ****     uint16_t unit;
+ 159               		.loc 1 93 5 view .LVU41
+  94:quantum/mousekey.c ****     if (mousekey_accel & (1 << 0)) {
+ 160               		.loc 1 94 5 view .LVU42
+ 161               		.loc 1 94 24 is_stmt 0 view .LVU43
+ 162 0000 8091 0000 		lds r24,mousekey_accel
+ 163               		.loc 1 94 8 view .LVU44
+ 164 0004 80FF      		sbrs r24,0
+ 165 0006 00C0      		rjmp .L14
+  95:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed) / 4;
+ 166               		.loc 1 95 9 is_stmt 1 view .LVU45
+ 167               		.loc 1 95 38 is_stmt 0 view .LVU46
+ 168 0008 6091 0000 		lds r22,mk_wheel_max_speed
+ 169 000c 70E0      		ldi r23,0
+ 170               		.loc 1 95 60 view .LVU47
+ 171 000e 7595      		asr r23
+ 172 0010 6795      		ror r22
+ 173 0012 7595      		asr r23
+ 174 0014 6795      		ror r22
+ 175               	.LVL10:
+ 176               	.L15:
+  96:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  97:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed) / 2;
+  98:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  99:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed);
+ 100:quantum/mousekey.c ****     } else if (mousekey_wheel_repeat == 0) {
+ 101:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 102:quantum/mousekey.c ****     } else if (mousekey_wheel_repeat >= mk_wheel_time_to_max) {
+ 103:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 104:quantum/mousekey.c ****     } else {
+ 105:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed * mousekey_wheel_repeat) / mk_wheel_time_
+ 106:quantum/mousekey.c ****     }
+ 107:quantum/mousekey.c ****     return (unit > MOUSEKEY_WHEEL_MAX ? MOUSEKEY_WHEEL_MAX : (unit == 0 ? 1 : unit));
+ 177               		.loc 1 107 60 view .LVU48
+ 178 0016 6115      		cp r22,__zero_reg__
+ 179 0018 7105      		cpc r23,__zero_reg__
+ 180 001a 01F0      		breq .L24
+ 181               	.L19:
+ 182               		.loc 1 107 60 discriminator 3 view .LVU49
+ 183 001c 862F      		mov r24,r22
+ 184 001e 0895      		ret
+ 185               	.L14:
+  96:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 186               		.loc 1 96 12 is_stmt 1 view .LVU50
+  96:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 187               		.loc 1 96 15 is_stmt 0 view .LVU51
+ 188 0020 81FF      		sbrs r24,1
+ 189 0022 00C0      		rjmp .L16
+  97:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 190               		.loc 1 97 9 is_stmt 1 view .LVU52
+  97:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 191               		.loc 1 97 38 is_stmt 0 view .LVU53
+ 192 0024 6091 0000 		lds r22,mk_wheel_max_speed
+ 193 0028 70E0      		ldi r23,0
+  97:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 194               		.loc 1 97 60 view .LVU54
+ 195 002a 7595      		asr r23
+ 196 002c 6795      		ror r22
+ 197               	.LVL11:
+  97:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 198               		.loc 1 97 60 view .LVU55
+ 199 002e 00C0      		rjmp .L15
+ 200               	.LVL12:
+ 201               	.L16:
+  98:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed);
+ 202               		.loc 1 98 12 is_stmt 1 view .LVU56
+  99:quantum/mousekey.c ****     } else if (mousekey_wheel_repeat == 0) {
+ 203               		.loc 1 99 14 is_stmt 0 view .LVU57
+ 204 0030 6091 0000 		lds r22,mk_wheel_max_speed
+  98:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed);
+ 205               		.loc 1 98 15 view .LVU58
+ 206 0034 82FD      		sbrc r24,2
+ 207 0036 00C0      		rjmp .L25
+ 100:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 208               		.loc 1 100 12 is_stmt 1 view .LVU59
+ 100:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 209               		.loc 1 100 38 is_stmt 0 view .LVU60
+ 210 0038 9091 0000 		lds r25,mousekey_wheel_repeat
+ 100:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 211               		.loc 1 100 15 view .LVU61
+ 212 003c 9923      		tst r25
+ 213 003e 01F0      		breq .L22
+ 102:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 214               		.loc 1 102 12 is_stmt 1 view .LVU62
+ 102:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 215               		.loc 1 102 38 is_stmt 0 view .LVU63
+ 216 0040 6091 0000 		lds r22,mk_wheel_time_to_max
+  95:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 217               		.loc 1 95 38 view .LVU64
+ 218 0044 8091 0000 		lds r24,mk_wheel_max_speed
+ 102:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 219               		.loc 1 102 15 view .LVU65
+ 220 0048 9617      		cp r25,r22
+ 221 004a 00F0      		brlo .L20
+ 103:quantum/mousekey.c ****     } else {
+ 222               		.loc 1 103 9 is_stmt 1 view .LVU66
+ 103:quantum/mousekey.c ****     } else {
+ 223               		.loc 1 103 14 is_stmt 0 view .LVU67
+ 224 004c 682F      		mov r22,r24
+ 225               	.L25:
+ 226 004e 70E0      		ldi r23,0
+ 227               	.LVL13:
+ 228               	.L18:
+ 229               		.loc 1 107 5 is_stmt 1 view .LVU68
+ 230               		.loc 1 107 60 is_stmt 0 view .LVU69
+ 231 0050 6038      		cpi r22,-128
+ 232 0052 7105      		cpc r23,__zero_reg__
+ 233 0054 00F0      		brlo .L15
+ 234 0056 8FE7      		ldi r24,lo8(127)
+ 235 0058 0895      		ret
+ 236               	.LVL14:
+ 237               	.L20:
+ 105:quantum/mousekey.c ****     }
+ 238               		.loc 1 105 9 is_stmt 1 view .LVU70
+ 105:quantum/mousekey.c ****     }
+ 239               		.loc 1 105 59 is_stmt 0 view .LVU71
+ 240 005a 899F      		mul r24,r25
+ 241 005c C001      		movw r24,r0
+ 242 005e 1124      		clr __zero_reg__
+ 105:quantum/mousekey.c ****     }
+ 243               		.loc 1 105 84 view .LVU72
+ 244 0060 70E0      		ldi r23,0
+ 105:quantum/mousekey.c ****     }
+ 245               		.loc 1 105 14 view .LVU73
+ 246 0062 0E94 0000 		call __divmodhi4
+ 247               	.LVL15:
+ 105:quantum/mousekey.c ****     }
+ 248               		.loc 1 105 14 view .LVU74
+ 249 0066 00C0      		rjmp .L18
+ 250               	.LVL16:
+ 251               	.L22:
+ 101:quantum/mousekey.c ****     } else if (mousekey_wheel_repeat >= mk_wheel_time_to_max) {
+ 252               		.loc 1 101 14 view .LVU75
+ 253 0068 61E0      		ldi r22,lo8(1)
+ 254 006a 70E0      		ldi r23,0
+ 255 006c 00C0      		rjmp .L19
+ 256               	.L24:
+ 257               		.loc 1 107 60 view .LVU76
+ 258 006e 81E0      		ldi r24,lo8(1)
+ 259               	/* epilogue start */
+ 108:quantum/mousekey.c **** }
+ 260               		.loc 1 108 1 view .LVU77
+ 261 0070 0895      		ret
+ 262               		.cfi_endproc
+ 263               	.LFE106:
+ 265               		.section	.text.mousekey_on,"ax",@progbits
+ 266               	.global	mousekey_on
+ 268               	mousekey_on:
+ 269               	.LVL17:
+ 270               	.LFB108:
+ 109:quantum/mousekey.c **** 
+ 110:quantum/mousekey.c **** #    else /* #ifndef MK_COMBINED */
+ 111:quantum/mousekey.c **** #        ifdef MK_KINETIC_SPEED
+ 112:quantum/mousekey.c **** 
+ 113:quantum/mousekey.c **** /*
+ 114:quantum/mousekey.c ****  * Kinetic movement  acceleration algorithm
+ 115:quantum/mousekey.c ****  *
+ 116:quantum/mousekey.c ****  *  current speed = I + A * T/50 + A * 0.5 * T^2 | maximum B
+ 117:quantum/mousekey.c ****  *
+ 118:quantum/mousekey.c ****  * T: time since the mouse movement started
+ 119:quantum/mousekey.c ****  * E: mouse events per second (set through MOUSEKEY_INTERVAL, UHK sends 250, the
+ 120:quantum/mousekey.c ****  *    pro micro on my Signum 3.0 sends only 125!)
+ 121:quantum/mousekey.c ****  * I: initial speed at time 0
+ 122:quantum/mousekey.c ****  * A: acceleration
+ 123:quantum/mousekey.c ****  * B: base mouse travel speed
+ 124:quantum/mousekey.c ****  */
+ 125:quantum/mousekey.c **** const uint16_t mk_accelerated_speed = MOUSEKEY_ACCELERATED_SPEED;
+ 126:quantum/mousekey.c **** const uint16_t mk_base_speed        = MOUSEKEY_BASE_SPEED;
+ 127:quantum/mousekey.c **** const uint16_t mk_decelerated_speed = MOUSEKEY_DECELERATED_SPEED;
+ 128:quantum/mousekey.c **** const uint16_t mk_initial_speed     = MOUSEKEY_INITIAL_SPEED;
+ 129:quantum/mousekey.c **** 
+ 130:quantum/mousekey.c **** static uint8_t move_unit(void) {
+ 131:quantum/mousekey.c ****     float speed = mk_initial_speed;
+ 132:quantum/mousekey.c **** 
+ 133:quantum/mousekey.c ****     if (mousekey_accel & ((1 << 0) | (1 << 2))) {
+ 134:quantum/mousekey.c ****         speed = mousekey_accel & (1 << 2) ? mk_accelerated_speed : mk_decelerated_speed;
+ 135:quantum/mousekey.c ****     } else if (mousekey_repeat && mouse_timer) {
+ 136:quantum/mousekey.c ****         const float time_elapsed = timer_elapsed(mouse_timer) / 50;
+ 137:quantum/mousekey.c ****         speed                    = mk_initial_speed + MOUSEKEY_MOVE_DELTA * time_elapsed + MOUSEKEY
+ 138:quantum/mousekey.c **** 
+ 139:quantum/mousekey.c ****         speed = speed > mk_base_speed ? mk_base_speed : speed;
+ 140:quantum/mousekey.c ****     }
+ 141:quantum/mousekey.c **** 
+ 142:quantum/mousekey.c ****     /* convert speed to USB mouse speed 1 to 127 */
+ 143:quantum/mousekey.c ****     speed = (uint8_t)(speed / (1000.0f / mk_interval));
+ 144:quantum/mousekey.c ****     speed = speed < 1 ? 1 : speed;
+ 145:quantum/mousekey.c **** 
+ 146:quantum/mousekey.c ****     return speed > MOUSEKEY_MOVE_MAX ? MOUSEKEY_MOVE_MAX : speed;
+ 147:quantum/mousekey.c **** }
+ 148:quantum/mousekey.c **** 
+ 149:quantum/mousekey.c **** float mk_wheel_interval = 1000.0f / MOUSEKEY_WHEEL_INITIAL_MOVEMENTS;
+ 150:quantum/mousekey.c **** 
+ 151:quantum/mousekey.c **** static uint8_t wheel_unit(void) {
+ 152:quantum/mousekey.c ****     float speed = MOUSEKEY_WHEEL_INITIAL_MOVEMENTS;
+ 153:quantum/mousekey.c **** 
+ 154:quantum/mousekey.c ****     if (mousekey_accel & ((1 << 0) | (1 << 2))) {
+ 155:quantum/mousekey.c ****         speed = mousekey_accel & (1 << 2) ? MOUSEKEY_WHEEL_ACCELERATED_MOVEMENTS : MOUSEKEY_WHEEL_D
+ 156:quantum/mousekey.c ****     } else if (mousekey_repeat && mouse_timer) {
+ 157:quantum/mousekey.c ****         if (mk_wheel_interval != MOUSEKEY_WHEEL_BASE_MOVEMENTS) {
+ 158:quantum/mousekey.c ****             const float time_elapsed = timer_elapsed(mouse_timer) / 50;
+ 159:quantum/mousekey.c ****             speed                    = MOUSEKEY_WHEEL_INITIAL_MOVEMENTS + 1 * time_elapsed + 1 * 0.
+ 160:quantum/mousekey.c ****         }
+ 161:quantum/mousekey.c ****         speed = speed > MOUSEKEY_WHEEL_BASE_MOVEMENTS ? MOUSEKEY_WHEEL_BASE_MOVEMENTS : speed;
+ 162:quantum/mousekey.c ****     }
+ 163:quantum/mousekey.c **** 
+ 164:quantum/mousekey.c ****     mk_wheel_interval = 1000.0f / speed;
+ 165:quantum/mousekey.c **** 
+ 166:quantum/mousekey.c ****     return 1;
+ 167:quantum/mousekey.c **** }
+ 168:quantum/mousekey.c **** 
+ 169:quantum/mousekey.c **** #        else /* #ifndef MK_KINETIC_SPEED */
+ 170:quantum/mousekey.c **** 
+ 171:quantum/mousekey.c **** static uint8_t move_unit(void) {
+ 172:quantum/mousekey.c ****     uint16_t unit;
+ 173:quantum/mousekey.c ****     if (mousekey_accel & (1 << 0)) {
+ 174:quantum/mousekey.c ****         unit = 1;
+ 175:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 176:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed) / 2;
+ 177:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 178:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_MAX;
+ 179:quantum/mousekey.c ****     } else if (mousekey_repeat == 0) {
+ 180:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+ 181:quantum/mousekey.c ****     } else if (mousekey_repeat >= mk_time_to_max) {
+ 182:quantum/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+ 183:quantum/mousekey.c ****     } else {
+ 184:quantum/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed * mousekey_repeat) / mk_time_to_max;
+ 185:quantum/mousekey.c ****     }
+ 186:quantum/mousekey.c ****     return (unit > MOUSEKEY_MOVE_MAX ? MOUSEKEY_MOVE_MAX : (unit == 0 ? 1 : unit));
+ 187:quantum/mousekey.c **** }
+ 188:quantum/mousekey.c **** 
+ 189:quantum/mousekey.c **** static uint8_t wheel_unit(void) {
+ 190:quantum/mousekey.c ****     uint16_t unit;
+ 191:quantum/mousekey.c ****     if (mousekey_accel & (1 << 0)) {
+ 192:quantum/mousekey.c ****         unit = 1;
+ 193:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 194:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed) / 2;
+ 195:quantum/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 196:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_MAX;
+ 197:quantum/mousekey.c ****     } else if (mousekey_repeat == 0) {
+ 198:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 199:quantum/mousekey.c ****     } else if (mousekey_repeat >= mk_wheel_time_to_max) {
+ 200:quantum/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 201:quantum/mousekey.c ****     } else {
+ 202:quantum/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed * mousekey_repeat) / mk_wheel_time_to_max
+ 203:quantum/mousekey.c ****     }
+ 204:quantum/mousekey.c ****     return (unit > MOUSEKEY_WHEEL_MAX ? MOUSEKEY_WHEEL_MAX : (unit == 0 ? 1 : unit));
+ 205:quantum/mousekey.c **** }
+ 206:quantum/mousekey.c **** 
+ 207:quantum/mousekey.c **** #        endif /* #ifndef MK_KINETIC_SPEED */
+ 208:quantum/mousekey.c **** #    endif     /* #ifndef MK_COMBINED */
+ 209:quantum/mousekey.c **** 
+ 210:quantum/mousekey.c **** void mousekey_task(void) {
+ 211:quantum/mousekey.c ****     // report cursor and scroll movement independently
+ 212:quantum/mousekey.c ****     report_mouse_t const tmpmr = mouse_report;
+ 213:quantum/mousekey.c **** 
+ 214:quantum/mousekey.c ****     mouse_report.x = 0;
+ 215:quantum/mousekey.c ****     mouse_report.y = 0;
+ 216:quantum/mousekey.c ****     mouse_report.v = 0;
+ 217:quantum/mousekey.c ****     mouse_report.h = 0;
+ 218:quantum/mousekey.c **** 
+ 219:quantum/mousekey.c ****     if ((tmpmr.x || tmpmr.y) && timer_elapsed(last_timer_c) > (mousekey_repeat ? mk_interval : mk_d
+ 220:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 221:quantum/mousekey.c ****         if (tmpmr.x != 0) mouse_report.x = move_unit() * ((tmpmr.x > 0) ? 1 : -1);
+ 222:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 223:quantum/mousekey.c **** 
+ 224:quantum/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 225:quantum/mousekey.c ****         if (mouse_report.x && mouse_report.y) {
+ 226:quantum/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 227:quantum/mousekey.c ****             if (mouse_report.x == 0) {
+ 228:quantum/mousekey.c ****                 mouse_report.x = 1;
+ 229:quantum/mousekey.c ****             }
+ 230:quantum/mousekey.c ****             mouse_report.y = times_inv_sqrt2(mouse_report.y);
+ 231:quantum/mousekey.c ****             if (mouse_report.y == 0) {
+ 232:quantum/mousekey.c ****                 mouse_report.y = 1;
+ 233:quantum/mousekey.c ****             }
+ 234:quantum/mousekey.c ****         }
+ 235:quantum/mousekey.c ****     }
+ 236:quantum/mousekey.c ****     if ((tmpmr.v || tmpmr.h) && timer_elapsed(last_timer_w) > (mousekey_wheel_repeat ? mk_wheel_int
+ 237:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 238:quantum/mousekey.c ****         if (tmpmr.v != 0) mouse_report.v = wheel_unit() * ((tmpmr.v > 0) ? 1 : -1);
+ 239:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 240:quantum/mousekey.c **** 
+ 241:quantum/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 242:quantum/mousekey.c ****         if (mouse_report.v && mouse_report.h) {
+ 243:quantum/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 244:quantum/mousekey.c ****             if (mouse_report.v == 0) {
+ 245:quantum/mousekey.c ****                 mouse_report.v = 1;
+ 246:quantum/mousekey.c ****             }
+ 247:quantum/mousekey.c ****             mouse_report.h = times_inv_sqrt2(mouse_report.h);
+ 248:quantum/mousekey.c ****             if (mouse_report.h == 0) {
+ 249:quantum/mousekey.c ****                 mouse_report.h = 1;
+ 250:quantum/mousekey.c ****             }
+ 251:quantum/mousekey.c ****         }
+ 252:quantum/mousekey.c ****     }
+ 253:quantum/mousekey.c **** 
+ 254:quantum/mousekey.c ****     if (mouse_report.x || mouse_report.y || mouse_report.v || mouse_report.h) mousekey_send();
+ 255:quantum/mousekey.c ****     mouse_report = tmpmr;
+ 256:quantum/mousekey.c **** }
+ 257:quantum/mousekey.c **** 
+ 258:quantum/mousekey.c **** void mousekey_on(uint8_t code) {
+ 271               		.loc 1 258 32 is_stmt 1 view -0
+ 272               		.cfi_startproc
+ 273               	/* prologue: function */
+ 274               	/* frame size = 0 */
+ 275               	/* stack size = 0 */
+ 276               	.L__stack_usage = 0
+ 259:quantum/mousekey.c **** #    ifdef MK_KINETIC_SPEED
+ 260:quantum/mousekey.c ****     if (mouse_timer == 0) {
+ 261:quantum/mousekey.c ****         mouse_timer = timer_read();
+ 262:quantum/mousekey.c ****     }
+ 263:quantum/mousekey.c **** #    endif /* #ifdef MK_KINETIC_SPEED */
+ 264:quantum/mousekey.c **** 
+ 265:quantum/mousekey.c ****     if (code == KC_MS_UP)
+ 277               		.loc 1 265 5 view .LVU79
+ 278 0000 E3E1      		ldi r30,lo8(19)
+ 279 0002 E80F      		add r30,r24
+ 280 0004 E331      		cpi r30,lo8(19)
+ 281 0006 00F4      		brsh .L26
+ 282 0008 F0E0      		ldi r31,0
+ 283 000a E050      		subi r30,lo8(-(gs(.L29)))
+ 284 000c F040      		sbci r31,hi8(-(gs(.L29)))
+ 285 000e 0C94 0000 		jmp __tablejump2__
+ 286               		.section	.jumptables.gcc.mousekey_on,"a",@progbits
+ 287               		.p2align	1
+ 288               	.L29:
+ 289 0000 0000      		.word gs(.L40)
+ 290 0002 0000      		.word gs(.L39)
+ 291 0004 0000      		.word gs(.L38)
+ 292 0006 0000      		.word gs(.L37)
+ 293 0008 0000      		.word gs(.L36)
+ 294 000a 0000      		.word gs(.L36)
+ 295 000c 0000      		.word gs(.L36)
+ 296 000e 0000      		.word gs(.L36)
+ 297 0010 0000      		.word gs(.L36)
+ 298 0012 0000      		.word gs(.L36)
+ 299 0014 0000      		.word gs(.L36)
+ 300 0016 0000      		.word gs(.L36)
+ 301 0018 0000      		.word gs(.L35)
+ 302 001a 0000      		.word gs(.L34)
+ 303 001c 0000      		.word gs(.L33)
+ 304 001e 0000      		.word gs(.L32)
+ 305 0020 0000      		.word gs(.L31)
+ 306 0022 0000      		.word gs(.L30)
+ 307 0024 0000      		.word gs(.L28)
+ 308               		.section	.text.mousekey_on
+ 309               	.L40:
+ 266:quantum/mousekey.c ****         mouse_report.y = move_unit() * -1;
+ 310               		.loc 1 266 9 view .LVU80
+ 311               		.loc 1 266 26 is_stmt 0 view .LVU81
+ 312 0012 0E94 0000 		call move_unit
+ 313               	.LVL18:
+ 314               		.loc 1 266 24 view .LVU82
+ 315 0016 8195      		neg r24
+ 316               	.L41:
+ 267:quantum/mousekey.c ****     else if (code == KC_MS_DOWN)
+ 268:quantum/mousekey.c ****         mouse_report.y = move_unit();
+ 317               		.loc 1 268 24 view .LVU83
+ 318 0018 8093 0000 		sts mouse_report+3,r24
+ 319 001c 0895      		ret
+ 320               	.LVL19:
+ 321               	.L39:
+ 322               		.loc 1 268 9 is_stmt 1 view .LVU84
+ 323               		.loc 1 268 26 is_stmt 0 view .LVU85
+ 324 001e 0E94 0000 		call move_unit
+ 325               	.LVL20:
+ 326               		.loc 1 268 26 view .LVU86
+ 327 0022 00C0      		rjmp .L41
+ 328               	.LVL21:
+ 329               	.L38:
+ 269:quantum/mousekey.c ****     else if (code == KC_MS_LEFT)
+ 270:quantum/mousekey.c ****         mouse_report.x = move_unit() * -1;
+ 330               		.loc 1 270 9 is_stmt 1 view .LVU87
+ 331               		.loc 1 270 26 is_stmt 0 view .LVU88
+ 332 0024 0E94 0000 		call move_unit
+ 333               	.LVL22:
+ 334               		.loc 1 270 24 view .LVU89
+ 335 0028 8195      		neg r24
+ 336               	.L43:
+ 271:quantum/mousekey.c ****     else if (code == KC_MS_RIGHT)
+ 272:quantum/mousekey.c ****         mouse_report.x = move_unit();
+ 337               		.loc 1 272 24 view .LVU90
+ 338 002a 8093 0000 		sts mouse_report+2,r24
+ 339 002e 0895      		ret
+ 340               	.LVL23:
+ 341               	.L37:
+ 342               		.loc 1 272 9 is_stmt 1 view .LVU91
+ 343               		.loc 1 272 26 is_stmt 0 view .LVU92
+ 344 0030 0E94 0000 		call move_unit
+ 345               	.LVL24:
+ 346               		.loc 1 272 26 view .LVU93
+ 347 0034 00C0      		rjmp .L43
+ 348               	.LVL25:
+ 349               	.L35:
+ 273:quantum/mousekey.c ****     else if (code == KC_MS_WH_UP)
+ 274:quantum/mousekey.c ****         mouse_report.v = wheel_unit();
+ 350               		.loc 1 274 9 is_stmt 1 view .LVU94
+ 351               		.loc 1 274 26 is_stmt 0 view .LVU95
+ 352 0036 0E94 0000 		call wheel_unit
+ 353               	.LVL26:
+ 354               	.L44:
+ 275:quantum/mousekey.c ****     else if (code == KC_MS_WH_DOWN)
+ 276:quantum/mousekey.c ****         mouse_report.v = wheel_unit() * -1;
+ 355               		.loc 1 276 24 view .LVU96
+ 356 003a 8093 0000 		sts mouse_report+4,r24
+ 357 003e 0895      		ret
+ 358               	.LVL27:
+ 359               	.L34:
+ 360               		.loc 1 276 9 is_stmt 1 view .LVU97
+ 361               		.loc 1 276 26 is_stmt 0 view .LVU98
+ 362 0040 0E94 0000 		call wheel_unit
+ 363               	.LVL28:
+ 364               		.loc 1 276 24 view .LVU99
+ 365 0044 8195      		neg r24
+ 366 0046 00C0      		rjmp .L44
+ 367               	.LVL29:
+ 368               	.L33:
+ 277:quantum/mousekey.c ****     else if (code == KC_MS_WH_LEFT)
+ 278:quantum/mousekey.c ****         mouse_report.h = wheel_unit() * -1;
+ 369               		.loc 1 278 9 is_stmt 1 view .LVU100
+ 370               		.loc 1 278 26 is_stmt 0 view .LVU101
+ 371 0048 0E94 0000 		call wheel_unit
+ 372               	.LVL30:
+ 373               		.loc 1 278 24 view .LVU102
+ 374 004c 8195      		neg r24
+ 375               	.L45:
+ 279:quantum/mousekey.c ****     else if (code == KC_MS_WH_RIGHT)
+ 280:quantum/mousekey.c ****         mouse_report.h = wheel_unit();
+ 376               		.loc 1 280 24 view .LVU103
+ 377 004e 8093 0000 		sts mouse_report+5,r24
+ 378 0052 0895      		ret
+ 379               	.LVL31:
+ 380               	.L32:
+ 381               		.loc 1 280 9 is_stmt 1 view .LVU104
+ 382               		.loc 1 280 26 is_stmt 0 view .LVU105
+ 383 0054 0E94 0000 		call wheel_unit
+ 384               	.LVL32:
+ 385               		.loc 1 280 26 view .LVU106
+ 386 0058 00C0      		rjmp .L45
+ 387               	.LVL33:
+ 388               	.L36:
+ 281:quantum/mousekey.c ****     else if (IS_MOUSEKEY_BUTTON(code))
+ 282:quantum/mousekey.c ****         mouse_report.buttons |= 1 << (code - KC_MS_BTN1);
+ 389               		.loc 1 282 9 is_stmt 1 view .LVU107
+ 390               		.loc 1 282 44 is_stmt 0 view .LVU108
+ 391 005a 815F      		subi r24,241
+ 392 005c 990B      		sbc r25,r25
+ 393               	.LVL34:
+ 394               		.loc 1 282 35 view .LVU109
+ 395 005e 21E0      		ldi r18,lo8(1)
+ 396 0060 30E0      		ldi r19,0
+ 397 0062 00C0      		rjmp 2f
+ 398               		1:
+ 399 0064 220F      		lsl r18
+ 400               		2:
+ 401 0066 8A95      		dec r24
+ 402 0068 02F4      		brpl 1b
+ 403               		.loc 1 282 30 view .LVU110
+ 404 006a 8091 0000 		lds r24,mouse_report+1
+ 405 006e 822B      		or r24,r18
+ 406 0070 8093 0000 		sts mouse_report+1,r24
+ 407 0074 0895      		ret
+ 408               	.LVL35:
+ 409               	.L31:
+ 283:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 284:quantum/mousekey.c ****         mousekey_accel |= (1 << 0);
+ 410               		.loc 1 284 9 is_stmt 1 view .LVU111
+ 411               		.loc 1 284 24 is_stmt 0 view .LVU112
+ 412 0076 8091 0000 		lds r24,mousekey_accel
+ 413               	.LVL36:
+ 414               		.loc 1 284 24 view .LVU113
+ 415 007a 8160      		ori r24,lo8(1)
+ 416               	.L42:
+ 285:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 286:quantum/mousekey.c ****         mousekey_accel |= (1 << 1);
+ 287:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 288:quantum/mousekey.c ****         mousekey_accel |= (1 << 2);
+ 417               		.loc 1 288 24 view .LVU114
+ 418 007c 8093 0000 		sts mousekey_accel,r24
+ 419               	.L26:
+ 420               	/* epilogue start */
+ 289:quantum/mousekey.c **** }
+ 421               		.loc 1 289 1 view .LVU115
+ 422 0080 0895      		ret
+ 423               	.LVL37:
+ 424               	.L30:
+ 286:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 425               		.loc 1 286 9 is_stmt 1 view .LVU116
+ 286:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 426               		.loc 1 286 24 is_stmt 0 view .LVU117
+ 427 0082 8091 0000 		lds r24,mousekey_accel
+ 428               	.LVL38:
+ 286:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 429               		.loc 1 286 24 view .LVU118
+ 430 0086 8260      		ori r24,lo8(2)
+ 431 0088 00C0      		rjmp .L42
+ 432               	.LVL39:
+ 433               	.L28:
+ 288:quantum/mousekey.c **** }
+ 434               		.loc 1 288 9 is_stmt 1 view .LVU119
+ 288:quantum/mousekey.c **** }
+ 435               		.loc 1 288 24 is_stmt 0 view .LVU120
+ 436 008a 8091 0000 		lds r24,mousekey_accel
+ 437               	.LVL40:
+ 288:quantum/mousekey.c **** }
+ 438               		.loc 1 288 24 view .LVU121
+ 439 008e 8460      		ori r24,lo8(4)
+ 440 0090 00C0      		rjmp .L42
+ 441               		.cfi_endproc
+ 442               	.LFE108:
+ 444               		.section	.text.mousekey_off,"ax",@progbits
+ 445               	.global	mousekey_off
+ 447               	mousekey_off:
+ 448               	.LVL41:
+ 449               	.LFB109:
+ 290:quantum/mousekey.c **** 
+ 291:quantum/mousekey.c **** void mousekey_off(uint8_t code) {
+ 450               		.loc 1 291 33 is_stmt 1 view -0
+ 451               		.cfi_startproc
+ 452               	/* prologue: function */
+ 453               	/* frame size = 0 */
+ 454               	/* stack size = 0 */
+ 455               	.L__stack_usage = 0
+ 292:quantum/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 456               		.loc 1 292 5 view .LVU123
+ 293:quantum/mousekey.c ****         mouse_report.y = 0;
+ 294:quantum/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 295:quantum/mousekey.c ****         mouse_report.y = 0;
+ 296:quantum/mousekey.c ****     else if (code == KC_MS_LEFT && mouse_report.x < 0)
+ 457               		.loc 1 296 48 is_stmt 0 view .LVU124
+ 458 0000 4091 0000 		lds r20,mouse_report+2
+ 292:quantum/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 459               		.loc 1 292 8 view .LVU125
+ 460 0004 8D3E      		cpi r24,lo8(-19)
+ 461 0006 01F4      		brne .L47
+ 292:quantum/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 462               		.loc 1 292 26 discriminator 1 view .LVU126
+ 463 0008 8091 0000 		lds r24,mouse_report+3
+ 464               	.LVL42:
+ 292:quantum/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 465               		.loc 1 292 26 discriminator 1 view .LVU127
+ 466 000c 87FF      		sbrs r24,7
+ 467 000e 00C0      		rjmp .L48
+ 468               	.L52:
+ 293:quantum/mousekey.c ****         mouse_report.y = 0;
+ 469               		.loc 1 293 9 is_stmt 1 view .LVU128
+ 293:quantum/mousekey.c ****         mouse_report.y = 0;
+ 470               		.loc 1 293 24 is_stmt 0 view .LVU129
+ 471 0010 1092 0000 		sts mouse_report+3,__zero_reg__
+ 297:quantum/mousekey.c ****         mouse_report.x = 0;
+ 298:quantum/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 299:quantum/mousekey.c ****         mouse_report.x = 0;
+ 300:quantum/mousekey.c ****     else if (code == KC_MS_WH_UP && mouse_report.v > 0)
+ 301:quantum/mousekey.c ****         mouse_report.v = 0;
+ 302:quantum/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 303:quantum/mousekey.c ****         mouse_report.v = 0;
+ 304:quantum/mousekey.c ****     else if (code == KC_MS_WH_LEFT && mouse_report.h < 0)
+ 305:quantum/mousekey.c ****         mouse_report.h = 0;
+ 306:quantum/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 307:quantum/mousekey.c ****         mouse_report.h = 0;
+ 308:quantum/mousekey.c ****     else if (IS_MOUSEKEY_BUTTON(code))
+ 309:quantum/mousekey.c ****         mouse_report.buttons &= ~(1 << (code - KC_MS_BTN1));
+ 310:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 311:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 0);
+ 312:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 313:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 1);
+ 314:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 315:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 2);
+ 316:quantum/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0) {
+ 472               		.loc 1 316 5 is_stmt 1 view .LVU130
+ 473               		.loc 1 316 8 is_stmt 0 view .LVU131
+ 474 0014 4111      		cpse r20,__zero_reg__
+ 475 0016 00C0      		rjmp .L66
+ 476               	.L49:
+ 317:quantum/mousekey.c ****         mousekey_repeat = 0;
+ 477               		.loc 1 317 9 is_stmt 1 view .LVU132
+ 478               		.loc 1 317 25 is_stmt 0 view .LVU133
+ 479 0018 1092 0000 		sts mousekey_repeat,__zero_reg__
+ 480 001c 00C0      		rjmp .L66
+ 481               	.LVL43:
+ 482               	.L47:
+ 294:quantum/mousekey.c ****         mouse_report.y = 0;
+ 483               		.loc 1 294 10 is_stmt 1 view .LVU134
+ 294:quantum/mousekey.c ****         mouse_report.y = 0;
+ 484               		.loc 1 294 13 is_stmt 0 view .LVU135
+ 485 001e 8E3E      		cpi r24,lo8(-18)
+ 486 0020 01F4      		brne .L51
+ 294:quantum/mousekey.c ****         mouse_report.y = 0;
+ 487               		.loc 1 294 33 discriminator 1 view .LVU136
+ 488 0022 8091 0000 		lds r24,mouse_report+3
+ 489               	.LVL44:
+ 294:quantum/mousekey.c ****         mouse_report.y = 0;
+ 490               		.loc 1 294 33 discriminator 1 view .LVU137
+ 491 0026 1816      		cp __zero_reg__,r24
+ 492 0028 04F0      		brlt .L52
+ 493               	.L48:
+ 316:quantum/mousekey.c ****         mousekey_repeat = 0;
+ 494               		.loc 1 316 5 is_stmt 1 view .LVU138
+ 316:quantum/mousekey.c ****         mousekey_repeat = 0;
+ 495               		.loc 1 316 8 is_stmt 0 view .LVU139
+ 496 002a 4423      		tst r20
+ 497 002c 01F0      		breq .L54
+ 498               	.L66:
+ 318:quantum/mousekey.c **** #    ifdef MK_KINETIC_SPEED
+ 319:quantum/mousekey.c ****         mouse_timer = 0;
+ 320:quantum/mousekey.c **** #    endif /* #ifdef MK_KINETIC_SPEED */
+ 321:quantum/mousekey.c ****     }
+ 322:quantum/mousekey.c ****     if (mouse_report.v == 0 && mouse_report.h == 0) mousekey_wheel_repeat = 0;
+ 499               		.loc 1 322 5 is_stmt 1 view .LVU140
+ 500               		.loc 1 322 29 is_stmt 0 view .LVU141
+ 501 002e 8091 0000 		lds r24,mouse_report+4
+ 502 0032 9091 0000 		lds r25,mouse_report+5
+ 503 0036 892B      		or r24,r25
+ 504 0038 01F0      		breq .+2
+ 505 003a 00C0      		rjmp .L46
+ 506               		.loc 1 322 53 is_stmt 1 discriminator 2 view .LVU142
+ 507               		.loc 1 322 75 is_stmt 0 discriminator 2 view .LVU143
+ 508 003c 1092 0000 		sts mousekey_wheel_repeat,__zero_reg__
+ 323:quantum/mousekey.c **** }
+ 509               		.loc 1 323 1 discriminator 2 view .LVU144
+ 510 0040 0895      		ret
+ 511               	.LVL45:
+ 512               	.L51:
+ 296:quantum/mousekey.c ****         mouse_report.x = 0;
+ 513               		.loc 1 296 10 is_stmt 1 view .LVU145
+ 296:quantum/mousekey.c ****         mouse_report.x = 0;
+ 514               		.loc 1 296 13 is_stmt 0 view .LVU146
+ 515 0042 8F3E      		cpi r24,lo8(-17)
+ 516 0044 01F4      		brne .L53
+ 296:quantum/mousekey.c ****         mouse_report.x = 0;
+ 517               		.loc 1 296 33 discriminator 1 view .LVU147
+ 518 0046 47FF      		sbrs r20,7
+ 519 0048 00C0      		rjmp .L48
+ 520               	.L56:
+ 297:quantum/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 521               		.loc 1 297 9 is_stmt 1 view .LVU148
+ 297:quantum/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 522               		.loc 1 297 24 is_stmt 0 view .LVU149
+ 523 004a 1092 0000 		sts mouse_report+2,__zero_reg__
+ 524               	.LVL46:
+ 525               	.L54:
+ 316:quantum/mousekey.c ****         mousekey_repeat = 0;
+ 526               		.loc 1 316 5 is_stmt 1 view .LVU150
+ 316:quantum/mousekey.c ****         mousekey_repeat = 0;
+ 527               		.loc 1 316 29 is_stmt 0 view .LVU151
+ 528 004e 8091 0000 		lds r24,mouse_report+3
+ 529 0052 8111      		cpse r24,__zero_reg__
+ 530 0054 00C0      		rjmp .L66
+ 531 0056 00C0      		rjmp .L49
+ 532               	.LVL47:
+ 533               	.L53:
+ 298:quantum/mousekey.c ****         mouse_report.x = 0;
+ 534               		.loc 1 298 10 is_stmt 1 view .LVU152
+ 298:quantum/mousekey.c ****         mouse_report.x = 0;
+ 535               		.loc 1 298 13 is_stmt 0 view .LVU153
+ 536 0058 803F      		cpi r24,lo8(-16)
+ 537 005a 01F4      		brne .L55
+ 298:quantum/mousekey.c ****         mouse_report.x = 0;
+ 538               		.loc 1 298 34 discriminator 1 view .LVU154
+ 539 005c 1416      		cp __zero_reg__,r20
+ 540 005e 04F0      		brlt .L56
+ 541 0060 00C0      		rjmp .L48
+ 542               	.L55:
+ 300:quantum/mousekey.c ****         mouse_report.v = 0;
+ 543               		.loc 1 300 10 is_stmt 1 view .LVU155
+ 544 0062 9091 0000 		lds r25,mouse_report+4
+ 300:quantum/mousekey.c ****         mouse_report.v = 0;
+ 545               		.loc 1 300 13 is_stmt 0 view .LVU156
+ 546 0066 893F      		cpi r24,lo8(-7)
+ 547 0068 01F4      		brne .L57
+ 300:quantum/mousekey.c ****         mouse_report.v = 0;
+ 548               		.loc 1 300 34 discriminator 1 view .LVU157
+ 549 006a 1916      		cp __zero_reg__,r25
+ 550 006c 04F4      		brge .L48
+ 551               	.L59:
+ 301:quantum/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 552               		.loc 1 301 9 is_stmt 1 view .LVU158
+ 301:quantum/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 553               		.loc 1 301 24 is_stmt 0 view .LVU159
+ 554 006e 1092 0000 		sts mouse_report+4,__zero_reg__
+ 555 0072 00C0      		rjmp .L48
+ 556               	.L57:
+ 302:quantum/mousekey.c ****         mouse_report.v = 0;
+ 557               		.loc 1 302 10 is_stmt 1 view .LVU160
+ 302:quantum/mousekey.c ****         mouse_report.v = 0;
+ 558               		.loc 1 302 13 is_stmt 0 view .LVU161
+ 559 0074 8A3F      		cpi r24,lo8(-6)
+ 560 0076 01F4      		brne .L58
+ 302:quantum/mousekey.c ****         mouse_report.v = 0;
+ 561               		.loc 1 302 36 discriminator 1 view .LVU162
+ 562 0078 97FF      		sbrs r25,7
+ 563 007a 00C0      		rjmp .L48
+ 564 007c 00C0      		rjmp .L59
+ 565               	.L58:
+ 304:quantum/mousekey.c ****         mouse_report.h = 0;
+ 566               		.loc 1 304 10 is_stmt 1 view .LVU163
+ 567 007e 9091 0000 		lds r25,mouse_report+5
+ 304:quantum/mousekey.c ****         mouse_report.h = 0;
+ 568               		.loc 1 304 13 is_stmt 0 view .LVU164
+ 569 0082 8B3F      		cpi r24,lo8(-5)
+ 570 0084 01F4      		brne .L60
+ 304:quantum/mousekey.c ****         mouse_report.h = 0;
+ 571               		.loc 1 304 36 discriminator 1 view .LVU165
+ 572 0086 97FF      		sbrs r25,7
+ 573 0088 00C0      		rjmp .L48
+ 574               	.L62:
+ 305:quantum/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 575               		.loc 1 305 9 is_stmt 1 view .LVU166
+ 305:quantum/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 576               		.loc 1 305 24 is_stmt 0 view .LVU167
+ 577 008a 1092 0000 		sts mouse_report+5,__zero_reg__
+ 578 008e 00C0      		rjmp .L48
+ 579               	.L60:
+ 306:quantum/mousekey.c ****         mouse_report.h = 0;
+ 580               		.loc 1 306 10 is_stmt 1 view .LVU168
+ 306:quantum/mousekey.c ****         mouse_report.h = 0;
+ 581               		.loc 1 306 13 is_stmt 0 view .LVU169
+ 582 0090 8C3F      		cpi r24,lo8(-4)
+ 583 0092 01F4      		brne .L61
+ 306:quantum/mousekey.c ****         mouse_report.h = 0;
+ 584               		.loc 1 306 37 discriminator 1 view .LVU170
+ 585 0094 1916      		cp __zero_reg__,r25
+ 586 0096 04F0      		brlt .L62
+ 587 0098 00C0      		rjmp .L48
+ 588               	.L61:
+ 308:quantum/mousekey.c ****         mouse_report.buttons &= ~(1 << (code - KC_MS_BTN1));
+ 589               		.loc 1 308 10 is_stmt 1 view .LVU171
+ 308:quantum/mousekey.c ****         mouse_report.buttons &= ~(1 << (code - KC_MS_BTN1));
+ 590               		.loc 1 308 14 is_stmt 0 view .LVU172
+ 591 009a 9FE0      		ldi r25,lo8(15)
+ 592 009c 980F      		add r25,r24
+ 308:quantum/mousekey.c ****         mouse_report.buttons &= ~(1 << (code - KC_MS_BTN1));
+ 593               		.loc 1 308 13 view .LVU173
+ 594 009e 9830      		cpi r25,lo8(8)
+ 595 00a0 00F4      		brsh .L63
+ 309:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 596               		.loc 1 309 9 is_stmt 1 view .LVU174
+ 309:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 597               		.loc 1 309 46 is_stmt 0 view .LVU175
+ 598 00a2 815F      		subi r24,241
+ 599 00a4 990B      		sbc r25,r25
+ 600               	.LVL48:
+ 309:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 601               		.loc 1 309 37 view .LVU176
+ 602 00a6 21E0      		ldi r18,lo8(1)
+ 603 00a8 30E0      		ldi r19,0
+ 604 00aa B901      		movw r22,r18
+ 605 00ac 00C0      		rjmp 2f
+ 606               		1:
+ 607 00ae 660F      		lsl r22
+ 608 00b0 771F      		rol r23
+ 609               		2:
+ 610 00b2 8A95      		dec r24
+ 611 00b4 02F4      		brpl 1b
+ 612 00b6 CB01      		movw r24,r22
+ 309:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 613               		.loc 1 309 30 view .LVU177
+ 614 00b8 8095      		com r24
+ 615 00ba 9091 0000 		lds r25,mouse_report+1
+ 616 00be 8923      		and r24,r25
+ 617 00c0 8093 0000 		sts mouse_report+1,r24
+ 618 00c4 00C0      		rjmp .L48
+ 619               	.LVL49:
+ 620               	.L63:
+ 310:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 0);
+ 621               		.loc 1 310 10 is_stmt 1 view .LVU178
+ 310:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 0);
+ 622               		.loc 1 310 13 is_stmt 0 view .LVU179
+ 623 00c6 8D3F      		cpi r24,lo8(-3)
+ 624 00c8 01F4      		brne .L64
+ 311:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 625               		.loc 1 311 9 is_stmt 1 view .LVU180
+ 311:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 626               		.loc 1 311 24 is_stmt 0 view .LVU181
+ 627 00ca 8091 0000 		lds r24,mousekey_accel
+ 628               	.LVL50:
+ 311:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 629               		.loc 1 311 24 view .LVU182
+ 630 00ce 8E7F      		andi r24,lo8(-2)
+ 631               	.L77:
+ 315:quantum/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0) {
+ 632               		.loc 1 315 24 view .LVU183
+ 633 00d0 8093 0000 		sts mousekey_accel,r24
+ 634 00d4 00C0      		rjmp .L48
+ 635               	.LVL51:
+ 636               	.L64:
+ 312:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 1);
+ 637               		.loc 1 312 10 is_stmt 1 view .LVU184
+ 312:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 1);
+ 638               		.loc 1 312 13 is_stmt 0 view .LVU185
+ 639 00d6 8E3F      		cpi r24,lo8(-2)
+ 640 00d8 01F4      		brne .L65
+ 313:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 641               		.loc 1 313 9 is_stmt 1 view .LVU186
+ 313:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 642               		.loc 1 313 24 is_stmt 0 view .LVU187
+ 643 00da 8091 0000 		lds r24,mousekey_accel
+ 644               	.LVL52:
+ 313:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 645               		.loc 1 313 24 view .LVU188
+ 646 00de 8D7F      		andi r24,lo8(-3)
+ 647 00e0 00C0      		rjmp .L77
+ 648               	.LVL53:
+ 649               	.L65:
+ 314:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 2);
+ 650               		.loc 1 314 10 is_stmt 1 view .LVU189
+ 314:quantum/mousekey.c ****         mousekey_accel &= ~(1 << 2);
+ 651               		.loc 1 314 13 is_stmt 0 view .LVU190
+ 652 00e2 8F3F      		cpi r24,lo8(-1)
+ 653 00e4 01F0      		breq .+2
+ 654 00e6 00C0      		rjmp .L48
+ 315:quantum/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0) {
+ 655               		.loc 1 315 9 is_stmt 1 view .LVU191
+ 315:quantum/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0) {
+ 656               		.loc 1 315 24 is_stmt 0 view .LVU192
+ 657 00e8 8091 0000 		lds r24,mousekey_accel
+ 658               	.LVL54:
+ 315:quantum/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0) {
+ 659               		.loc 1 315 24 view .LVU193
+ 660 00ec 8B7F      		andi r24,lo8(-5)
+ 661 00ee 00C0      		rjmp .L77
+ 662               	.L46:
+ 663               	/* epilogue start */
+ 664               		.loc 1 323 1 view .LVU194
+ 665 00f0 0895      		ret
+ 666               		.cfi_endproc
+ 667               	.LFE109:
+ 669               		.section	.text.mousekey_send,"ax",@progbits
+ 670               	.global	mousekey_send
+ 672               	mousekey_send:
+ 673               	.LFB110:
+ 324:quantum/mousekey.c **** 
+ 325:quantum/mousekey.c **** #else /* #ifndef MK_3_SPEED */
+ 326:quantum/mousekey.c **** 
+ 327:quantum/mousekey.c **** enum { mkspd_unmod, mkspd_0, mkspd_1, mkspd_2, mkspd_COUNT };
+ 328:quantum/mousekey.c **** #    ifndef MK_MOMENTARY_ACCEL
+ 329:quantum/mousekey.c **** static uint8_t  mk_speed                 = mkspd_1;
+ 330:quantum/mousekey.c **** #    else
+ 331:quantum/mousekey.c **** static uint8_t mk_speed      = mkspd_unmod;
+ 332:quantum/mousekey.c **** static uint8_t mkspd_DEFAULT = mkspd_unmod;
+ 333:quantum/mousekey.c **** #    endif
+ 334:quantum/mousekey.c **** static uint16_t last_timer_c             = 0;
+ 335:quantum/mousekey.c **** static uint16_t last_timer_w             = 0;
+ 336:quantum/mousekey.c **** uint16_t        c_offsets[mkspd_COUNT]   = {MK_C_OFFSET_UNMOD, MK_C_OFFSET_0, MK_C_OFFSET_1, MK_C_O
+ 337:quantum/mousekey.c **** uint16_t        c_intervals[mkspd_COUNT] = {MK_C_INTERVAL_UNMOD, MK_C_INTERVAL_0, MK_C_INTERVAL_1, 
+ 338:quantum/mousekey.c **** uint16_t        w_offsets[mkspd_COUNT]   = {MK_W_OFFSET_UNMOD, MK_W_OFFSET_0, MK_W_OFFSET_1, MK_W_O
+ 339:quantum/mousekey.c **** uint16_t        w_intervals[mkspd_COUNT] = {MK_W_INTERVAL_UNMOD, MK_W_INTERVAL_0, MK_W_INTERVAL_1, 
+ 340:quantum/mousekey.c **** 
+ 341:quantum/mousekey.c **** void mousekey_task(void) {
+ 342:quantum/mousekey.c ****     // report cursor and scroll movement independently
+ 343:quantum/mousekey.c ****     report_mouse_t const tmpmr = mouse_report;
+ 344:quantum/mousekey.c ****     mouse_report.x             = 0;
+ 345:quantum/mousekey.c ****     mouse_report.y             = 0;
+ 346:quantum/mousekey.c ****     mouse_report.v             = 0;
+ 347:quantum/mousekey.c ****     mouse_report.h             = 0;
+ 348:quantum/mousekey.c **** 
+ 349:quantum/mousekey.c ****     if ((tmpmr.x || tmpmr.y) && timer_elapsed(last_timer_c) > c_intervals[mk_speed]) {
+ 350:quantum/mousekey.c ****         mouse_report.x = tmpmr.x;
+ 351:quantum/mousekey.c ****         mouse_report.y = tmpmr.y;
+ 352:quantum/mousekey.c ****     }
+ 353:quantum/mousekey.c ****     if ((tmpmr.h || tmpmr.v) && timer_elapsed(last_timer_w) > w_intervals[mk_speed]) {
+ 354:quantum/mousekey.c ****         mouse_report.v = tmpmr.v;
+ 355:quantum/mousekey.c ****         mouse_report.h = tmpmr.h;
+ 356:quantum/mousekey.c ****     }
+ 357:quantum/mousekey.c **** 
+ 358:quantum/mousekey.c ****     if (mouse_report.x || mouse_report.y || mouse_report.v || mouse_report.h) mousekey_send();
+ 359:quantum/mousekey.c ****     mouse_report = tmpmr;
+ 360:quantum/mousekey.c **** }
+ 361:quantum/mousekey.c **** 
+ 362:quantum/mousekey.c **** void adjust_speed(void) {
+ 363:quantum/mousekey.c ****     uint16_t const c_offset = c_offsets[mk_speed];
+ 364:quantum/mousekey.c ****     uint16_t const w_offset = w_offsets[mk_speed];
+ 365:quantum/mousekey.c ****     if (mouse_report.x > 0) mouse_report.x = c_offset;
+ 366:quantum/mousekey.c ****     if (mouse_report.x < 0) mouse_report.x = c_offset * -1;
+ 367:quantum/mousekey.c ****     if (mouse_report.y > 0) mouse_report.y = c_offset;
+ 368:quantum/mousekey.c ****     if (mouse_report.y < 0) mouse_report.y = c_offset * -1;
+ 369:quantum/mousekey.c ****     if (mouse_report.h > 0) mouse_report.h = w_offset;
+ 370:quantum/mousekey.c ****     if (mouse_report.h < 0) mouse_report.h = w_offset * -1;
+ 371:quantum/mousekey.c ****     if (mouse_report.v > 0) mouse_report.v = w_offset;
+ 372:quantum/mousekey.c ****     if (mouse_report.v < 0) mouse_report.v = w_offset * -1;
+ 373:quantum/mousekey.c ****     // adjust for diagonals
+ 374:quantum/mousekey.c ****     if (mouse_report.x && mouse_report.y) {
+ 375:quantum/mousekey.c ****         mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 376:quantum/mousekey.c ****         if (mouse_report.x == 0) {
+ 377:quantum/mousekey.c ****             mouse_report.x = 1;
+ 378:quantum/mousekey.c ****         }
+ 379:quantum/mousekey.c ****         mouse_report.y = times_inv_sqrt2(mouse_report.y);
+ 380:quantum/mousekey.c ****         if (mouse_report.y == 0) {
+ 381:quantum/mousekey.c ****             mouse_report.y = 1;
+ 382:quantum/mousekey.c ****         }
+ 383:quantum/mousekey.c ****     }
+ 384:quantum/mousekey.c ****     if (mouse_report.h && mouse_report.v) {
+ 385:quantum/mousekey.c ****         mouse_report.h = times_inv_sqrt2(mouse_report.h);
+ 386:quantum/mousekey.c ****         mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 387:quantum/mousekey.c ****     }
+ 388:quantum/mousekey.c **** }
+ 389:quantum/mousekey.c **** 
+ 390:quantum/mousekey.c **** void mousekey_on(uint8_t code) {
+ 391:quantum/mousekey.c ****     uint16_t const c_offset  = c_offsets[mk_speed];
+ 392:quantum/mousekey.c ****     uint16_t const w_offset  = w_offsets[mk_speed];
+ 393:quantum/mousekey.c ****     uint8_t const  old_speed = mk_speed;
+ 394:quantum/mousekey.c ****     if (code == KC_MS_UP)
+ 395:quantum/mousekey.c ****         mouse_report.y = c_offset * -1;
+ 396:quantum/mousekey.c ****     else if (code == KC_MS_DOWN)
+ 397:quantum/mousekey.c ****         mouse_report.y = c_offset;
+ 398:quantum/mousekey.c ****     else if (code == KC_MS_LEFT)
+ 399:quantum/mousekey.c ****         mouse_report.x = c_offset * -1;
+ 400:quantum/mousekey.c ****     else if (code == KC_MS_RIGHT)
+ 401:quantum/mousekey.c ****         mouse_report.x = c_offset;
+ 402:quantum/mousekey.c ****     else if (code == KC_MS_WH_UP)
+ 403:quantum/mousekey.c ****         mouse_report.v = w_offset;
+ 404:quantum/mousekey.c ****     else if (code == KC_MS_WH_DOWN)
+ 405:quantum/mousekey.c ****         mouse_report.v = w_offset * -1;
+ 406:quantum/mousekey.c ****     else if (code == KC_MS_WH_LEFT)
+ 407:quantum/mousekey.c ****         mouse_report.h = w_offset * -1;
+ 408:quantum/mousekey.c ****     else if (code == KC_MS_WH_RIGHT)
+ 409:quantum/mousekey.c ****         mouse_report.h = w_offset;
+ 410:quantum/mousekey.c ****     else if (IS_MOUSEKEY_BUTTON(code))
+ 411:quantum/mousekey.c ****         mouse_report.buttons |= 1 << (code - KC_MS_BTN1);
+ 412:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 413:quantum/mousekey.c ****         mk_speed = mkspd_0;
+ 414:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 415:quantum/mousekey.c ****         mk_speed = mkspd_1;
+ 416:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 417:quantum/mousekey.c ****         mk_speed = mkspd_2;
+ 418:quantum/mousekey.c ****     if (mk_speed != old_speed) adjust_speed();
+ 419:quantum/mousekey.c **** }
+ 420:quantum/mousekey.c **** 
+ 421:quantum/mousekey.c **** void mousekey_off(uint8_t code) {
+ 422:quantum/mousekey.c **** #    ifdef MK_MOMENTARY_ACCEL
+ 423:quantum/mousekey.c ****     uint8_t const old_speed = mk_speed;
+ 424:quantum/mousekey.c **** #    endif
+ 425:quantum/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 426:quantum/mousekey.c ****         mouse_report.y = 0;
+ 427:quantum/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 428:quantum/mousekey.c ****         mouse_report.y = 0;
+ 429:quantum/mousekey.c ****     else if (code == KC_MS_LEFT && mouse_report.x < 0)
+ 430:quantum/mousekey.c ****         mouse_report.x = 0;
+ 431:quantum/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 432:quantum/mousekey.c ****         mouse_report.x = 0;
+ 433:quantum/mousekey.c ****     else if (code == KC_MS_WH_UP && mouse_report.v > 0)
+ 434:quantum/mousekey.c ****         mouse_report.v = 0;
+ 435:quantum/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 436:quantum/mousekey.c ****         mouse_report.v = 0;
+ 437:quantum/mousekey.c ****     else if (code == KC_MS_WH_LEFT && mouse_report.h < 0)
+ 438:quantum/mousekey.c ****         mouse_report.h = 0;
+ 439:quantum/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 440:quantum/mousekey.c ****         mouse_report.h = 0;
+ 441:quantum/mousekey.c ****     else if (IS_MOUSEKEY_BUTTON(code))
+ 442:quantum/mousekey.c ****         mouse_report.buttons &= ~(1 << (code - KC_MS_BTN1));
+ 443:quantum/mousekey.c **** #    ifdef MK_MOMENTARY_ACCEL
+ 444:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 445:quantum/mousekey.c ****         mk_speed = mkspd_DEFAULT;
+ 446:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 447:quantum/mousekey.c ****         mk_speed = mkspd_DEFAULT;
+ 448:quantum/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 449:quantum/mousekey.c ****         mk_speed = mkspd_DEFAULT;
+ 450:quantum/mousekey.c ****     if (mk_speed != old_speed) adjust_speed();
+ 451:quantum/mousekey.c **** #    endif
+ 452:quantum/mousekey.c **** }
+ 453:quantum/mousekey.c **** 
+ 454:quantum/mousekey.c **** #endif /* #ifndef MK_3_SPEED */
+ 455:quantum/mousekey.c **** 
+ 456:quantum/mousekey.c **** void mousekey_send(void) {
+ 674               		.loc 1 456 26 is_stmt 1 view -0
+ 675               		.cfi_startproc
+ 676               	/* prologue: function */
+ 677               	/* frame size = 0 */
+ 678               	/* stack size = 0 */
+ 679               	.L__stack_usage = 0
+ 457:quantum/mousekey.c ****     mousekey_debug();
+ 680               		.loc 1 457 5 view .LVU196
+ 458:quantum/mousekey.c ****     uint16_t time = timer_read();
+ 681               		.loc 1 458 5 view .LVU197
+ 682               		.loc 1 458 21 is_stmt 0 view .LVU198
+ 683 0000 0E94 0000 		call timer_read
+ 684               	.LVL55:
+ 459:quantum/mousekey.c ****     if (mouse_report.x || mouse_report.y) last_timer_c = time;
+ 685               		.loc 1 459 5 is_stmt 1 view .LVU199
+ 686               		.loc 1 459 24 is_stmt 0 view .LVU200
+ 687 0004 2091 0000 		lds r18,mouse_report+2
+ 688 0008 3091 0000 		lds r19,mouse_report+3
+ 689 000c 232B      		or r18,r19
+ 690 000e 01F0      		breq .L79
+ 691               		.loc 1 459 43 is_stmt 1 discriminator 3 view .LVU201
+ 692               		.loc 1 459 56 is_stmt 0 discriminator 3 view .LVU202
+ 693 0010 8093 0000 		sts last_timer_c,r24
+ 694 0014 9093 0000 		sts last_timer_c+1,r25
+ 695               	.L79:
+ 460:quantum/mousekey.c ****     if (mouse_report.v || mouse_report.h) last_timer_w = time;
+ 696               		.loc 1 460 5 is_stmt 1 view .LVU203
+ 697               		.loc 1 460 24 is_stmt 0 view .LVU204
+ 698 0018 2091 0000 		lds r18,mouse_report+4
+ 699 001c 3091 0000 		lds r19,mouse_report+5
+ 700 0020 232B      		or r18,r19
+ 701 0022 01F0      		breq .L80
+ 702               		.loc 1 460 43 is_stmt 1 discriminator 3 view .LVU205
+ 703               		.loc 1 460 56 is_stmt 0 discriminator 3 view .LVU206
+ 704 0024 8093 0000 		sts last_timer_w,r24
+ 705 0028 9093 0000 		sts last_timer_w+1,r25
+ 706               	.L80:
+ 461:quantum/mousekey.c ****     host_mouse_send(&mouse_report);
+ 707               		.loc 1 461 5 is_stmt 1 view .LVU207
+ 708 002c 80E0      		ldi r24,lo8(mouse_report)
+ 709 002e 90E0      		ldi r25,hi8(mouse_report)
+ 710               	.LVL56:
+ 711               		.loc 1 461 5 is_stmt 0 view .LVU208
+ 712 0030 0C94 0000 		jmp host_mouse_send
+ 713               	.LVL57:
+ 714               		.cfi_endproc
+ 715               	.LFE110:
+ 717               		.section	.text.mousekey_task,"ax",@progbits
+ 718               	.global	mousekey_task
+ 720               	mousekey_task:
+ 721               	.LFB107:
+ 210:quantum/mousekey.c ****     // report cursor and scroll movement independently
+ 722               		.loc 1 210 26 is_stmt 1 view -0
+ 723               		.cfi_startproc
+ 724 0000 CF92      		push r12
+ 725               	.LCFI0:
+ 726               		.cfi_def_cfa_offset 3
+ 727               		.cfi_offset 12, -2
+ 728 0002 DF92      		push r13
+ 729               	.LCFI1:
+ 730               		.cfi_def_cfa_offset 4
+ 731               		.cfi_offset 13, -3
+ 732 0004 EF92      		push r14
+ 733               	.LCFI2:
+ 734               		.cfi_def_cfa_offset 5
+ 735               		.cfi_offset 14, -4
+ 736 0006 FF92      		push r15
+ 737               	.LCFI3:
+ 738               		.cfi_def_cfa_offset 6
+ 739               		.cfi_offset 15, -5
+ 740 0008 0F93      		push r16
+ 741               	.LCFI4:
+ 742               		.cfi_def_cfa_offset 7
+ 743               		.cfi_offset 16, -6
+ 744 000a 1F93      		push r17
+ 745               	.LCFI5:
+ 746               		.cfi_def_cfa_offset 8
+ 747               		.cfi_offset 17, -7
+ 748 000c CF93      		push r28
+ 749               	.LCFI6:
+ 750               		.cfi_def_cfa_offset 9
+ 751               		.cfi_offset 28, -8
+ 752 000e DF93      		push r29
+ 753               	.LCFI7:
+ 754               		.cfi_def_cfa_offset 10
+ 755               		.cfi_offset 29, -9
+ 756 0010 00D0      		rcall .
+ 757 0012 00D0      		rcall .
+ 758 0014 00D0      		rcall .
+ 759               	.LCFI8:
+ 760               		.cfi_def_cfa_offset 16
+ 761 0016 CDB7      		in r28,__SP_L__
+ 762 0018 DEB7      		in r29,__SP_H__
+ 763               	.LCFI9:
+ 764               		.cfi_def_cfa_register 28
+ 765               	/* prologue: function */
+ 766               	/* frame size = 6 */
+ 767               	/* stack size = 14 */
+ 768               	.L__stack_usage = 14
+ 212:quantum/mousekey.c **** 
+ 769               		.loc 1 212 5 view .LVU210
+ 212:quantum/mousekey.c **** 
+ 770               		.loc 1 212 26 is_stmt 0 view .LVU211
+ 771 001a 26E0      		ldi r18,lo8(6)
+ 772 001c E0E0      		ldi r30,lo8(mouse_report)
+ 773 001e F0E0      		ldi r31,hi8(mouse_report)
+ 774 0020 CE01      		movw r24,r28
+ 775 0022 0196      		adiw r24,1
+ 776 0024 DC01      		movw r26,r24
+ 777               		0:
+ 778 0026 0190      		ld r0,Z+
+ 779 0028 0D92      		st X+,r0
+ 780 002a 2A95      		dec r18
+ 781 002c 01F4      		brne 0b
+ 782 002e C090 0000 		lds r12,mouse_report+2
+ 783               	.LVL58:
+ 212:quantum/mousekey.c **** 
+ 784               		.loc 1 212 26 view .LVU212
+ 785 0032 D090 0000 		lds r13,mouse_report+3
+ 786               	.LVL59:
+ 212:quantum/mousekey.c **** 
+ 787               		.loc 1 212 26 view .LVU213
+ 788 0036 E090 0000 		lds r14,mouse_report+4
+ 789               	.LVL60:
+ 212:quantum/mousekey.c **** 
+ 790               		.loc 1 212 26 view .LVU214
+ 791 003a F090 0000 		lds r15,mouse_report+5
+ 792               	.LVL61:
+ 214:quantum/mousekey.c ****     mouse_report.y = 0;
+ 793               		.loc 1 214 5 is_stmt 1 view .LVU215
+ 214:quantum/mousekey.c ****     mouse_report.y = 0;
+ 794               		.loc 1 214 20 is_stmt 0 view .LVU216
+ 795 003e 1092 0000 		sts mouse_report+2,__zero_reg__
+ 215:quantum/mousekey.c ****     mouse_report.v = 0;
+ 796               		.loc 1 215 5 is_stmt 1 view .LVU217
+ 215:quantum/mousekey.c ****     mouse_report.v = 0;
+ 797               		.loc 1 215 20 is_stmt 0 view .LVU218
+ 798 0042 1092 0000 		sts mouse_report+3,__zero_reg__
+ 216:quantum/mousekey.c ****     mouse_report.h = 0;
+ 799               		.loc 1 216 5 is_stmt 1 view .LVU219
+ 216:quantum/mousekey.c ****     mouse_report.h = 0;
+ 800               		.loc 1 216 20 is_stmt 0 view .LVU220
+ 801 0046 1092 0000 		sts mouse_report+4,__zero_reg__
+ 217:quantum/mousekey.c **** 
+ 802               		.loc 1 217 5 is_stmt 1 view .LVU221
+ 217:quantum/mousekey.c **** 
+ 803               		.loc 1 217 20 is_stmt 0 view .LVU222
+ 804 004a 1092 0000 		sts mouse_report+5,__zero_reg__
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 805               		.loc 1 219 5 is_stmt 1 view .LVU223
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 806               		.loc 1 219 18 is_stmt 0 view .LVU224
+ 807 004e 2C2D      		mov r18,r12
+ 808 0050 2D29      		or r18,r13
+ 809 0052 8C01      		movw r16,r24
+ 810 0054 01F0      		breq .L89
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 811               		.loc 1 219 33 discriminator 3 view .LVU225
+ 812 0056 8091 0000 		lds r24,last_timer_c
+ 813 005a 9091 0000 		lds r25,last_timer_c+1
+ 814 005e 0E94 0000 		call timer_elapsed
+ 815               	.LVL62:
+ 816 0062 9C01      		movw r18,r24
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 817               		.loc 1 219 80 discriminator 3 view .LVU226
+ 818 0064 8091 0000 		lds r24,mousekey_repeat
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 819               		.loc 1 219 94 discriminator 3 view .LVU227
+ 820 0068 8823      		tst r24
+ 821 006a 01F4      		brne .+2
+ 822 006c 00C0      		rjmp .L90
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 823               		.loc 1 219 94 discriminator 4 view .LVU228
+ 824 006e 9091 0000 		lds r25,mk_interval
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 825               		.loc 1 219 30 discriminator 4 view .LVU229
+ 826 0072 9217      		cp r25,r18
+ 827 0074 1306      		cpc __zero_reg__,r19
+ 828 0076 00F4      		brsh .+2
+ 829 0078 00C0      		rjmp .L91
+ 830               	.L89:
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 831               		.loc 1 236 5 is_stmt 1 view .LVU230
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 832               		.loc 1 236 18 is_stmt 0 view .LVU231
+ 833 007a 8E2D      		mov r24,r14
+ 834 007c 8F29      		or r24,r15
+ 835 007e 01F0      		breq .L103
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 836               		.loc 1 236 33 discriminator 3 view .LVU232
+ 837 0080 8091 0000 		lds r24,last_timer_w
+ 838 0084 9091 0000 		lds r25,last_timer_w+1
+ 839 0088 0E94 0000 		call timer_elapsed
+ 840               	.LVL63:
+ 841 008c 9C01      		movw r18,r24
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 842               		.loc 1 236 86 discriminator 3 view .LVU233
+ 843 008e 8091 0000 		lds r24,mousekey_wheel_repeat
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 844               		.loc 1 236 106 discriminator 3 view .LVU234
+ 845 0092 8823      		tst r24
+ 846 0094 01F4      		brne .+2
+ 847 0096 00C0      		rjmp .L104
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 848               		.loc 1 236 106 discriminator 4 view .LVU235
+ 849 0098 9091 0000 		lds r25,mk_wheel_interval
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 850               		.loc 1 236 30 discriminator 4 view .LVU236
+ 851 009c 9217      		cp r25,r18
+ 852 009e 1306      		cpc __zero_reg__,r19
+ 853 00a0 00F4      		brsh .+2
+ 854 00a2 00C0      		rjmp .L105
+ 855               	.L103:
+ 254:quantum/mousekey.c ****     mouse_report = tmpmr;
+ 856               		.loc 1 254 5 is_stmt 1 view .LVU237
+ 254:quantum/mousekey.c ****     mouse_report = tmpmr;
+ 857               		.loc 1 254 60 is_stmt 0 view .LVU238
+ 858 00a4 8091 0000 		lds r24,mouse_report+2
+ 859 00a8 9091 0000 		lds r25,mouse_report+3
+ 860 00ac 892B      		or r24,r25
+ 861 00ae 9091 0000 		lds r25,mouse_report+4
+ 862 00b2 892B      		or r24,r25
+ 863 00b4 9091 0000 		lds r25,mouse_report+5
+ 864 00b8 892B      		or r24,r25
+ 865 00ba 01F0      		breq .L116
+ 254:quantum/mousekey.c ****     mouse_report = tmpmr;
+ 866               		.loc 1 254 79 is_stmt 1 discriminator 7 view .LVU239
+ 867 00bc 0E94 0000 		call mousekey_send
+ 868               	.LVL64:
+ 869               	.L116:
+ 255:quantum/mousekey.c **** }
+ 870               		.loc 1 255 5 view .LVU240
+ 255:quantum/mousekey.c **** }
+ 871               		.loc 1 255 18 is_stmt 0 view .LVU241
+ 872 00c0 86E0      		ldi r24,lo8(6)
+ 873 00c2 F801      		movw r30,r16
+ 874 00c4 A0E0      		ldi r26,lo8(mouse_report)
+ 875 00c6 B0E0      		ldi r27,hi8(mouse_report)
+ 876               		0:
+ 877 00c8 0190      		ld r0,Z+
+ 878 00ca 0D92      		st X+,r0
+ 879 00cc 8A95      		dec r24
+ 880 00ce 01F4      		brne 0b
+ 881               	.LVL65:
+ 882               	/* epilogue start */
+ 256:quantum/mousekey.c **** 
+ 883               		.loc 1 256 1 view .LVU242
+ 884 00d0 2696      		adiw r28,6
+ 885 00d2 0FB6      		in __tmp_reg__,__SREG__
+ 886 00d4 F894      		cli
+ 887 00d6 DEBF      		out __SP_H__,r29
+ 888 00d8 0FBE      		out __SREG__,__tmp_reg__
+ 889 00da CDBF      		out __SP_L__,r28
+ 890 00dc DF91      		pop r29
+ 891 00de CF91      		pop r28
+ 892 00e0 1F91      		pop r17
+ 893 00e2 0F91      		pop r16
+ 894 00e4 FF90      		pop r15
+ 895 00e6 EF90      		pop r14
+ 896 00e8 DF90      		pop r13
+ 897 00ea CF90      		pop r12
+ 898 00ec 0895      		ret
+ 899               	.LVL66:
+ 900               	.L90:
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 901               		.loc 1 219 105 discriminator 5 view .LVU243
+ 902 00ee 4091 0000 		lds r20,mk_delay
+ 903 00f2 9AE0      		ldi r25,lo8(10)
+ 904 00f4 499F      		mul r20,r25
+ 905 00f6 A001      		movw r20,r0
+ 906 00f8 1124      		clr __zero_reg__
+ 219:quantum/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 907               		.loc 1 219 30 discriminator 5 view .LVU244
+ 908 00fa 4217      		cp r20,r18
+ 909 00fc 5307      		cpc r21,r19
+ 910 00fe 00F0      		brlo .+2
+ 911 0100 00C0      		rjmp .L89
+ 912               	.L93:
+ 220:quantum/mousekey.c ****         if (tmpmr.x != 0) mouse_report.x = move_unit() * ((tmpmr.x > 0) ? 1 : -1);
+ 913               		.loc 1 220 43 is_stmt 1 discriminator 1 view .LVU245
+ 220:quantum/mousekey.c ****         if (tmpmr.x != 0) mouse_report.x = move_unit() * ((tmpmr.x > 0) ? 1 : -1);
+ 914               		.loc 1 220 58 is_stmt 0 discriminator 1 view .LVU246
+ 915 0102 8F5F      		subi r24,lo8(-(1))
+ 916 0104 8093 0000 		sts mousekey_repeat,r24
+ 917 0108 00C0      		rjmp .L94
+ 918               	.L91:
+ 220:quantum/mousekey.c ****         if (tmpmr.x != 0) mouse_report.x = move_unit() * ((tmpmr.x > 0) ? 1 : -1);
+ 919               		.loc 1 220 9 is_stmt 1 view .LVU247
+ 220:quantum/mousekey.c ****         if (tmpmr.x != 0) mouse_report.x = move_unit() * ((tmpmr.x > 0) ? 1 : -1);
+ 920               		.loc 1 220 12 is_stmt 0 view .LVU248
+ 921 010a 8F3F      		cpi r24,lo8(-1)
+ 922 010c 01F4      		brne .L93
+ 923               	.L94:
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 924               		.loc 1 221 9 is_stmt 1 view .LVU249
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 925               		.loc 1 221 12 is_stmt 0 view .LVU250
+ 926 010e CC20      		tst r12
+ 927 0110 01F0      		breq .L95
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 928               		.loc 1 221 27 is_stmt 1 discriminator 1 view .LVU251
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 929               		.loc 1 221 44 is_stmt 0 discriminator 1 view .LVU252
+ 930 0112 0E94 0000 		call move_unit
+ 931               	.LVL67:
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 932               		.loc 1 221 42 discriminator 1 view .LVU253
+ 933 0116 9FEF      		ldi r25,lo8(-1)
+ 934 0118 1C14      		cp __zero_reg__,r12
+ 935 011a 04F4      		brge .L96
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 936               		.loc 1 221 42 view .LVU254
+ 937 011c 91E0      		ldi r25,lo8(1)
+ 938               	.L96:
+ 221:quantum/mousekey.c ****         if (tmpmr.y != 0) mouse_report.y = move_unit() * ((tmpmr.y > 0) ? 1 : -1);
+ 939               		.loc 1 221 42 discriminator 5 view .LVU255
+ 940 011e 899F      		mul r24,r25
+ 941 0120 802D      		mov r24,r0
+ 942 0122 1124      		clr r1
+ 943 0124 8093 0000 		sts mouse_report+2,r24
+ 944               	.L95:
+ 222:quantum/mousekey.c **** 
+ 945               		.loc 1 222 9 is_stmt 1 view .LVU256
+ 222:quantum/mousekey.c **** 
+ 946               		.loc 1 222 12 is_stmt 0 view .LVU257
+ 947 0128 DD20      		tst r13
+ 948 012a 01F0      		breq .L97
+ 222:quantum/mousekey.c **** 
+ 949               		.loc 1 222 27 is_stmt 1 discriminator 1 view .LVU258
+ 222:quantum/mousekey.c **** 
+ 950               		.loc 1 222 44 is_stmt 0 discriminator 1 view .LVU259
+ 951 012c 0E94 0000 		call move_unit
+ 952               	.LVL68:
+ 222:quantum/mousekey.c **** 
+ 953               		.loc 1 222 42 discriminator 1 view .LVU260
+ 954 0130 9FEF      		ldi r25,lo8(-1)
+ 955 0132 1D14      		cp __zero_reg__,r13
+ 956 0134 04F4      		brge .L98
+ 222:quantum/mousekey.c **** 
+ 957               		.loc 1 222 42 view .LVU261
+ 958 0136 91E0      		ldi r25,lo8(1)
+ 959               	.L98:
+ 222:quantum/mousekey.c **** 
+ 960               		.loc 1 222 42 discriminator 5 view .LVU262
+ 961 0138 899F      		mul r24,r25
+ 962 013a 802D      		mov r24,r0
+ 963 013c 1124      		clr r1
+ 964 013e 8093 0000 		sts mouse_report+3,r24
+ 965               	.L97:
+ 225:quantum/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 966               		.loc 1 225 9 is_stmt 1 view .LVU263
+ 225:quantum/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 967               		.loc 1 225 25 is_stmt 0 view .LVU264
+ 968 0142 3091 0000 		lds r19,mouse_report+2
+ 225:quantum/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 969               		.loc 1 225 12 view .LVU265
+ 970 0146 3323      		tst r19
+ 971 0148 01F4      		brne .+2
+ 972 014a 00C0      		rjmp .L89
+ 225:quantum/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 973               		.loc 1 225 43 discriminator 1 view .LVU266
+ 974 014c 2091 0000 		lds r18,mouse_report+3
+ 225:quantum/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 975               		.loc 1 225 28 discriminator 1 view .LVU267
+ 976 0150 2223      		tst r18
+ 977 0152 01F4      		brne .+2
+ 978 0154 00C0      		rjmp .L89
+ 226:quantum/mousekey.c ****             if (mouse_report.x == 0) {
+ 979               		.loc 1 226 13 is_stmt 1 view .LVU268
+ 980               	.LVL69:
+ 981               	.LBB10:
+ 982               	.LBI10:
+  26:quantum/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 983               		.loc 1 26 15 view .LVU269
+ 984               	.LBB11:
+  31:quantum/mousekey.c **** }
+ 985               		.loc 1 31 5 view .LVU270
+  31:quantum/mousekey.c **** }
+ 986               		.loc 1 31 15 is_stmt 0 view .LVU271
+ 987 0156 45EB      		ldi r20,lo8(-75)
+ 988 0158 3403      		mulsu r19,r20
+ 989 015a C001      		movw r24,r0
+ 990 015c 1124      		clr __zero_reg__
+ 991               	.LVL70:
+  31:quantum/mousekey.c **** }
+ 992               		.loc 1 31 15 view .LVU272
+ 993               	.LBE11:
+ 994               	.LBE10:
+ 227:quantum/mousekey.c ****                 mouse_report.x = 1;
+ 995               		.loc 1 227 13 is_stmt 1 view .LVU273
+ 227:quantum/mousekey.c ****                 mouse_report.x = 1;
+ 996               		.loc 1 227 16 is_stmt 0 view .LVU274
+ 997 015e 9923      		tst r25
+ 998 0160 01F0      		breq .L99
+ 226:quantum/mousekey.c ****             if (mouse_report.x == 0) {
+ 999               		.loc 1 226 28 view .LVU275
+ 1000 0162 9093 0000 		sts mouse_report+2,r25
+ 1001               	.L100:
+ 230:quantum/mousekey.c ****             if (mouse_report.y == 0) {
+ 1002               		.loc 1 230 13 is_stmt 1 view .LVU276
+ 1003               	.LVL71:
+ 1004               	.LBB12:
+ 1005               	.LBI12:
+  26:quantum/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1006               		.loc 1 26 15 view .LVU277
+ 1007               	.LBB13:
+  31:quantum/mousekey.c **** }
+ 1008               		.loc 1 31 5 view .LVU278
+  31:quantum/mousekey.c **** }
+ 1009               		.loc 1 31 15 is_stmt 0 view .LVU279
+ 1010 0166 45EB      		ldi r20,lo8(-75)
+ 1011 0168 2403      		mulsu r18,r20
+ 1012 016a 9001      		movw r18,r0
+ 1013 016c 1124      		clr __zero_reg__
+ 1014               	.LVL72:
+  31:quantum/mousekey.c **** }
+ 1015               		.loc 1 31 15 view .LVU280
+ 1016               	.LBE13:
+ 1017               	.LBE12:
+ 231:quantum/mousekey.c ****                 mouse_report.y = 1;
+ 1018               		.loc 1 231 13 is_stmt 1 view .LVU281
+ 231:quantum/mousekey.c ****                 mouse_report.y = 1;
+ 1019               		.loc 1 231 16 is_stmt 0 view .LVU282
+ 1020 016e 3323      		tst r19
+ 1021 0170 01F0      		breq .L101
+ 230:quantum/mousekey.c ****             if (mouse_report.y == 0) {
+ 1022               		.loc 1 230 28 view .LVU283
+ 1023 0172 3093 0000 		sts mouse_report+3,r19
+ 1024 0176 00C0      		rjmp .L89
+ 1025               	.L99:
+ 228:quantum/mousekey.c ****             }
+ 1026               		.loc 1 228 17 is_stmt 1 view .LVU284
+ 228:quantum/mousekey.c ****             }
+ 1027               		.loc 1 228 32 is_stmt 0 view .LVU285
+ 1028 0178 81E0      		ldi r24,lo8(1)
+ 1029 017a 8093 0000 		sts mouse_report+2,r24
+ 1030 017e 00C0      		rjmp .L100
+ 1031               	.L101:
+ 232:quantum/mousekey.c ****             }
+ 1032               		.loc 1 232 17 is_stmt 1 view .LVU286
+ 232:quantum/mousekey.c ****             }
+ 1033               		.loc 1 232 32 is_stmt 0 view .LVU287
+ 1034 0180 81E0      		ldi r24,lo8(1)
+ 1035 0182 8093 0000 		sts mouse_report+3,r24
+ 1036 0186 00C0      		rjmp .L89
+ 1037               	.L104:
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 1038               		.loc 1 236 123 discriminator 5 view .LVU288
+ 1039 0188 4091 0000 		lds r20,mk_wheel_delay
+ 1040 018c 9AE0      		ldi r25,lo8(10)
+ 1041 018e 499F      		mul r20,r25
+ 1042 0190 A001      		movw r20,r0
+ 1043 0192 1124      		clr __zero_reg__
+ 236:quantum/mousekey.c ****         if (mousekey_wheel_repeat != UINT8_MAX) mousekey_wheel_repeat++;
+ 1044               		.loc 1 236 30 discriminator 5 view .LVU289
+ 1045 0194 4217      		cp r20,r18
+ 1046 0196 5307      		cpc r21,r19
+ 1047 0198 00F0      		brlo .+2
+ 1048 019a 00C0      		rjmp .L103
+ 1049               	.L107:
+ 237:quantum/mousekey.c ****         if (tmpmr.v != 0) mouse_report.v = wheel_unit() * ((tmpmr.v > 0) ? 1 : -1);
+ 1050               		.loc 1 237 49 is_stmt 1 discriminator 1 view .LVU290
+ 237:quantum/mousekey.c ****         if (tmpmr.v != 0) mouse_report.v = wheel_unit() * ((tmpmr.v > 0) ? 1 : -1);
+ 1051               		.loc 1 237 70 is_stmt 0 discriminator 1 view .LVU291
+ 1052 019c 8F5F      		subi r24,lo8(-(1))
+ 1053 019e 8093 0000 		sts mousekey_wheel_repeat,r24
+ 1054 01a2 00C0      		rjmp .L108
+ 1055               	.L105:
+ 237:quantum/mousekey.c ****         if (tmpmr.v != 0) mouse_report.v = wheel_unit() * ((tmpmr.v > 0) ? 1 : -1);
+ 1056               		.loc 1 237 9 is_stmt 1 view .LVU292
+ 237:quantum/mousekey.c ****         if (tmpmr.v != 0) mouse_report.v = wheel_unit() * ((tmpmr.v > 0) ? 1 : -1);
+ 1057               		.loc 1 237 12 is_stmt 0 view .LVU293
+ 1058 01a4 8F3F      		cpi r24,lo8(-1)
+ 1059 01a6 01F4      		brne .L107
+ 1060               	.L108:
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1061               		.loc 1 238 9 is_stmt 1 view .LVU294
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1062               		.loc 1 238 12 is_stmt 0 view .LVU295
+ 1063 01a8 EE20      		tst r14
+ 1064 01aa 01F0      		breq .L109
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1065               		.loc 1 238 27 is_stmt 1 discriminator 1 view .LVU296
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1066               		.loc 1 238 44 is_stmt 0 discriminator 1 view .LVU297
+ 1067 01ac 0E94 0000 		call wheel_unit
+ 1068               	.LVL73:
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1069               		.loc 1 238 42 discriminator 1 view .LVU298
+ 1070 01b0 9FEF      		ldi r25,lo8(-1)
+ 1071 01b2 1E14      		cp __zero_reg__,r14
+ 1072 01b4 04F4      		brge .L110
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1073               		.loc 1 238 42 view .LVU299
+ 1074 01b6 91E0      		ldi r25,lo8(1)
+ 1075               	.L110:
+ 238:quantum/mousekey.c ****         if (tmpmr.h != 0) mouse_report.h = wheel_unit() * ((tmpmr.h > 0) ? 1 : -1);
+ 1076               		.loc 1 238 42 discriminator 5 view .LVU300
+ 1077 01b8 899F      		mul r24,r25
+ 1078 01ba 802D      		mov r24,r0
+ 1079 01bc 1124      		clr r1
+ 1080 01be 8093 0000 		sts mouse_report+4,r24
+ 1081               	.L109:
+ 239:quantum/mousekey.c **** 
+ 1082               		.loc 1 239 9 is_stmt 1 view .LVU301
+ 239:quantum/mousekey.c **** 
+ 1083               		.loc 1 239 12 is_stmt 0 view .LVU302
+ 1084 01c2 FF20      		tst r15
+ 1085 01c4 01F0      		breq .L111
+ 239:quantum/mousekey.c **** 
+ 1086               		.loc 1 239 27 is_stmt 1 discriminator 1 view .LVU303
+ 239:quantum/mousekey.c **** 
+ 1087               		.loc 1 239 44 is_stmt 0 discriminator 1 view .LVU304
+ 1088 01c6 0E94 0000 		call wheel_unit
+ 1089               	.LVL74:
+ 239:quantum/mousekey.c **** 
+ 1090               		.loc 1 239 42 discriminator 1 view .LVU305
+ 1091 01ca 9FEF      		ldi r25,lo8(-1)
+ 1092 01cc 1F14      		cp __zero_reg__,r15
+ 1093 01ce 04F4      		brge .L112
+ 239:quantum/mousekey.c **** 
+ 1094               		.loc 1 239 42 view .LVU306
+ 1095 01d0 91E0      		ldi r25,lo8(1)
+ 1096               	.L112:
+ 239:quantum/mousekey.c **** 
+ 1097               		.loc 1 239 42 discriminator 5 view .LVU307
+ 1098 01d2 899F      		mul r24,r25
+ 1099 01d4 802D      		mov r24,r0
+ 1100 01d6 1124      		clr r1
+ 1101 01d8 8093 0000 		sts mouse_report+5,r24
+ 1102               	.L111:
+ 242:quantum/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1103               		.loc 1 242 9 is_stmt 1 view .LVU308
+ 242:quantum/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1104               		.loc 1 242 25 is_stmt 0 view .LVU309
+ 1105 01dc 3091 0000 		lds r19,mouse_report+4
+ 242:quantum/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1106               		.loc 1 242 43 view .LVU310
+ 1107 01e0 2091 0000 		lds r18,mouse_report+5
+ 242:quantum/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1108               		.loc 1 242 12 view .LVU311
+ 1109 01e4 3323      		tst r19
+ 1110 01e6 01F4      		brne .+2
+ 1111 01e8 00C0      		rjmp .L103
+ 242:quantum/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1112               		.loc 1 242 28 discriminator 1 view .LVU312
+ 1113 01ea 2223      		tst r18
+ 1114 01ec 01F4      		brne .+2
+ 1115 01ee 00C0      		rjmp .L103
+ 243:quantum/mousekey.c ****             if (mouse_report.v == 0) {
+ 1116               		.loc 1 243 13 is_stmt 1 view .LVU313
+ 1117               	.LVL75:
+ 1118               	.LBB14:
+ 1119               	.LBI14:
+  26:quantum/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1120               		.loc 1 26 15 view .LVU314
+ 1121               	.LBB15:
+  31:quantum/mousekey.c **** }
+ 1122               		.loc 1 31 5 view .LVU315
+  31:quantum/mousekey.c **** }
+ 1123               		.loc 1 31 15 is_stmt 0 view .LVU316
+ 1124 01f0 45EB      		ldi r20,lo8(-75)
+ 1125 01f2 3403      		mulsu r19,r20
+ 1126 01f4 C001      		movw r24,r0
+ 1127 01f6 1124      		clr __zero_reg__
+ 1128               	.LVL76:
+  31:quantum/mousekey.c **** }
+ 1129               		.loc 1 31 15 view .LVU317
+ 1130               	.LBE15:
+ 1131               	.LBE14:
+ 244:quantum/mousekey.c ****                 mouse_report.v = 1;
+ 1132               		.loc 1 244 13 is_stmt 1 view .LVU318
+ 244:quantum/mousekey.c ****                 mouse_report.v = 1;
+ 1133               		.loc 1 244 16 is_stmt 0 view .LVU319
+ 1134 01f8 9923      		tst r25
+ 1135 01fa 01F0      		breq .L113
+ 243:quantum/mousekey.c ****             if (mouse_report.v == 0) {
+ 1136               		.loc 1 243 28 view .LVU320
+ 1137 01fc 9093 0000 		sts mouse_report+4,r25
+ 1138               	.L114:
+ 247:quantum/mousekey.c ****             if (mouse_report.h == 0) {
+ 1139               		.loc 1 247 13 is_stmt 1 view .LVU321
+ 1140               	.LVL77:
+ 1141               	.LBB16:
+ 1142               	.LBI16:
+  26:quantum/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1143               		.loc 1 26 15 view .LVU322
+ 1144               	.LBB17:
+  31:quantum/mousekey.c **** }
+ 1145               		.loc 1 31 5 view .LVU323
+  31:quantum/mousekey.c **** }
+ 1146               		.loc 1 31 15 is_stmt 0 view .LVU324
+ 1147 0200 45EB      		ldi r20,lo8(-75)
+ 1148 0202 2403      		mulsu r18,r20
+ 1149 0204 9001      		movw r18,r0
+ 1150 0206 1124      		clr __zero_reg__
+ 1151               	.LVL78:
+  31:quantum/mousekey.c **** }
+ 1152               		.loc 1 31 15 view .LVU325
+ 1153               	.LBE17:
+ 1154               	.LBE16:
+ 248:quantum/mousekey.c ****                 mouse_report.h = 1;
+ 1155               		.loc 1 248 13 is_stmt 1 view .LVU326
+ 248:quantum/mousekey.c ****                 mouse_report.h = 1;
+ 1156               		.loc 1 248 16 is_stmt 0 view .LVU327
+ 1157 0208 3323      		tst r19
+ 1158 020a 01F0      		breq .L115
+ 247:quantum/mousekey.c ****             if (mouse_report.h == 0) {
+ 1159               		.loc 1 247 28 view .LVU328
+ 1160 020c 3093 0000 		sts mouse_report+5,r19
+ 1161 0210 00C0      		rjmp .L103
+ 1162               	.L113:
+ 245:quantum/mousekey.c ****             }
+ 1163               		.loc 1 245 17 is_stmt 1 view .LVU329
+ 245:quantum/mousekey.c ****             }
+ 1164               		.loc 1 245 32 is_stmt 0 view .LVU330
+ 1165 0212 81E0      		ldi r24,lo8(1)
+ 1166 0214 8093 0000 		sts mouse_report+4,r24
+ 1167 0218 00C0      		rjmp .L114
+ 1168               	.L115:
+ 249:quantum/mousekey.c ****             }
+ 1169               		.loc 1 249 17 is_stmt 1 view .LVU331
+ 249:quantum/mousekey.c ****             }
+ 1170               		.loc 1 249 32 is_stmt 0 view .LVU332
+ 1171 021a 81E0      		ldi r24,lo8(1)
+ 1172 021c 8093 0000 		sts mouse_report+5,r24
+ 1173 0220 00C0      		rjmp .L103
+ 1174               		.cfi_endproc
+ 1175               	.LFE107:
+ 1177               		.section	.text.mousekey_clear,"ax",@progbits
+ 1178               	.global	mousekey_clear
+ 1180               	mousekey_clear:
+ 1181               	.LFB111:
+ 462:quantum/mousekey.c **** }
+ 463:quantum/mousekey.c **** 
+ 464:quantum/mousekey.c **** void mousekey_clear(void) {
+ 1182               		.loc 1 464 27 is_stmt 1 view -0
+ 1183               		.cfi_startproc
+ 1184               	/* prologue: function */
+ 1185               	/* frame size = 0 */
+ 1186               	/* stack size = 0 */
+ 1187               	.L__stack_usage = 0
+ 465:quantum/mousekey.c ****     mouse_report          = (report_mouse_t){};
+ 1188               		.loc 1 465 5 view .LVU334
+ 1189               		.loc 1 465 27 is_stmt 0 view .LVU335
+ 1190 0000 86E0      		ldi r24,lo8(6)
+ 1191 0002 E0E0      		ldi r30,lo8(mouse_report)
+ 1192 0004 F0E0      		ldi r31,hi8(mouse_report)
+ 1193 0006 DF01      		movw r26,r30
+ 1194               		0:
+ 1195 0008 1D92      		st X+,__zero_reg__
+ 1196 000a 8A95      		dec r24
+ 1197 000c 01F4      		brne 0b
+ 466:quantum/mousekey.c ****     mousekey_repeat       = 0;
+ 1198               		.loc 1 466 5 is_stmt 1 view .LVU336
+ 1199               		.loc 1 466 27 is_stmt 0 view .LVU337
+ 1200 000e 1092 0000 		sts mousekey_repeat,__zero_reg__
+ 467:quantum/mousekey.c ****     mousekey_wheel_repeat = 0;
+ 1201               		.loc 1 467 5 is_stmt 1 view .LVU338
+ 1202               		.loc 1 467 27 is_stmt 0 view .LVU339
+ 1203 0012 1092 0000 		sts mousekey_wheel_repeat,__zero_reg__
+ 468:quantum/mousekey.c ****     mousekey_accel        = 0;
+ 1204               		.loc 1 468 5 is_stmt 1 view .LVU340
+ 1205               		.loc 1 468 27 is_stmt 0 view .LVU341
+ 1206 0016 1092 0000 		sts mousekey_accel,__zero_reg__
+ 1207               	/* epilogue start */
+ 469:quantum/mousekey.c **** }
+ 1208               		.loc 1 469 1 view .LVU342
+ 1209 001a 0895      		ret
+ 1210               		.cfi_endproc
+ 1211               	.LFE111:
+ 1213               		.section	.text.mousekey_get_report,"ax",@progbits
+ 1214               	.global	mousekey_get_report
+ 1216               	mousekey_get_report:
+ 1217               	.LFB113:
+ 470:quantum/mousekey.c **** 
+ 471:quantum/mousekey.c **** static void mousekey_debug(void) {
+ 472:quantum/mousekey.c ****     if (!debug_mouse) return;
+ 473:quantum/mousekey.c ****     print("mousekey [btn|x y v h](rep/acl): [");
+ 474:quantum/mousekey.c ****     print_hex8(mouse_report.buttons);
+ 475:quantum/mousekey.c ****     print("|");
+ 476:quantum/mousekey.c ****     print_decs(mouse_report.x);
+ 477:quantum/mousekey.c ****     print(" ");
+ 478:quantum/mousekey.c ****     print_decs(mouse_report.y);
+ 479:quantum/mousekey.c ****     print(" ");
+ 480:quantum/mousekey.c ****     print_decs(mouse_report.v);
+ 481:quantum/mousekey.c ****     print(" ");
+ 482:quantum/mousekey.c ****     print_decs(mouse_report.h);
+ 483:quantum/mousekey.c ****     print("](");
+ 484:quantum/mousekey.c ****     print_dec(mousekey_repeat);
+ 485:quantum/mousekey.c ****     print("/");
+ 486:quantum/mousekey.c ****     print_dec(mousekey_accel);
+ 487:quantum/mousekey.c ****     print(")\n");
+ 488:quantum/mousekey.c **** }
+ 489:quantum/mousekey.c **** 
+ 490:quantum/mousekey.c **** report_mouse_t mousekey_get_report(void) { return mouse_report; }
+ 1218               		.loc 1 490 42 is_stmt 1 view -0
+ 1219               		.cfi_startproc
+ 1220 0000 CF93      		push r28
+ 1221               	.LCFI10:
+ 1222               		.cfi_def_cfa_offset 3
+ 1223               		.cfi_offset 28, -2
+ 1224 0002 DF93      		push r29
+ 1225               	.LCFI11:
+ 1226               		.cfi_def_cfa_offset 4
+ 1227               		.cfi_offset 29, -3
+ 1228 0004 00D0      		rcall .
+ 1229 0006 00D0      		rcall .
+ 1230 0008 00D0      		rcall .
+ 1231               	.LCFI12:
+ 1232               		.cfi_def_cfa_offset 10
+ 1233 000a CDB7      		in r28,__SP_L__
+ 1234 000c DEB7      		in r29,__SP_H__
+ 1235               	.LCFI13:
+ 1236               		.cfi_def_cfa_register 28
+ 1237               	/* prologue: function */
+ 1238               	/* frame size = 6 */
+ 1239               	/* stack size = 8 */
+ 1240               	.L__stack_usage = 8
+ 1241               		.loc 1 490 44 view .LVU344
+ 1242               		.loc 1 490 51 is_stmt 0 view .LVU345
+ 1243 000e 86E0      		ldi r24,lo8(6)
+ 1244 0010 E0E0      		ldi r30,lo8(mouse_report)
+ 1245 0012 F0E0      		ldi r31,hi8(mouse_report)
+ 1246 0014 DE01      		movw r26,r28
+ 1247 0016 1196      		adiw r26,1
+ 1248               		0:
+ 1249 0018 0190      		ld r0,Z+
+ 1250 001a 0D92      		st X+,r0
+ 1251 001c 8A95      		dec r24
+ 1252 001e 01F4      		brne 0b
+ 1253 0020 2981      		ldd r18,Y+1
+ 1254 0022 3A81      		ldd r19,Y+2
+ 1255 0024 4B81      		ldd r20,Y+3
+ 1256 0026 5C81      		ldd r21,Y+4
+ 1257 0028 6D81      		ldd r22,Y+5
+ 1258 002a 7E81      		ldd r23,Y+6
+ 1259               		.loc 1 490 65 view .LVU346
+ 1260 002c 80E0      		ldi r24,0
+ 1261 002e 90E0      		ldi r25,0
+ 1262               	/* epilogue start */
+ 1263 0030 2696      		adiw r28,6
+ 1264 0032 0FB6      		in __tmp_reg__,__SREG__
+ 1265 0034 F894      		cli
+ 1266 0036 DEBF      		out __SP_H__,r29
+ 1267 0038 0FBE      		out __SREG__,__tmp_reg__
+ 1268 003a CDBF      		out __SP_L__,r28
+ 1269 003c DF91      		pop r29
+ 1270 003e CF91      		pop r28
+ 1271 0040 0895      		ret
+ 1272               		.cfi_endproc
+ 1273               	.LFE113:
+ 1275               	.global	mk_wheel_time_to_max
+ 1276               		.section	.data.mk_wheel_time_to_max,"aw"
+ 1279               	mk_wheel_time_to_max:
+ 1280 0000 28        		.byte	40
+ 1281               	.global	mk_wheel_max_speed
+ 1282               		.section	.data.mk_wheel_max_speed,"aw"
+ 1285               	mk_wheel_max_speed:
+ 1286 0000 08        		.byte	8
+ 1287               	.global	mk_wheel_interval
+ 1288               		.section	.data.mk_wheel_interval,"aw"
+ 1291               	mk_wheel_interval:
+ 1292 0000 64        		.byte	100
+ 1293               	.global	mk_wheel_delay
+ 1294               		.section	.data.mk_wheel_delay,"aw"
+ 1297               	mk_wheel_delay:
+ 1298 0000 1E        		.byte	30
+ 1299               	.global	mk_time_to_max
+ 1300               		.section	.data.mk_time_to_max,"aw"
+ 1303               	mk_time_to_max:
+ 1304 0000 14        		.byte	20
+ 1305               	.global	mk_max_speed
+ 1306               		.section	.data.mk_max_speed,"aw"
+ 1309               	mk_max_speed:
+ 1310 0000 0A        		.byte	10
+ 1311               	.global	mk_interval
+ 1312               		.section	.data.mk_interval,"aw"
+ 1315               	mk_interval:
+ 1316 0000 32        		.byte	50
+ 1317               	.global	mk_delay
+ 1318               		.section	.data.mk_delay,"aw"
+ 1321               	mk_delay:
+ 1322 0000 1E        		.byte	30
+ 1323               		.section	.bss.last_timer_w,"aw",@nobits
+ 1326               	last_timer_w:
+ 1327 0000 0000      		.zero	2
+ 1328               		.section	.bss.last_timer_c,"aw",@nobits
+ 1331               	last_timer_c:
+ 1332 0000 0000      		.zero	2
+ 1333               		.section	.bss.mousekey_wheel_repeat,"aw",@nobits
+ 1336               	mousekey_wheel_repeat:
+ 1337 0000 00        		.zero	1
+ 1338               		.section	.bss.mousekey_repeat,"aw",@nobits
+ 1341               	mousekey_repeat:
+ 1342 0000 00        		.zero	1
+ 1343               		.section	.bss.mousekey_accel,"aw",@nobits
+ 1346               	mousekey_accel:
+ 1347 0000 00        		.zero	1
+ 1348               		.section	.bss.mouse_report,"aw",@nobits
+ 1351               	mouse_report:
+ 1352 0000 0000 0000 		.zero	6
+ 1352      0000 
+ 1353               		.text
+ 1354               	.Letext0:
+ 1355               		.file 2 "/usr/avr/include/stdint.h"
+ 1356               		.file 3 "tmk_core/common/report.h"
+ 1357               		.file 4 "quantum/logging/debug.h"
+ 1358               		.file 5 "quantum/mousekey.h"
+ 1359               		.file 6 "tmk_core/common/host.h"
+ 1360               		.file 7 "quantum/keycode.h"
+ 1361               		.file 8 "tmk_core/common/timer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 mousekey.c
+     /tmp/ccmUZk6Z.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccmUZk6Z.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccmUZk6Z.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccmUZk6Z.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccmUZk6Z.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccmUZk6Z.s:12     .text.move_unit:0000000000000000 move_unit
+     /tmp/ccmUZk6Z.s:1346   .bss.mousekey_accel:0000000000000000 mousekey_accel
+     /tmp/ccmUZk6Z.s:1309   .data.mk_max_speed:0000000000000000 mk_max_speed
+     /tmp/ccmUZk6Z.s:1341   .bss.mousekey_repeat:0000000000000000 mousekey_repeat
+     /tmp/ccmUZk6Z.s:1303   .data.mk_time_to_max:0000000000000000 mk_time_to_max
+     /tmp/ccmUZk6Z.s:151    .text.wheel_unit:0000000000000000 wheel_unit
+     /tmp/ccmUZk6Z.s:1285   .data.mk_wheel_max_speed:0000000000000000 mk_wheel_max_speed
+     /tmp/ccmUZk6Z.s:1336   .bss.mousekey_wheel_repeat:0000000000000000 mousekey_wheel_repeat
+     /tmp/ccmUZk6Z.s:1279   .data.mk_wheel_time_to_max:0000000000000000 mk_wheel_time_to_max
+     /tmp/ccmUZk6Z.s:268    .text.mousekey_on:0000000000000000 mousekey_on
+     /tmp/ccmUZk6Z.s:1351   .bss.mouse_report:0000000000000000 mouse_report
+     /tmp/ccmUZk6Z.s:447    .text.mousekey_off:0000000000000000 mousekey_off
+     /tmp/ccmUZk6Z.s:672    .text.mousekey_send:0000000000000000 mousekey_send
+     /tmp/ccmUZk6Z.s:1331   .bss.last_timer_c:0000000000000000 last_timer_c
+     /tmp/ccmUZk6Z.s:1326   .bss.last_timer_w:0000000000000000 last_timer_w
+     /tmp/ccmUZk6Z.s:720    .text.mousekey_task:0000000000000000 mousekey_task
+     /tmp/ccmUZk6Z.s:1315   .data.mk_interval:0000000000000000 mk_interval
+     /tmp/ccmUZk6Z.s:1291   .data.mk_wheel_interval:0000000000000000 mk_wheel_interval
+     /tmp/ccmUZk6Z.s:1321   .data.mk_delay:0000000000000000 mk_delay
+     /tmp/ccmUZk6Z.s:1297   .data.mk_wheel_delay:0000000000000000 mk_wheel_delay
+     /tmp/ccmUZk6Z.s:1180   .text.mousekey_clear:0000000000000000 mousekey_clear
+     /tmp/ccmUZk6Z.s:1216   .text.mousekey_get_report:0000000000000000 mousekey_get_report
+
+UNDEFINED SYMBOLS
+__divmodhi4
+__tablejump2__
+timer_read
+host_mouse_send
+timer_elapsed
+__do_copy_data
+__do_clear_bss

@@ -50,117 +50,147 @@
   21               	.L__stack_usage = 0
   22               		.loc 1 30 45 view .LVU1
   23               	/* epilogue start */
-  24               		.loc 1 30 1 is_stmt 0 view .LVU2
-  25 0000 0895      		ret
-  26               		.cfi_endproc
-  27               	.LFE14:
-  29               		.section	.text.magic,"ax",@progbits
-  30               	.global	magic
-  32               	magic:
-  33               	.LFB15:
+  24 0000 0895      		ret
+  25               		.cfi_endproc
+  26               	.LFE14:
+  28               		.section	.text.magic,"ax",@progbits
+  29               	.global	magic
+  31               	magic:
+  32               	.LFB15:
   31:quantum/bootmagic/magic.c **** 
   32:quantum/bootmagic/magic.c **** /** \brief Magic
   33:quantum/bootmagic/magic.c ****  *
   34:quantum/bootmagic/magic.c ****  * FIXME: Needs doc
   35:quantum/bootmagic/magic.c ****  */
   36:quantum/bootmagic/magic.c **** void magic(void) {
-  34               		.loc 1 36 18 is_stmt 1 view -0
-  35               		.cfi_startproc
-  36               	/* prologue: function */
-  37               	/* frame size = 0 */
-  38               	/* stack size = 0 */
-  39               	.L__stack_usage = 0
+  33               		.loc 1 36 18 view -0
+  34               		.cfi_startproc
+  35 0000 CF93      		push r28
+  36               	.LCFI0:
+  37               		.cfi_def_cfa_offset 3
+  38               		.cfi_offset 28, -2
+  39 0002 DF93      		push r29
+  40               	.LCFI1:
+  41               		.cfi_def_cfa_offset 4
+  42               		.cfi_offset 29, -3
+  43 0004 00D0      		rcall .
+  44 0006 00D0      		rcall .
+  45               	.LCFI2:
+  46               		.cfi_def_cfa_offset 8
+  47 0008 CDB7      		in r28,__SP_L__
+  48 000a DEB7      		in r29,__SP_H__
+  49               	.LCFI3:
+  50               		.cfi_def_cfa_register 28
+  51               	/* prologue: function */
+  52               	/* frame size = 4 */
+  53               	/* stack size = 6 */
+  54               	.L__stack_usage = 6
   37:quantum/bootmagic/magic.c ****     /* check signature */
   38:quantum/bootmagic/magic.c ****     if (!eeconfig_is_enabled()) {
-  40               		.loc 1 38 5 view .LVU4
-  41               		.loc 1 38 10 is_stmt 0 view .LVU5
-  42 0000 0E94 0000 		call eeconfig_is_enabled
-  43               	.LVL0:
-  44               		.loc 1 38 8 view .LVU6
-  45 0004 8111      		cpse r24,__zero_reg__
-  46 0006 00C0      		rjmp .L3
+  55               		.loc 1 38 5 view .LVU3
+  56               		.loc 1 38 10 is_stmt 0 view .LVU4
+  57 000c 0E94 0000 		call eeconfig_is_enabled
+  58               	.LVL0:
+  59               		.loc 1 38 8 view .LVU5
+  60 0010 8111      		cpse r24,__zero_reg__
+  61 0012 00C0      		rjmp .L3
   39:quantum/bootmagic/magic.c ****         eeconfig_init();
-  47               		.loc 1 39 9 is_stmt 1 view .LVU7
-  48 0008 0E94 0000 		call eeconfig_init
-  49               	.LVL1:
-  50               	.L3:
+  62               		.loc 1 39 9 is_stmt 1 view .LVU6
+  63 0014 0E94 0000 		call eeconfig_init
+  64               	.LVL1:
+  65               	.L3:
   40:quantum/bootmagic/magic.c ****     }
   41:quantum/bootmagic/magic.c **** 
   42:quantum/bootmagic/magic.c ****     /* init globals */
   43:quantum/bootmagic/magic.c ****     debug_config.raw  = eeconfig_read_debug();
-  51               		.loc 1 43 5 view .LVU8
-  52               		.loc 1 43 25 is_stmt 0 view .LVU9
-  53 000c 0E94 0000 		call eeconfig_read_debug
-  54               	.LVL2:
-  55               		.loc 1 43 23 view .LVU10
-  56 0010 8093 0000 		sts debug_config,r24
+  66               		.loc 1 43 5 view .LVU7
+  67               		.loc 1 43 25 is_stmt 0 view .LVU8
+  68 0018 0E94 0000 		call eeconfig_read_debug
+  69               	.LVL2:
+  70               		.loc 1 43 23 view .LVU9
+  71 001c 8093 0000 		sts debug_config,r24
   44:quantum/bootmagic/magic.c ****     keymap_config.raw = eeconfig_read_keymap();
-  57               		.loc 1 44 5 is_stmt 1 view .LVU11
-  58               		.loc 1 44 25 is_stmt 0 view .LVU12
-  59 0014 0E94 0000 		call eeconfig_read_keymap
-  60               	.LVL3:
-  61               		.loc 1 44 23 view .LVU13
-  62 0018 9093 0000 		sts keymap_config+1,r25
-  63 001c 8093 0000 		sts keymap_config,r24
+  72               		.loc 1 44 5 is_stmt 1 view .LVU10
+  73               		.loc 1 44 25 is_stmt 0 view .LVU11
+  74 0020 0E94 0000 		call eeconfig_read_keymap
+  75               	.LVL3:
+  76               		.loc 1 44 23 view .LVU12
+  77 0024 9093 0000 		sts keymap_config+1,r25
+  78 0028 8093 0000 		sts keymap_config,r24
   45:quantum/bootmagic/magic.c **** 
   46:quantum/bootmagic/magic.c ****     bootmagic();
-  64               		.loc 1 46 5 is_stmt 1 view .LVU14
-  65 0020 0E94 0000 		call bootmagic
-  66               	.LVL4:
+  79               		.loc 1 46 5 is_stmt 1 view .LVU13
+  80 002c 0E94 0000 		call bootmagic
+  81               	.LVL4:
   47:quantum/bootmagic/magic.c **** 
   48:quantum/bootmagic/magic.c ****     /* read here just incase bootmagic process changed its value */
   49:quantum/bootmagic/magic.c ****     layer_state_t default_layer = (layer_state_t)eeconfig_read_default_layer();
-  67               		.loc 1 49 5 view .LVU15
-  68               		.loc 1 49 50 is_stmt 0 view .LVU16
-  69 0024 0E94 0000 		call eeconfig_read_default_layer
-  70               	.LVL5:
+  82               		.loc 1 49 5 view .LVU14
+  83               		.loc 1 49 50 is_stmt 0 view .LVU15
+  84 0030 0E94 0000 		call eeconfig_read_default_layer
+  85               	.LVL5:
   50:quantum/bootmagic/magic.c ****     default_layer_set(default_layer);
-  71               		.loc 1 50 5 is_stmt 1 view .LVU17
+  86               		.loc 1 50 5 is_stmt 1 view .LVU16
   49:quantum/bootmagic/magic.c ****     default_layer_set(default_layer);
-  72               		.loc 1 49 19 is_stmt 0 view .LVU18
-  73 0028 682F      		mov r22,r24
-  74 002a 70E0      		ldi r23,0
-  75 002c 90E0      		ldi r25,0
-  76 002e 80E0      		ldi r24,0
-  77               	.LVL6:
-  78               		.loc 1 50 5 view .LVU19
-  79 0030 0E94 0000 		call default_layer_set
-  80               	.LVL7:
+  87               		.loc 1 49 19 is_stmt 0 view .LVU17
+  88 0034 282F      		mov r18,r24
+  89 0036 30E0      		ldi r19,0
+  90 0038 50E0      		ldi r21,0
+  91 003a 40E0      		ldi r20,0
+  92               		.loc 1 50 5 view .LVU18
+  93 003c CA01      		movw r24,r20
+  94               	.LVL6:
+  95               		.loc 1 50 5 view .LVU19
+  96 003e B901      		movw r22,r18
+  97 0040 0E94 0000 		call default_layer_set
+  98               	.LVL7:
   51:quantum/bootmagic/magic.c **** 
   52:quantum/bootmagic/magic.c ****     /* Also initialize layer state to trigger callback functions for layer_state */
   53:quantum/bootmagic/magic.c ****     layer_state_set_kb((layer_state_t)layer_state);
-  81               		.loc 1 53 5 is_stmt 1 view .LVU20
-  82 0034 6091 0000 		lds r22,layer_state
-  83 0038 7091 0000 		lds r23,layer_state+1
-  84 003c 8091 0000 		lds r24,layer_state+2
-  85 0040 9091 0000 		lds r25,layer_state+3
-  86 0044 0C94 0000 		jmp layer_state_set_kb
-  87               	.LVL8:
-  88               		.cfi_endproc
-  89               	.LFE15:
-  91               		.comm	keymap_config,2,1
-  92               		.text
-  93               	.Letext0:
-  94               		.file 2 "/usr/avr/include/stdint.h"
-  95               		.file 3 "quantum/logging/debug.h"
-  96               		.file 4 "quantum/keyboard.h"
-  97               		.file 5 "quantum/action.h"
-  98               		.file 6 "tmk_core/common/host.h"
-  99               		.file 7 "quantum/keycode_config.h"
- 100               		.file 8 "tmk_core/common/timer.h"
- 101               		.file 9 "quantum/sequencer/sequencer.h"
- 102               		.file 10 "quantum/keymap.h"
- 103               		.file 11 "quantum/action_layer.h"
- 104               		.file 12 "quantum/eeconfig.h"
+  99               		.loc 1 53 5 is_stmt 1 view .LVU20
+ 100 0044 8091 0000 		lds r24,layer_state
+ 101 0048 9091 0000 		lds r25,layer_state+1
+ 102 004c A091 0000 		lds r26,layer_state+2
+ 103 0050 B091 0000 		lds r27,layer_state+3
+ 104 0054 8983      		std Y+1,r24
+ 105 0056 9A83      		std Y+2,r25
+ 106 0058 AB83      		std Y+3,r26
+ 107 005a BC83      		std Y+4,r27
+ 108 005c BC01      		movw r22,r24
+ 109 005e CD01      		movw r24,r26
+ 110               	/* epilogue start */
+  54:quantum/bootmagic/magic.c **** }
+ 111               		.loc 1 54 1 is_stmt 0 view .LVU21
+ 112 0060 0F90      		pop __tmp_reg__
+ 113 0062 0F90      		pop __tmp_reg__
+ 114 0064 0F90      		pop __tmp_reg__
+ 115 0066 0F90      		pop __tmp_reg__
+ 116 0068 DF91      		pop r29
+ 117 006a CF91      		pop r28
+  53:quantum/bootmagic/magic.c **** }
+ 118               		.loc 1 53 5 view .LVU22
+ 119 006c 0C94 0000 		jmp layer_state_set_kb
+ 120               	.LVL8:
+ 121               		.cfi_endproc
+ 122               	.LFE15:
+ 124               		.comm	keymap_config,2,1
+ 125               		.text
+ 126               	.Letext0:
+ 127               		.file 2 "/usr/avr/include/stdint.h"
+ 128               		.file 3 "quantum/logging/debug.h"
+ 129               		.file 4 "quantum/keycode_config.h"
+ 130               		.file 5 "quantum/action_layer.h"
+ 131               		.file 6 "quantum/eeconfig.h"
+ 132               		.file 7 "quantum/sequencer/sequencer.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 magic.c
-     /tmp/ccFkxIeB.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/ccFkxIeB.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/ccFkxIeB.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/ccFkxIeB.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/ccFkxIeB.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/ccFkxIeB.s:13     .text.bootmagic:0000000000000000 bootmagic
-     /tmp/ccFkxIeB.s:32     .text.magic:0000000000000000 magic
+     /tmp/cc2tvsIR.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc2tvsIR.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc2tvsIR.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc2tvsIR.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc2tvsIR.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc2tvsIR.s:13     .text.bootmagic:0000000000000000 bootmagic
+     /tmp/cc2tvsIR.s:31     .text.magic:0000000000000000 magic
                             *COM*:0000000000000002 keymap_config
 
 UNDEFINED SYMBOLS

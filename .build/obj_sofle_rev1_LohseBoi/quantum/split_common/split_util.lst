@@ -140,7 +140,7 @@
  119:quantum/split_common/split_util.c ****     if (usbstate == UNKNOWN) {
   23               		.loc 1 119 5 view .LVU2
   24               		.loc 1 119 8 is_stmt 0 view .LVU3
-  25 0000 8091 0000 		lds r24,usbstate.4109
+  25 0000 8091 0000 		lds r24,usbstate.1
   26 0004 8111      		cpse r24,__zero_reg__
   27 0006 00C0      		rjmp .L2
  120:quantum/split_common/split_util.c ****         usbstate = usbIsActive() ? MASTER : SLAVE;
@@ -163,7 +163,7 @@
   41 000e 01F0      		breq .L3
   42               		.loc 1 120 18 view .LVU9
   43 0010 81E0      		ldi r24,lo8(1)
-  44 0012 8093 0000 		sts usbstate.4109,r24
+  44 0012 8093 0000 		sts usbstate.1,r24
  121:quantum/split_common/split_util.c **** 
  122:quantum/split_common/split_util.c ****         // Avoid NO_USB_STARTUP_CHECK - Disable USB as the previous checks seem to enable it someho
  123:quantum/split_common/split_util.c ****         if (usbstate == SLAVE) {
@@ -177,7 +177,7 @@
   47               		.loc 1 128 5 view .LVU11
   48               		.loc 1 128 22 is_stmt 0 view .LVU12
   49 0016 81E0      		ldi r24,lo8(1)
-  50 0018 9091 0000 		lds r25,usbstate.4109
+  50 0018 9091 0000 		lds r25,usbstate.1
   51 001c 9130      		cpi r25,lo8(1)
   52 001e 01F0      		breq .L4
   53 0020 80E0      		ldi r24,0
@@ -190,7 +190,7 @@
  120:quantum/split_common/split_util.c **** 
   59               		.loc 1 120 18 view .LVU14
   60 0024 82E0      		ldi r24,lo8(2)
-  61 0026 8093 0000 		sts usbstate.4109,r24
+  61 0026 8093 0000 		sts usbstate.1,r24
  123:quantum/split_common/split_util.c ****             usb_disconnect();
   62               		.loc 1 123 9 is_stmt 1 view .LVU15
  124:quantum/split_common/split_util.c ****         }
@@ -327,7 +327,7 @@
  166 000a 80E0      		ldi r24,0
  167               	.L14:
  168               	/* epilogue start */
- 169               		.loc 1 161 1 view .LVU38
+ 169               		.loc 1 161 93 view .LVU38
  170 000c 0895      		ret
  171               		.cfi_endproc
  172               	.LFE32:
@@ -362,82 +362,84 @@
  201               	/* stack size = 4 */
  202               	.L__stack_usage = 4
  203 0008 EC01      		movw r28,r24
- 204 000a 8B01      		movw r16,r22
+ 204 000a 162F      		mov r17,r22
+ 205 000c 072F      		mov r16,r23
  164:quantum/split_common/split_util.c **** #if SPLIT_MAX_CONNECTION_ERRORS > 0 && SPLIT_CONNECTION_CHECK_TIMEOUT > 0
  165:quantum/split_common/split_util.c ****     // Throttle transaction attempts if target doesn't seem to be connected
  166:quantum/split_common/split_util.c ****     // Without this, a solo half becomes unusable due to constant read timeouts
  167:quantum/split_common/split_util.c ****     static uint16_t connection_check_timer = 0;
- 205               		.loc 1 167 5 is_stmt 1 view .LVU41
+ 206               		.loc 1 167 5 is_stmt 1 view .LVU41
  168:quantum/split_common/split_util.c ****     const bool      is_disconnected        = !is_transport_connected();
- 206               		.loc 1 168 5 view .LVU42
- 207               	.LBB11:
- 208               	.LBI11:
+ 207               		.loc 1 168 5 view .LVU42
+ 208               	.LBB11:
+ 209               	.LBI11:
  161:quantum/split_common/split_util.c **** 
- 209               		.loc 1 161 6 view .LVU43
- 210               	.LBB12:
+ 210               		.loc 1 161 6 view .LVU43
+ 211               	.LBB12:
  161:quantum/split_common/split_util.c **** 
- 211               		.loc 1 161 37 view .LVU44
- 212               	.LVL9:
+ 212               		.loc 1 161 37 view .LVU44
+ 213               	.LVL9:
  161:quantum/split_common/split_util.c **** 
- 213               		.loc 1 161 37 is_stmt 0 view .LVU45
- 214               	.LBE12:
- 215               	.LBE11:
+ 214               		.loc 1 161 37 is_stmt 0 view .LVU45
+ 215               	.LBE12:
+ 216               	.LBE11:
  169:quantum/split_common/split_util.c ****     if (is_disconnected && timer_elapsed(connection_check_timer) < SPLIT_CONNECTION_CHECK_TIMEOUT) 
- 216               		.loc 1 169 5 is_stmt 1 view .LVU46
- 217               		.loc 1 169 8 is_stmt 0 view .LVU47
- 218 000c 8091 0000 		lds r24,connection_errors
- 219               	.LVL10:
- 220               		.loc 1 169 8 view .LVU48
- 221 0010 8A30      		cpi r24,lo8(10)
- 222 0012 00F4      		brsh .L16
- 223               	.LVL11:
- 224               	.L20:
+ 217               		.loc 1 169 5 is_stmt 1 view .LVU46
+ 218               		.loc 1 169 8 is_stmt 0 view .LVU47
+ 219 000e 8091 0000 		lds r24,connection_errors
+ 220               	.LVL10:
+ 221               		.loc 1 169 8 view .LVU48
+ 222 0012 8A30      		cpi r24,lo8(10)
+ 223 0014 00F4      		brsh .L16
+ 224               	.LVL11:
+ 225               	.L20:
  170:quantum/split_common/split_util.c ****         return false;
  171:quantum/split_common/split_util.c ****     }
  172:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0 && SPLIT_CONNECTION_CHECK_TIMEOUT > 0
  173:quantum/split_common/split_util.c **** 
  174:quantum/split_common/split_util.c ****     __attribute__((unused)) bool okay = transport_master(master_matrix, slave_matrix);
- 225               		.loc 1 174 5 is_stmt 1 view .LVU49
- 226               		.loc 1 174 41 is_stmt 0 view .LVU50
- 227 0014 B801      		movw r22,r16
- 228 0016 CE01      		movw r24,r28
- 229 0018 0E94 0000 		call transport_master
- 230               	.LVL12:
- 231 001c C82F      		mov r28,r24
- 232               	.LVL13:
+ 226               		.loc 1 174 5 is_stmt 1 view .LVU49
+ 227               		.loc 1 174 41 is_stmt 0 view .LVU50
+ 228 0016 612F      		mov r22,r17
+ 229 0018 702F      		mov r23,r16
+ 230 001a CE01      		movw r24,r28
+ 231 001c 0E94 0000 		call transport_master
+ 232               	.LVL12:
+ 233 0020 C82F      		mov r28,r24
+ 234               	.LVL13:
  175:quantum/split_common/split_util.c **** #if SPLIT_MAX_CONNECTION_ERRORS > 0
  176:quantum/split_common/split_util.c ****     if (!okay) {
- 233               		.loc 1 176 5 is_stmt 1 view .LVU51
- 234               		.loc 1 176 8 is_stmt 0 view .LVU52
- 235 001e 8111      		cpse r24,__zero_reg__
- 236 0020 00C0      		rjmp .L17
- 237               	.LBB13:
+ 235               		.loc 1 176 5 is_stmt 1 view .LVU51
+ 236               		.loc 1 176 8 is_stmt 0 view .LVU52
+ 237 0022 8111      		cpse r24,__zero_reg__
+ 238 0024 00C0      		rjmp .L17
+ 239               	.LBB13:
  177:quantum/split_common/split_util.c ****         if (connection_errors < UINT8_MAX) {
- 238               		.loc 1 177 9 is_stmt 1 view .LVU53
- 239               		.loc 1 177 31 is_stmt 0 view .LVU54
- 240 0022 8091 0000 		lds r24,connection_errors
- 241               	.LVL14:
- 242               		.loc 1 177 12 view .LVU55
- 243 0026 8F3F      		cpi r24,lo8(-1)
- 244 0028 01F4      		brne .L21
- 245               	.L22:
+ 240               		.loc 1 177 9 is_stmt 1 view .LVU53
+ 241               		.loc 1 177 31 is_stmt 0 view .LVU54
+ 242 0026 8091 0000 		lds r24,connection_errors
+ 243               	.LVL14:
+ 244               		.loc 1 177 12 view .LVU55
+ 245 002a 8F3F      		cpi r24,lo8(-1)
+ 246 002c 01F4      		brne .L21
+ 247               	.L22:
  178:quantum/split_common/split_util.c ****             connection_errors++;
  179:quantum/split_common/split_util.c ****         }
  180:quantum/split_common/split_util.c **** #    if SPLIT_CONNECTION_CHECK_TIMEOUT > 0
  181:quantum/split_common/split_util.c ****         bool connected = is_transport_connected();
  182:quantum/split_common/split_util.c ****         if (!connected) {
  183:quantum/split_common/split_util.c ****             connection_check_timer = timer_read();
- 246               		.loc 1 183 13 is_stmt 1 view .LVU56
- 247               		.loc 1 183 38 is_stmt 0 view .LVU57
- 248 002a 0E94 0000 		call timer_read
- 249               	.LVL15:
- 250               		.loc 1 183 36 view .LVU58
- 251 002e 9093 0000 		sts connection_check_timer.4123+1,r25
- 252 0032 8093 0000 		sts connection_check_timer.4123,r24
- 253               	.LVL16:
- 254               	.L15:
- 255               		.loc 1 183 36 view .LVU59
- 256               	.LBE13:
+ 248               		.loc 1 183 13 is_stmt 1 view .LVU56
+ 249               		.loc 1 183 38 is_stmt 0 view .LVU57
+ 250 002e 0E94 0000 		call timer_read
+ 251               	.LVL15:
+ 252               		.loc 1 183 36 view .LVU58
+ 253 0032 9093 0000 		sts connection_check_timer.0+1,r25
+ 254 0036 8093 0000 		sts connection_check_timer.0,r24
+ 255               	.LVL16:
+ 256               	.L15:
+ 257               		.loc 1 183 36 view .LVU59
+ 258               	.LBE13:
  184:quantum/split_common/split_util.c ****             dprintln("Target disconnected, throttling connection attempts");
  185:quantum/split_common/split_util.c ****         }
  186:quantum/split_common/split_util.c ****         return connected;
@@ -450,142 +452,123 @@
  193:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0
  194:quantum/split_common/split_util.c ****     return true;
  195:quantum/split_common/split_util.c **** }
- 257               		.loc 1 195 1 view .LVU60
- 258 0036 8C2F      		mov r24,r28
- 259               	/* epilogue start */
- 260 0038 DF91      		pop r29
- 261 003a CF91      		pop r28
- 262 003c 1F91      		pop r17
- 263 003e 0F91      		pop r16
- 264               	.LVL17:
- 265               		.loc 1 195 1 view .LVU61
- 266 0040 0895      		ret
- 267               	.LVL18:
+ 259               		.loc 1 195 1 view .LVU60
+ 260 003a 8C2F      		mov r24,r28
+ 261               	/* epilogue start */
+ 262 003c DF91      		pop r29
+ 263 003e CF91      		pop r28
+ 264 0040 1F91      		pop r17
+ 265 0042 0F91      		pop r16
+ 266 0044 0895      		ret
+ 267               	.LVL17:
  268               	.L16:
  169:quantum/split_common/split_util.c ****         return false;
- 269               		.loc 1 169 28 discriminator 1 view .LVU62
- 270 0042 8091 0000 		lds r24,connection_check_timer.4123
- 271 0046 9091 0000 		lds r25,connection_check_timer.4123+1
- 272               	.LVL19:
+ 269               		.loc 1 169 28 discriminator 1 view .LVU61
+ 270 0046 8091 0000 		lds r24,connection_check_timer.0
+ 271 004a 9091 0000 		lds r25,connection_check_timer.0+1
+ 272               	.LVL18:
  169:quantum/split_common/split_util.c ****         return false;
- 273               		.loc 1 169 28 discriminator 1 view .LVU63
- 274 004a 0E94 0000 		call timer_elapsed
- 275               	.LVL20:
+ 273               		.loc 1 169 28 discriminator 1 view .LVU62
+ 274 004e 0E94 0000 		call timer_elapsed
+ 275               	.LVL19:
  169:quantum/split_common/split_util.c ****         return false;
- 276               		.loc 1 169 25 discriminator 1 view .LVU64
- 277 004e 843F      		cpi r24,-12
- 278 0050 9140      		sbci r25,1
- 279 0052 00F4      		brsh .L20
+ 276               		.loc 1 169 25 discriminator 1 view .LVU63
+ 277 0052 843F      		cpi r24,-12
+ 278 0054 9140      		sbci r25,1
+ 279 0056 00F4      		brsh .L20
  170:quantum/split_common/split_util.c ****     }
- 280               		.loc 1 170 16 view .LVU65
- 281 0054 C0E0      		ldi r28,0
- 282               	.LVL21:
+ 280               		.loc 1 170 16 view .LVU64
+ 281 0058 C0E0      		ldi r28,0
+ 282               	.LVL20:
  170:quantum/split_common/split_util.c ****     }
- 283               		.loc 1 170 16 view .LVU66
- 284 0056 00C0      		rjmp .L15
- 285               	.LVL22:
+ 283               		.loc 1 170 16 view .LVU65
+ 284 005a 00C0      		rjmp .L15
+ 285               	.LVL21:
  286               	.L21:
  287               	.LBB14:
  178:quantum/split_common/split_util.c ****         }
- 288               		.loc 1 178 13 is_stmt 1 view .LVU67
+ 288               		.loc 1 178 13 is_stmt 1 view .LVU66
  178:quantum/split_common/split_util.c ****         }
- 289               		.loc 1 178 30 is_stmt 0 view .LVU68
- 290 0058 8F5F      		subi r24,lo8(-(1))
- 291 005a 8093 0000 		sts connection_errors,r24
+ 289               		.loc 1 178 30 is_stmt 0 view .LVU67
+ 290 005c 8F5F      		subi r24,lo8(-(1))
+ 291 005e 8093 0000 		sts connection_errors,r24
  181:quantum/split_common/split_util.c ****         if (!connected) {
- 292               		.loc 1 181 9 is_stmt 1 view .LVU69
- 293               	.LBE14:
- 161:quantum/split_common/split_util.c **** 
- 294               		.loc 1 161 37 view .LVU70
- 295               	.LVL23:
- 296               	.LBB15:
+ 292               		.loc 1 181 9 is_stmt 1 view .LVU68
+ 293               	.LVL22:
  182:quantum/split_common/split_util.c ****             connection_check_timer = timer_read();
- 297               		.loc 1 182 9 view .LVU71
+ 294               		.loc 1 182 9 view .LVU69
  182:quantum/split_common/split_util.c ****             connection_check_timer = timer_read();
- 298               		.loc 1 182 12 is_stmt 0 view .LVU72
- 299 005e 8A30      		cpi r24,lo8(10)
- 300 0060 00F4      		brsh .L22
+ 295               		.loc 1 182 12 is_stmt 0 view .LVU70
+ 296 0062 8A30      		cpi r24,lo8(10)
+ 297 0064 00F4      		brsh .L22
  186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
- 301               		.loc 1 186 16 view .LVU73
- 302 0062 C1E0      		ldi r28,lo8(1)
+ 298               		.loc 1 186 16 view .LVU71
+ 299 0066 C1E0      		ldi r28,lo8(1)
+ 300               	.LVL23:
+ 186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
+ 301               		.loc 1 186 16 view .LVU72
+ 302 0068 00C0      		rjmp .L15
  303               	.LVL24:
+ 304               	.L17:
  186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
- 304               		.loc 1 186 16 view .LVU74
- 305 0064 00C0      		rjmp .L15
- 306               	.LVL25:
- 307               	.L17:
- 186:quantum/split_common/split_util.c ****     } else if (is_disconnected) {
- 308               		.loc 1 186 16 view .LVU75
- 309               	.LBE15:
+ 305               		.loc 1 186 16 view .LVU73
+ 306               	.LBE14:
  187:quantum/split_common/split_util.c ****         dprintln("Target connected");
- 310               		.loc 1 187 12 is_stmt 1 view .LVU76
+ 307               		.loc 1 187 12 is_stmt 1 view .LVU74
  188:quantum/split_common/split_util.c **** #    endif  // SPLIT_CONNECTION_CHECK_TIMEOUT > 0
- 311               		.loc 1 188 37 view .LVU77
+ 308               		.loc 1 188 37 view .LVU75
  192:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0
- 312               		.loc 1 192 5 view .LVU78
+ 309               		.loc 1 192 5 view .LVU76
  192:quantum/split_common/split_util.c **** #endif  // SPLIT_MAX_CONNECTION_ERRORS > 0
- 313               		.loc 1 192 23 is_stmt 0 view .LVU79
- 314 0066 1092 0000 		sts connection_errors,__zero_reg__
+ 310               		.loc 1 192 23 is_stmt 0 view .LVU77
+ 311 006a 1092 0000 		sts connection_errors,__zero_reg__
  194:quantum/split_common/split_util.c **** }
- 315               		.loc 1 194 5 is_stmt 1 view .LVU80
+ 312               		.loc 1 194 5 is_stmt 1 view .LVU78
  194:quantum/split_common/split_util.c **** }
- 316               		.loc 1 194 12 is_stmt 0 view .LVU81
- 317 006a 00C0      		rjmp .L15
- 318               		.cfi_endproc
- 319               	.LFE33:
- 321               		.section	.bss.connection_check_timer.4123,"aw",@nobits
- 324               	connection_check_timer.4123:
- 325 0000 0000      		.zero	2
- 326               		.section	.bss.usbstate.4109,"aw",@nobits
- 329               	usbstate.4109:
- 330 0000 00        		.zero	1
- 331               	.global	isLeftHand
- 332               		.section	.data.isLeftHand,"aw"
- 335               	isLeftHand:
- 336 0000 01        		.byte	1
- 337               		.section	.bss.connection_errors,"aw",@nobits
- 340               	connection_errors:
- 341 0000 00        		.zero	1
- 342               		.text
- 343               	.Letext0:
- 344               		.file 2 "/usr/avr/include/stdint.h"
- 345               		.file 3 "/usr/lib/gcc/avr/8.3.0/include/stddef.h"
- 346               		.file 4 "/usr/avr/include/stdio.h"
- 347               		.file 5 "/usr/avr/include/stdlib.h"
- 348               		.file 6 "quantum/matrix.h"
- 349               		.file 7 "quantum/split_common/split_util.h"
- 350               		.file 8 "quantum/keyboard.h"
- 351               		.file 9 "tmk_core/common/timer.h"
- 352               		.file 10 "quantum/action.h"
- 353               		.file 11 "quantum/action_layer.h"
- 354               		.file 12 "tmk_core/common/report.h"
- 355               		.file 13 "tmk_core/common/host.h"
- 356               		.file 14 "quantum/logging/debug.h"
- 357               		.file 15 "quantum/keycode_config.h"
- 358               		.file 16 "quantum/sequencer/sequencer.h"
- 359               		.file 17 "quantum/keymap.h"
- 360               		.file 18 "tmk_core/common/avr/gpio.h"
- 361               		.file 19 "quantum/action_util.h"
- 362               		.file 20 "quantum/send_string.h"
- 363               		.file 21 "quantum/split_common/transport.h"
- 364               		.file 22 "tmk_core/common/usb_util.h"
+ 313               		.loc 1 194 12 is_stmt 0 view .LVU79
+ 314 006e 00C0      		rjmp .L15
+ 315               		.cfi_endproc
+ 316               	.LFE33:
+ 318               		.section	.bss.connection_check_timer.0,"aw",@nobits
+ 321               	connection_check_timer.0:
+ 322 0000 0000      		.zero	2
+ 323               		.section	.bss.usbstate.1,"aw",@nobits
+ 326               	usbstate.1:
+ 327 0000 00        		.zero	1
+ 328               	.global	isLeftHand
+ 329               		.section	.data.isLeftHand,"aw"
+ 332               	isLeftHand:
+ 333 0000 01        		.byte	1
+ 334               		.section	.bss.connection_errors,"aw",@nobits
+ 337               	connection_errors:
+ 338 0000 00        		.zero	1
+ 339               		.text
+ 340               	.Letext0:
+ 341               		.file 2 "/usr/avr/include/stdint.h"
+ 342               		.file 3 "quantum/matrix.h"
+ 343               		.file 4 "tmk_core/common/avr/gpio.h"
+ 344               		.file 5 "quantum/split_common/transport.h"
+ 345               		.file 6 "tmk_core/common/timer.h"
+ 346               		.file 7 "tmk_core/common/usb_util.h"
+ 347               		.file 8 "quantum/split_common/split_util.h"
+ 348               		.file 9 "quantum/sequencer/sequencer.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 split_util.c
-     /tmp/cc6MnWKw.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/cc6MnWKw.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/cc6MnWKw.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/cc6MnWKw.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/cc6MnWKw.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/cc6MnWKw.s:13     .text.is_keyboard_master:0000000000000000 is_keyboard_master
-     /tmp/cc6MnWKw.s:329    .bss.usbstate.4109:0000000000000000 usbstate.4109
-     /tmp/cc6MnWKw.s:73     .text.is_keyboard_left:0000000000000000 is_keyboard_left
-     /tmp/cc6MnWKw.s:91     .text.split_pre_init:0000000000000000 split_pre_init
-     /tmp/cc6MnWKw.s:335    .data.isLeftHand:0000000000000000 isLeftHand
-     /tmp/cc6MnWKw.s:124    .text.split_post_init:0000000000000000 split_post_init
-     /tmp/cc6MnWKw.s:152    .text.is_transport_connected:0000000000000000 is_transport_connected
-     /tmp/cc6MnWKw.s:340    .bss.connection_errors:0000000000000000 connection_errors
-     /tmp/cc6MnWKw.s:177    .text.transport_master_if_connected:0000000000000000 transport_master_if_connected
-     /tmp/cc6MnWKw.s:324    .bss.connection_check_timer.4123:0000000000000000 connection_check_timer.4123
+     /tmp/cco3q7me.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cco3q7me.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cco3q7me.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cco3q7me.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cco3q7me.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cco3q7me.s:13     .text.is_keyboard_master:0000000000000000 is_keyboard_master
+     /tmp/cco3q7me.s:326    .bss.usbstate.1:0000000000000000 usbstate.1
+     /tmp/cco3q7me.s:73     .text.is_keyboard_left:0000000000000000 is_keyboard_left
+     /tmp/cco3q7me.s:91     .text.split_pre_init:0000000000000000 split_pre_init
+     /tmp/cco3q7me.s:332    .data.isLeftHand:0000000000000000 isLeftHand
+     /tmp/cco3q7me.s:124    .text.split_post_init:0000000000000000 split_post_init
+     /tmp/cco3q7me.s:152    .text.is_transport_connected:0000000000000000 is_transport_connected
+     /tmp/cco3q7me.s:337    .bss.connection_errors:0000000000000000 connection_errors
+     /tmp/cco3q7me.s:177    .text.transport_master_if_connected:0000000000000000 transport_master_if_connected
+     /tmp/cco3q7me.s:321    .bss.connection_check_timer.0:0000000000000000 connection_check_timer.0
 
 UNDEFINED SYMBOLS
 usb_vbus_state

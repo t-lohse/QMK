@@ -25,6 +25,6 @@
 #define ROW2COL 1
 
 // Deprecated alias - avoid using
-#define KEYMAP LAYOUT
+//#define KEYMAP LAYOUT
 
 #include "song_list.h"

@@ -1,0 +1,2032 @@
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 2
+  13              		.file	"hal_gpt_lld.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.gpt_lld_init,"ax",%progbits
+  18              		.align	1
+  19              		.global	gpt_lld_init
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	gpt_lld_init:
+  27              	.LFB285:
+  28              		.file 1 "lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c"
+   1:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*
+   2:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+   4:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     you may not use this file except in compliance with the License.
+   6:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     You may obtain a copy of the License at
+   7:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+   8:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  10:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     Unless required by applicable law or agreed to in writing, software
+  11:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     See the License for the specific language governing permissions and
+  14:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     limitations under the License.
+  15:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** */
+  16:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  17:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  18:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @file    TIMv1/hal_gpt_lld.c
+  19:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   STM32 GPT subsystem low level driver source.
+  20:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+  21:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @addtogroup GPT
+  22:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @{
+  23:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  24:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  25:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #include "hal.h"
+  26:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  27:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if HAL_USE_GPT || defined(__DOXYGEN__)
+  28:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  29:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+  30:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /* Driver local definitions.                                                 */
+  31:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+  32:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  33:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+  34:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /* Driver exported variables.                                                */
+  35:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+  36:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  37:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  38:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD1 driver identifier.
+  39:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD1 allocates the complex timer TIM1 when enabled.
+  40:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  41:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM1 || defined(__DOXYGEN__)
+  42:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD1;
+  43:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  44:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  45:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  46:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD2 driver identifier.
+  47:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD2 allocates the timer TIM2 when enabled.
+  48:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  49:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM2 || defined(__DOXYGEN__)
+  50:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD2;
+  51:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  52:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  53:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  54:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD3 driver identifier.
+  55:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD3 allocates the timer TIM3 when enabled.
+  56:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  57:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM3 || defined(__DOXYGEN__)
+  58:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD3;
+  59:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  60:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  61:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  62:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD4 driver identifier.
+  63:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD4 allocates the timer TIM4 when enabled.
+  64:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  65:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM4 || defined(__DOXYGEN__)
+  66:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD4;
+  67:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  68:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  69:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  70:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD5 driver identifier.
+  71:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD5 allocates the timer TIM5 when enabled.
+  72:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  73:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM5 || defined(__DOXYGEN__)
+  74:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD5;
+  75:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  76:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  77:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  78:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD6 driver identifier.
+  79:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD6 allocates the timer TIM6 when enabled.
+  80:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  81:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM6 || defined(__DOXYGEN__)
+  82:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD6;
+  83:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  84:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  85:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  86:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD7 driver identifier.
+  87:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD7 allocates the timer TIM7 when enabled.
+  88:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  89:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM7 || defined(__DOXYGEN__)
+  90:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD7;
+  91:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+  92:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  93:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+  94:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD8 driver identifier.
+  95:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD8 allocates the timer TIM8 when enabled.
+  96:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+  97:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM8 || defined(__DOXYGEN__)
+  98:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD8;
+  99:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 100:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 101:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 102:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD9 driver identifier.
+ 103:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD9 allocates the timer TIM9 when enabled.
+ 104:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 105:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM9 || defined(__DOXYGEN__)
+ 106:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD9;
+ 107:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 108:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 109:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 110:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD10 driver identifier.
+ 111:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD10 allocates the timer TIM10 when enabled.
+ 112:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 113:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM10 || defined(__DOXYGEN__)
+ 114:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD10;
+ 115:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 116:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 117:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 118:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD11 driver identifier.
+ 119:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD11 allocates the timer TIM11 when enabled.
+ 120:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 121:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM11 || defined(__DOXYGEN__)
+ 122:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD11;
+ 123:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 124:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 125:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 126:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD12 driver identifier.
+ 127:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD12 allocates the timer TIM12 when enabled.
+ 128:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 129:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM12 || defined(__DOXYGEN__)
+ 130:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD12;
+ 131:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 132:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 133:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 134:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD13 driver identifier.
+ 135:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD13 allocates the timer TIM13 when enabled.
+ 136:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 137:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM13 || defined(__DOXYGEN__)
+ 138:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD13;
+ 139:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 140:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 141:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 142:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD14 driver identifier.
+ 143:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD14 allocates the timer TIM14 when enabled.
+ 144:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 145:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM14 || defined(__DOXYGEN__)
+ 146:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD14;
+ 147:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 148:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 149:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 150:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD15 driver identifier.
+ 151:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD14 allocates the timer TIM14 when enabled.
+ 152:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 153:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM15 || defined(__DOXYGEN__)
+ 154:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD15;
+ 155:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 156:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 157:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 158:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD16 driver identifier.
+ 159:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD14 allocates the timer TIM14 when enabled.
+ 160:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 161:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM16 || defined(__DOXYGEN__)
+ 162:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD16;
+ 163:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 164:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 165:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 166:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD17 driver identifier.
+ 167:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD14 allocates the timer TIM14 when enabled.
+ 168:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 169:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM17 || defined(__DOXYGEN__)
+ 170:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD17;
+ 171:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 172:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 173:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 174:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD21 driver identifier.
+ 175:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD21 allocates the timer TIM21 when enabled.
+ 176:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 177:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM21 || defined(__DOXYGEN__)
+ 178:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD21;
+ 179:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 180:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 181:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 182:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   GPTD22 driver identifier.
+ 183:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @note    The driver GPTD22 allocates the timer TIM22 when enabled.
+ 184:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 185:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM22 || defined(__DOXYGEN__)
+ 186:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** GPTDriver GPTD22;
+ 187:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 188:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 189:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 190:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /* Driver local variables and types.                                         */
+ 191:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 192:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 193:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 194:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /* Driver local functions.                                                   */
+ 195:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 196:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 197:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 198:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /* Driver interrupt handlers.                                                */
+ 199:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 200:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 201:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM1 || defined(__DOXYGEN__)
+ 202:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM1_SUPPRESS_ISR)
+ 203:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM1_UP_HANDLER)
+ 204:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM1_UP_HANDLER not defined"
+ 205:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 206:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 207:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM1 interrupt handler.
+ 208:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 209:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 210:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 211:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM1_UP_HANDLER) {
+ 212:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 213:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 214:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 215:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD1);
+ 216:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 217:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 218:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 219:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM1_SUPPRESS_ISR) */
+ 220:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM1 */
+ 221:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 222:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM2 || defined(__DOXYGEN__)
+ 223:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM2_SUPPRESS_ISR)
+ 224:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM2_HANDLER)
+ 225:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM2_HANDLER not defined"
+ 226:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 227:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 228:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM2 interrupt handler.
+ 229:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 230:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 231:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 232:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM2_HANDLER) {
+ 233:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 234:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 235:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 236:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD2);
+ 237:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 238:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 239:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 240:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM2_SUPPRESS_ISR) */
+ 241:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM2 */
+ 242:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 243:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM3 || defined(__DOXYGEN__)
+ 244:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM3_SUPPRESS_ISR)
+ 245:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM3_HANDLER)
+ 246:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM3_HANDLER not defined"
+ 247:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 248:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 249:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM3 interrupt handler.
+ 250:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 251:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 252:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 253:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM3_HANDLER) {
+ 254:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 255:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 256:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 257:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD3);
+ 258:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 259:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 260:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 261:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM3_SUPPRESS_ISR) */
+ 262:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM3 */
+ 263:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 264:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM4 || defined(__DOXYGEN__)
+ 265:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM4_SUPPRESS_ISR)
+ 266:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM4_HANDLER)
+ 267:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM4_HANDLER not defined"
+ 268:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 269:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 270:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM4 interrupt handler.
+ 271:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 272:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 273:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 274:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM4_HANDLER) {
+ 275:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 276:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 277:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 278:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD4);
+ 279:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 280:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 281:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 282:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM4_SUPPRESS_ISR) */
+ 283:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM4 */
+ 284:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 285:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM5 || defined(__DOXYGEN__)
+ 286:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM5_SUPPRESS_ISR)
+ 287:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM5_HANDLER)
+ 288:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM5_HANDLER not defined"
+ 289:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 290:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 291:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM5 interrupt handler.
+ 292:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 293:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 294:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 295:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM5_HANDLER) {
+ 296:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 297:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 298:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 299:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD5);
+ 300:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 301:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 302:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 303:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM5_SUPPRESS_ISR) */
+ 304:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM5 */
+ 305:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 306:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM6 || defined(__DOXYGEN__)
+ 307:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM6_SUPPRESS_ISR)
+ 308:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM6_HANDLER)
+ 309:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM6_HANDLER not defined"
+ 310:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 311:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 312:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM6 interrupt handler.
+ 313:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 314:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 315:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 316:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM6_HANDLER) {
+ 317:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 319:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 320:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD6);
+ 321:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 323:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 324:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM6_SUPPRESS_ISR) */
+ 325:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM6 */
+ 326:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 327:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM7 || defined(__DOXYGEN__)
+ 328:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM7_SUPPRESS_ISR)
+ 329:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM7_HANDLER)
+ 330:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM7_HANDLER not defined"
+ 331:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 332:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 333:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM7 interrupt handler.
+ 334:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 335:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 336:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 337:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM7_HANDLER) {
+ 338:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 340:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 341:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD7);
+ 342:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 344:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 345:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM7_SUPPRESS_ISR) */
+ 346:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM7 */
+ 347:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 348:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM8 || defined(__DOXYGEN__)
+ 349:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM8_SUPPRESS_ISR)
+ 350:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM8_UP_HANDLER)
+ 351:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM8_UP_HANDLER not defined"
+ 352:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 353:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 354:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM8 interrupt handler.
+ 355:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 356:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 357:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 358:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM8_UP_HANDLER) {
+ 359:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 361:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 362:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD8);
+ 363:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 365:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 366:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM8_SUPPRESS_ISR) */
+ 367:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM8 */
+ 368:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 369:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM9 || defined(__DOXYGEN__)
+ 370:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM9_SUPPRESS_ISR)
+ 371:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM9 ISR not defined by platform"
+ 372:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM9_SUPPRESS_ISR) */
+ 373:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM9 */
+ 374:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 375:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM10 || defined(__DOXYGEN__)
+ 376:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM10_SUPPRESS_ISR)
+ 377:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM10 ISR not defined by platform"
+ 378:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM10_SUPPRESS_ISR) */
+ 379:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM10 */
+ 380:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 381:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM11 || defined(__DOXYGEN__)
+ 382:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM11_SUPPRESS_ISR)
+ 383:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM11 ISR not defined by platform"
+ 384:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM11_SUPPRESS_ISR) */
+ 385:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM11 */
+ 386:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 387:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM12 || defined(__DOXYGEN__)
+ 388:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM12_SUPPRESS_ISR)
+ 389:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM12 ISR not defined by platform"
+ 390:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM12_SUPPRESS_ISR) */
+ 391:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM12 */
+ 392:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 393:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM13 || defined(__DOXYGEN__)
+ 394:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM13_SUPPRESS_ISR)
+ 395:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM13 ISR not defined by platform"
+ 396:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM13_SUPPRESS_ISR) */
+ 397:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM13 */
+ 398:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 399:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM14 || defined(__DOXYGEN__)
+ 400:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM14_SUPPRESS_ISR)
+ 401:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM14 ISR not defined by platform"
+ 402:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM14_SUPPRESS_ISR) */
+ 403:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM14 */
+ 404:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 405:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM15 || defined(__DOXYGEN__)
+ 406:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM15_SUPPRESS_ISR)
+ 407:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM15 ISR not defined by platform"
+ 408:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM15_SUPPRESS_ISR) */
+ 409:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM15 */
+ 410:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 411:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM16 || defined(__DOXYGEN__)
+ 412:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM16_SUPPRESS_ISR)
+ 413:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM16 ISR not defined by platform"
+ 414:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM16_SUPPRESS_ISR) */
+ 415:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM16 */
+ 416:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 417:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM17 || defined(__DOXYGEN__)
+ 418:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM17_SUPPRESS_ISR)
+ 419:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "TIM17 ISR not defined by platform"
+ 420:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM17_SUPPRESS_ISR) */
+ 421:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM17 */
+ 422:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 423:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM21 || defined(__DOXYGEN__)
+ 424:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM21_SUPPRESS_ISR)
+ 425:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM21_HANDLER)
+ 426:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM21_HANDLER not defined"
+ 427:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 428:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 429:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM21 interrupt handler.
+ 430:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 431:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 432:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 433:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM21_HANDLER) {
+ 434:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 435:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 436:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 437:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD21);
+ 438:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 439:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 440:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 441:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM21_SUPPRESS_ISR) */
+ 442:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM21 */
+ 443:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 444:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM22 || defined(__DOXYGEN__)
+ 445:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM22_SUPPRESS_ISR)
+ 446:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM22_HANDLER)
+ 447:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #error "STM32_TIM22_HANDLER not defined"
+ 448:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 449:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 450:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   TIM22 interrupt handler.
+ 451:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 452:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @isr
+ 453:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 454:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** OSAL_IRQ_HANDLER(STM32_TIM22_HANDLER) {
+ 455:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 456:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_PROLOGUE();
+ 457:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 458:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gpt_lld_serve_interrupt(&GPTD22);
+ 459:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 460:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   OSAL_IRQ_EPILOGUE();
+ 461:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 462:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM22_SUPPRESS_ISR) */
+ 463:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* STM32_GPT_USE_TIM22 */
+ 464:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 465:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 466:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /* Driver exported functions.                                                */
+ 467:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /*===========================================================================*/
+ 468:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 469:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 470:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Low level GPT driver initialization.
+ 471:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 472:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+ 473:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 474:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_init(void) {
+  29              		.loc 1 474 25 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+ 475:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 476:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM1
+ 477:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 478:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD1.tim = STM32_TIM1;
+ 479:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD1);
+ 480:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 481:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 482:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM2
+ 483:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 484:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD2.tim = STM32_TIM2;
+ 485:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD2);
+ 486:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 487:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 488:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM3
+ 489:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 490:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD3.tim = STM32_TIM3;
+ 491:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD3);
+ 492:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 493:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 494:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM4
+ 495:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 496:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD4.tim = STM32_TIM4;
+ 497:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD4);
+ 498:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 499:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 500:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM5
+ 501:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 502:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD5.tim = STM32_TIM5;
+ 503:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD5);
+ 504:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 505:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 506:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM6
+ 507:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 508:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD6.tim = STM32_TIM6;
+  33              		.loc 1 508 3 view .LVU1
+  34              		.loc 1 508 13 is_stmt 0 view .LVU2
+  35 0000 0848     		ldr	r0, .L2
+ 474:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+  36              		.loc 1 474 25 view .LVU3
+  37 0002 08B5     		push	{r3, lr}
+  38              		.cfi_def_cfa_offset 8
+  39              		.cfi_offset 3, -8
+  40              		.cfi_offset 14, -4
+  41              		.loc 1 508 13 view .LVU4
+  42 0004 084B     		ldr	r3, .L2+4
+  43 0006 C360     		str	r3, [r0, #12]
+ 509:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD6);
+  44              		.loc 1 509 3 is_stmt 1 view .LVU5
+  45 0008 FFF7FEFF 		bl	gptObjectInit
+  46              	.LVL0:
+ 510:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 511:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 512:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM7
+ 513:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 514:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD7.tim = STM32_TIM7;
+  47              		.loc 1 514 3 view .LVU6
+  48              		.loc 1 514 13 is_stmt 0 view .LVU7
+  49 000c 0748     		ldr	r0, .L2+8
+  50 000e 084B     		ldr	r3, .L2+12
+  51 0010 C360     		str	r3, [r0, #12]
+ 515:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD7);
+  52              		.loc 1 515 3 is_stmt 1 view .LVU8
+  53 0012 FFF7FEFF 		bl	gptObjectInit
+  54              	.LVL1:
+ 516:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 517:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 518:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM8
+ 519:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 520:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD8.tim = STM32_TIM8;
+  55              		.loc 1 520 3 view .LVU9
+  56              		.loc 1 520 13 is_stmt 0 view .LVU10
+  57 0016 0748     		ldr	r0, .L2+16
+  58 0018 074B     		ldr	r3, .L2+20
+  59 001a C360     		str	r3, [r0, #12]
+ 521:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD8);
+  60              		.loc 1 521 3 is_stmt 1 view .LVU11
+ 522:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 523:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 524:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM9
+ 525:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 526:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD9.tim = STM32_TIM9;
+ 527:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD9);
+ 528:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 529:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 530:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM10
+ 531:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 532:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD10.tim = STM32_TIM10;
+ 533:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD10);
+ 534:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 535:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 536:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM11
+ 537:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 538:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD11.tim = STM32_TIM11;
+ 539:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD11);
+ 540:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 541:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 542:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM12
+ 543:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 544:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD12.tim = STM32_TIM12;
+ 545:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD12);
+ 546:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 547:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 548:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM13
+ 549:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 550:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD13.tim = STM32_TIM13;
+ 551:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD13);
+ 552:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 553:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 554:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM14
+ 555:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 556:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD14.tim = STM32_TIM14;
+ 557:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD14);
+ 558:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 559:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 560:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM15
+ 561:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 562:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD15.tim = STM32_TIM15;
+ 563:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD15);
+ 564:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 565:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 566:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM16
+ 567:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 568:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD16.tim = STM32_TIM16;
+ 569:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD16);
+ 570:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 571:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 572:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM17
+ 573:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 574:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD17.tim = STM32_TIM17;
+ 575:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD17);
+ 576:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 577:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 578:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM21
+ 579:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 580:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD21.tim = STM32_TIM21;
+ 581:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD21);
+ 582:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 583:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 584:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM22
+ 585:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Driver initialization.*/
+ 586:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   GPTD22.tim = STM32_TIM22;
+ 587:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD22);
+ 588:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 589:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+  61              		.loc 1 589 1 is_stmt 0 view .LVU12
+  62 001c BDE80840 		pop	{r3, lr}
+  63              		.cfi_restore 14
+  64              		.cfi_restore 3
+  65              		.cfi_def_cfa_offset 0
+ 521:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptObjectInit(&GPTD8);
+  66              		.loc 1 521 3 view .LVU13
+  67 0020 FFF7FEBF 		b	gptObjectInit
+  68              	.LVL2:
+  69              	.L3:
+  70              		.align	2
+  71              	.L2:
+  72 0024 00000000 		.word	GPTD6
+  73 0028 00100040 		.word	1073745920
+  74 002c 00000000 		.word	GPTD7
+  75 0030 00140040 		.word	1073746944
+  76 0034 00000000 		.word	GPTD8
+  77 0038 00340140 		.word	1073820672
+  78              		.cfi_endproc
+  79              	.LFE285:
+  81              		.section	.text.gpt_lld_start,"ax",%progbits
+  82              		.align	1
+  83              		.global	gpt_lld_start
+  84              		.syntax unified
+  85              		.thumb
+  86              		.thumb_func
+  87              		.fpu fpv4-sp-d16
+  89              	gpt_lld_start:
+  90              	.LVL3:
+  91              	.LFB286:
+ 590:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 591:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 592:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Configures and activates the GPT peripheral.
+ 593:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 594:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] gptp      pointer to the @p GPTDriver object
+ 595:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 596:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+ 597:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 598:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_start(GPTDriver *gptp) {
+  92              		.loc 1 598 37 is_stmt 1 view -0
+  93              		.cfi_startproc
+  94              		@ args = 0, pretend = 0, frame = 0
+  95              		@ frame_needed = 0, uses_anonymous_args = 0
+ 599:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint16_t psc;
+  96              		.loc 1 599 3 view .LVU15
+ 600:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 601:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   if (gptp->state == GPT_STOP) {
+  97              		.loc 1 601 3 view .LVU16
+ 598:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint16_t psc;
+  98              		.loc 1 598 37 is_stmt 0 view .LVU17
+  99 0000 10B5     		push	{r4, lr}
+ 100              		.cfi_def_cfa_offset 8
+ 101              		.cfi_offset 4, -8
+ 102              		.cfi_offset 14, -4
+ 103              		.loc 1 601 6 view .LVU18
+ 104 0002 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 105 0004 012B     		cmp	r3, #1
+ 598:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint16_t psc;
+ 106              		.loc 1 598 37 view .LVU19
+ 107 0006 0446     		mov	r4, r0
+ 108              		.loc 1 601 6 view .LVU20
+ 109 0008 47D1     		bne	.L6
+ 602:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     /* Clock activation.*/
+ 603:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM1
+ 604:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD1 == gptp) {
+ 605:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM1(true);
+ 606:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM1();
+ 607:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM1_SUPPRESS_ISR)
+ 608:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM1_UP_NUMBER, STM32_GPT_TIM1_IRQ_PRIORITY);
+ 609:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 610:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM1CLK)
+ 611:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM1CLK;
+ 612:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 613:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 614:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 615:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 616:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 617:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 618:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM2
+ 619:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD2 == gptp) {
+ 620:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM2(true);
+ 621:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM2();
+ 622:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM2_SUPPRESS_ISR)
+ 623:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM2_NUMBER, STM32_GPT_TIM2_IRQ_PRIORITY);
+ 624:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 625:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM2CLK)
+ 626:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM2CLK;
+ 627:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 628:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 629:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 630:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 631:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 632:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 633:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM3
+ 634:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD3 == gptp) {
+ 635:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM3(true);
+ 636:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM3();
+ 637:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM3_SUPPRESS_ISR)
+ 638:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM3_NUMBER, STM32_GPT_TIM3_IRQ_PRIORITY);
+ 639:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 640:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM3CLK)
+ 641:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM3CLK;
+ 642:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 643:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 644:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 645:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 646:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 647:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 648:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM4
+ 649:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD4 == gptp) {
+ 650:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM4(true);
+ 651:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM4();
+ 652:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM4_SUPPRESS_ISR)
+ 653:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM4_NUMBER, STM32_GPT_TIM4_IRQ_PRIORITY);
+ 654:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 655:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM4CLK)
+ 656:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM4CLK;
+ 657:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 658:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 659:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 660:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 661:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 662:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 663:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM5
+ 664:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD5 == gptp) {
+ 665:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM5(true);
+ 666:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM5();
+ 667:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM5_SUPPRESS_ISR)
+ 668:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM5_NUMBER, STM32_GPT_TIM5_IRQ_PRIORITY);
+ 669:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 670:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM5CLK)
+ 671:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM5CLK;
+ 672:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 673:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 674:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 675:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 676:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 677:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 678:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM6
+ 679:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD6 == gptp) {
+ 110              		.loc 1 679 5 is_stmt 1 view .LVU21
+ 111              		.loc 1 679 8 is_stmt 0 view .LVU22
+ 112 000a 2D4B     		ldr	r3, .L10
+ 113 000c 9842     		cmp	r0, r3
+ 114 000e 14D1     		bne	.L7
+ 680:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM6(true);
+ 115              		.loc 1 680 7 is_stmt 1 view .LVU23
+ 116 0010 2C4B     		ldr	r3, .L10+4
+ 117 0012 DA69     		ldr	r2, [r3, #28]
+ 118 0014 42F01002 		orr	r2, r2, #16
+ 119 0018 DA61     		str	r2, [r3, #28]
+ 120              		.loc 1 680 7 view .LVU24
+ 121 001a DA69     		ldr	r2, [r3, #28]
+ 122              		.loc 1 680 26 view .LVU25
+ 681:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM6();
+ 123              		.loc 1 681 7 view .LVU26
+ 124 001c 1A69     		ldr	r2, [r3, #16]
+ 125 001e 42F01002 		orr	r2, r2, #16
+ 126 0022 1A61     		str	r2, [r3, #16]
+ 127              		.loc 1 681 7 view .LVU27
+ 128 0024 1A69     		ldr	r2, [r3, #16]
+ 129 0026 22F01002 		bic	r2, r2, #16
+ 130 002a 1A61     		str	r2, [r3, #16]
+ 131              		.loc 1 681 7 view .LVU28
+ 682:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM6_SUPPRESS_ISR)
+ 683:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM6_NUMBER, STM32_GPT_TIM6_IRQ_PRIORITY);
+ 132              		.loc 1 683 7 is_stmt 0 view .LVU29
+ 133 002c 0721     		movs	r1, #7
+ 134 002e 3620     		movs	r0, #54
+ 135              	.LVL4:
+ 681:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM6();
+ 136              		.loc 1 681 7 view .LVU30
+ 137 0030 1B69     		ldr	r3, [r3, #16]
+ 681:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM6();
+ 138              		.loc 1 681 21 is_stmt 1 view .LVU31
+ 139              		.loc 1 683 7 view .LVU32
+ 140 0032 FFF7FEFF 		bl	nvicEnableVector
+ 141              	.LVL5:
+ 684:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 685:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM6CLK)
+ 686:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM6CLK;
+ 687:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 688:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 142              		.loc 1 688 7 view .LVU33
+ 143              		.loc 1 688 19 is_stmt 0 view .LVU34
+ 144 0036 244B     		ldr	r3, .L10+8
+ 145 0038 A360     		str	r3, [r4, #8]
+ 146              	.L7:
+ 689:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 690:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 691:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 692:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 693:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM7
+ 694:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD7 == gptp) {
+ 147              		.loc 1 694 5 is_stmt 1 view .LVU35
+ 148              		.loc 1 694 8 is_stmt 0 view .LVU36
+ 149 003a 244B     		ldr	r3, .L10+12
+ 150 003c 9C42     		cmp	r4, r3
+ 151 003e 14D1     		bne	.L8
+ 695:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM7(true);
+ 152              		.loc 1 695 7 is_stmt 1 view .LVU37
+ 153 0040 204B     		ldr	r3, .L10+4
+ 154 0042 DA69     		ldr	r2, [r3, #28]
+ 155 0044 42F02002 		orr	r2, r2, #32
+ 156 0048 DA61     		str	r2, [r3, #28]
+ 157              		.loc 1 695 7 view .LVU38
+ 158 004a DA69     		ldr	r2, [r3, #28]
+ 159              		.loc 1 695 26 view .LVU39
+ 696:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM7();
+ 160              		.loc 1 696 7 view .LVU40
+ 161 004c 1A69     		ldr	r2, [r3, #16]
+ 162 004e 42F02002 		orr	r2, r2, #32
+ 163 0052 1A61     		str	r2, [r3, #16]
+ 164              		.loc 1 696 7 view .LVU41
+ 165 0054 1A69     		ldr	r2, [r3, #16]
+ 166 0056 22F02002 		bic	r2, r2, #32
+ 167 005a 1A61     		str	r2, [r3, #16]
+ 168              		.loc 1 696 7 view .LVU42
+ 697:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM7_SUPPRESS_ISR)
+ 698:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM7_NUMBER, STM32_GPT_TIM7_IRQ_PRIORITY);
+ 169              		.loc 1 698 7 is_stmt 0 view .LVU43
+ 170 005c 0721     		movs	r1, #7
+ 171 005e 3720     		movs	r0, #55
+ 696:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM7();
+ 172              		.loc 1 696 7 view .LVU44
+ 173 0060 1B69     		ldr	r3, [r3, #16]
+ 696:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM7();
+ 174              		.loc 1 696 21 is_stmt 1 view .LVU45
+ 175              		.loc 1 698 7 view .LVU46
+ 176 0062 FFF7FEFF 		bl	nvicEnableVector
+ 177              	.LVL6:
+ 699:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 700:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM7CLK)
+ 701:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM7CLK;
+ 702:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 703:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 178              		.loc 1 703 7 view .LVU47
+ 179              		.loc 1 703 19 is_stmt 0 view .LVU48
+ 180 0066 184B     		ldr	r3, .L10+8
+ 181 0068 A360     		str	r3, [r4, #8]
+ 182              	.L8:
+ 704:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 705:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 706:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 707:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 708:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM8
+ 709:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD8 == gptp) {
+ 183              		.loc 1 709 5 is_stmt 1 view .LVU49
+ 184              		.loc 1 709 8 is_stmt 0 view .LVU50
+ 185 006a 194B     		ldr	r3, .L10+16
+ 186 006c 9C42     		cmp	r4, r3
+ 187 006e 14D1     		bne	.L6
+ 710:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM8(true);
+ 188              		.loc 1 710 7 is_stmt 1 view .LVU51
+ 189 0070 144B     		ldr	r3, .L10+4
+ 190 0072 9A69     		ldr	r2, [r3, #24]
+ 191 0074 42F40052 		orr	r2, r2, #8192
+ 192 0078 9A61     		str	r2, [r3, #24]
+ 193              		.loc 1 710 7 view .LVU52
+ 194 007a 9A69     		ldr	r2, [r3, #24]
+ 195              		.loc 1 710 26 view .LVU53
+ 711:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM8();
+ 196              		.loc 1 711 7 view .LVU54
+ 197 007c DA68     		ldr	r2, [r3, #12]
+ 198 007e 42F40052 		orr	r2, r2, #8192
+ 199 0082 DA60     		str	r2, [r3, #12]
+ 200              		.loc 1 711 7 view .LVU55
+ 201 0084 DA68     		ldr	r2, [r3, #12]
+ 202 0086 22F40052 		bic	r2, r2, #8192
+ 203 008a DA60     		str	r2, [r3, #12]
+ 204              		.loc 1 711 7 view .LVU56
+ 712:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM8_SUPPRESS_ISR)
+ 713:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM8_UP_NUMBER, STM32_GPT_TIM8_IRQ_PRIORITY);
+ 205              		.loc 1 713 7 is_stmt 0 view .LVU57
+ 206 008c 0721     		movs	r1, #7
+ 207 008e 2C20     		movs	r0, #44
+ 711:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM8();
+ 208              		.loc 1 711 7 view .LVU58
+ 209 0090 DB68     		ldr	r3, [r3, #12]
+ 711:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM8();
+ 210              		.loc 1 711 21 is_stmt 1 view .LVU59
+ 211              		.loc 1 713 7 view .LVU60
+ 212 0092 FFF7FEFF 		bl	nvicEnableVector
+ 213              	.LVL7:
+ 714:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 715:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM8CLK)
+ 716:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM8CLK;
+ 214              		.loc 1 716 7 view .LVU61
+ 215              		.loc 1 716 19 is_stmt 0 view .LVU62
+ 216 0096 0C4B     		ldr	r3, .L10+8
+ 217 0098 A360     		str	r3, [r4, #8]
+ 218              	.L6:
+ 717:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 718:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 719:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 720:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 721:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 722:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 723:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM9
+ 724:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD9 == gptp) {
+ 725:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM9(true);
+ 726:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM9();
+ 727:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM9_SUPPRESS_ISR)
+ 728:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM9_NUMBER, STM32_GPT_TIM9_IRQ_PRIORITY);
+ 729:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 730:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM9CLK)
+ 731:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM9CLK;
+ 732:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 733:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 734:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 735:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 736:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 737:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 738:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM10
+ 739:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD10 == gptp) {
+ 740:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM10(true);
+ 741:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM10();
+ 742:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM10_SUPPRESS_ISR)
+ 743:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM10_NUMBER, STM32_GPT_TIM10_IRQ_PRIORITY);
+ 744:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 745:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM10CLK)
+ 746:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM10CLK;
+ 747:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 748:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 749:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 750:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 751:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 752:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 753:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM11
+ 754:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD11 == gptp) {
+ 755:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM11(true);
+ 756:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM11();
+ 757:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM11_SUPPRESS_ISR)
+ 758:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM11_NUMBER, STM32_GPT_TIM11_IRQ_PRIORITY);
+ 759:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 760:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM11CLK)
+ 761:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM11CLK;
+ 762:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 763:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 764:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 765:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 766:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 767:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 768:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM12
+ 769:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD12 == gptp) {
+ 770:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM12(true);
+ 771:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM12();
+ 772:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM12_SUPPRESS_ISR)
+ 773:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM12_NUMBER, STM32_GPT_TIM12_IRQ_PRIORITY);
+ 774:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 775:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM12CLK)
+ 776:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM12CLK;
+ 777:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 778:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 779:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 780:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 781:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 782:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 783:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM13
+ 784:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD13 == gptp) {
+ 785:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM13(true);
+ 786:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM13();
+ 787:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM13_SUPPRESS_ISR)
+ 788:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM13_NUMBER, STM32_GPT_TIM13_IRQ_PRIORITY);
+ 789:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 790:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM13CLK)
+ 791:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM13CLK;
+ 792:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 793:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 794:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 795:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 796:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 797:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 798:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM14
+ 799:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD14 == gptp) {
+ 800:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM14(true);
+ 801:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM14();
+ 802:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM14_SUPPRESS_ISR)
+ 803:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM14_NUMBER, STM32_GPT_TIM14_IRQ_PRIORITY);
+ 804:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 805:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM14CLK)
+ 806:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM14CLK;
+ 807:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 808:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 809:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 810:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 811:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 812:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 813:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM15
+ 814:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD15 == gptp) {
+ 815:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM15(true);
+ 816:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM15();
+ 817:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM15CLK)
+ 818:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM15CLK;
+ 819:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 820:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 821:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 822:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 823:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 824:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 825:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM16
+ 826:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD16 == gptp) {
+ 827:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM16(true);
+ 828:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM16();
+ 829:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM16CLK)
+ 830:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM16CLK;
+ 831:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 832:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 833:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 834:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 835:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 836:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 837:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM17
+ 838:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD17 == gptp) {
+ 839:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM17(true);
+ 840:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM17();
+ 841:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM17CLK)
+ 842:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM17CLK;
+ 843:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 844:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK2;
+ 845:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 846:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 847:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 848:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 849:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM21
+ 850:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD21 == gptp) {
+ 851:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM21(true);
+ 852:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM21();
+ 853:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM21_SUPPRESS_ISR)
+ 854:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM21_NUMBER, STM32_GPT_TIM21_IRQ_PRIORITY);
+ 855:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 856:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM21CLK)
+ 857:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM21CLK;
+ 858:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 859:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 860:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 861:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 862:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 863:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 864:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM22
+ 865:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD22 == gptp) {
+ 866:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccEnableTIM22(true);
+ 867:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccResetTIM22();
+ 868:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM22_SUPPRESS_ISR)
+ 869:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicEnableVector(STM32_TIM22_NUMBER, STM32_GPT_TIM22_IRQ_PRIORITY);
+ 870:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 871:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if defined(STM32_TIM22CLK)
+ 872:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIM22CLK;
+ 873:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #else
+ 874:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       gptp->clock = STM32_TIMCLK1;
+ 875:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 876:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 877:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 878:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   }
+ 879:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 880:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Prescaler value calculation.*/
+ 881:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   psc = (uint16_t)((gptp->clock / gptp->config->frequency) - 1);
+ 219              		.loc 1 881 3 is_stmt 1 view .LVU63
+ 220              		.loc 1 881 33 is_stmt 0 view .LVU64
+ 221 009a D4E90113 		ldrd	r1, r3, [r4, #4]
+ 222 009e 0A68     		ldr	r2, [r1]
+ 223 00a0 B3FBF2F3 		udiv	r3, r3, r2
+ 882:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   osalDbgAssert(((uint32_t)(psc + 1) * gptp->config->frequency) == gptp->clock,
+ 883:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****                 "invalid frequency");
+ 884:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 885:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* Timer configuration.*/
+ 886:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR1  = 0;                          /* Initially stopped.       */
+ 224              		.loc 1 886 7 view .LVU65
+ 225 00a4 E268     		ldr	r2, [r4, #12]
+ 887:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR2  = gptp->config->cr2;
+ 226              		.loc 1 887 33 view .LVU66
+ 227 00a6 8C68     		ldr	r4, [r1, #8]
+ 228              	.LVL8:
+ 881:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   osalDbgAssert(((uint32_t)(psc + 1) * gptp->config->frequency) == gptp->clock,
+ 229              		.loc 1 881 7 view .LVU67
+ 230 00a8 013B     		subs	r3, r3, #1
+ 231 00aa 9BB2     		uxth	r3, r3
+ 232              	.LVL9:
+ 882:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   osalDbgAssert(((uint32_t)(psc + 1) * gptp->config->frequency) == gptp->clock,
+ 233              		.loc 1 882 3 is_stmt 1 view .LVU68
+ 882:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   osalDbgAssert(((uint32_t)(psc + 1) * gptp->config->frequency) == gptp->clock,
+ 234              		.loc 1 882 3 view .LVU69
+ 882:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   osalDbgAssert(((uint32_t)(psc + 1) * gptp->config->frequency) == gptp->clock,
+ 235              		.loc 1 882 3 view .LVU70
+ 886:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR2  = gptp->config->cr2;
+ 236              		.loc 1 886 3 view .LVU71
+ 886:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR2  = gptp->config->cr2;
+ 237              		.loc 1 886 19 is_stmt 0 view .LVU72
+ 238 00ac 0020     		movs	r0, #0
+ 239 00ae 1060     		str	r0, [r2]
+ 240              		.loc 1 887 3 is_stmt 1 view .LVU73
+ 241              		.loc 1 887 19 is_stmt 0 view .LVU74
+ 242 00b0 5460     		str	r4, [r2, #4]
+ 888:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->PSC  = psc;                        /* Prescaler value.         */
+ 243              		.loc 1 888 3 is_stmt 1 view .LVU75
+ 244              		.loc 1 888 19 is_stmt 0 view .LVU76
+ 245 00b2 9362     		str	r3, [r2, #40]
+ 889:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR   = 0;                          /* Clear pending IRQs.      */
+ 246              		.loc 1 889 3 is_stmt 1 view .LVU77
+ 890:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->DIER = gptp->config->dier &        /* DMA-related DIER bits.   */
+ 247              		.loc 1 890 40 is_stmt 0 view .LVU78
+ 248 00b4 CB68     		ldr	r3, [r1, #12]
+ 249              	.LVL10:
+ 889:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR   = 0;                          /* Clear pending IRQs.      */
+ 250              		.loc 1 889 19 view .LVU79
+ 251 00b6 1061     		str	r0, [r2, #16]
+ 252              	.LVL11:
+ 253              		.loc 1 890 3 is_stmt 1 view .LVU80
+ 254              		.loc 1 890 40 is_stmt 0 view .LVU81
+ 255 00b8 23F0FF03 		bic	r3, r3, #255
+ 256              		.loc 1 890 19 view .LVU82
+ 257 00bc D360     		str	r3, [r2, #12]
+ 891:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****                     ~STM32_TIM_DIER_IRQ_MASK;
+ 892:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 258              		.loc 1 892 1 view .LVU83
+ 259 00be 10BD     		pop	{r4, pc}
+ 260              	.L11:
+ 261              		.align	2
+ 262              	.L10:
+ 263 00c0 00000000 		.word	GPTD6
+ 264 00c4 00100240 		.word	1073876992
+ 265 00c8 00A24A04 		.word	72000000
+ 266 00cc 00000000 		.word	GPTD7
+ 267 00d0 00000000 		.word	GPTD8
+ 268              		.cfi_endproc
+ 269              	.LFE286:
+ 271              		.section	.text.gpt_lld_stop,"ax",%progbits
+ 272              		.align	1
+ 273              		.global	gpt_lld_stop
+ 274              		.syntax unified
+ 275              		.thumb
+ 276              		.thumb_func
+ 277              		.fpu fpv4-sp-d16
+ 279              	gpt_lld_stop:
+ 280              	.LVL12:
+ 281              	.LFB287:
+ 893:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 894:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+ 895:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Deactivates the GPT peripheral.
+ 896:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 897:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] gptp      pointer to the @p GPTDriver object
+ 898:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+ 899:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+ 900:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+ 901:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_stop(GPTDriver *gptp) {
+ 282              		.loc 1 901 36 is_stmt 1 view -0
+ 283              		.cfi_startproc
+ 284              		@ args = 0, pretend = 0, frame = 0
+ 285              		@ frame_needed = 0, uses_anonymous_args = 0
+ 902:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 903:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   if (gptp->state == GPT_READY) {
+ 286              		.loc 1 903 3 view .LVU85
+ 901:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 287              		.loc 1 901 36 is_stmt 0 view .LVU86
+ 288 0000 10B5     		push	{r4, lr}
+ 289              		.cfi_def_cfa_offset 8
+ 290              		.cfi_offset 4, -8
+ 291              		.cfi_offset 14, -4
+ 292              		.loc 1 903 6 view .LVU87
+ 293 0002 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 294 0004 022B     		cmp	r3, #2
+ 901:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 295              		.loc 1 901 36 view .LVU88
+ 296 0006 0446     		mov	r4, r0
+ 297              		.loc 1 903 6 view .LVU89
+ 298 0008 28D1     		bne	.L12
+ 904:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     gptp->tim->CR1  = 0;                        /* Timer disabled.          */
+ 299              		.loc 1 904 5 is_stmt 1 view .LVU90
+ 300              		.loc 1 904 9 is_stmt 0 view .LVU91
+ 301 000a C368     		ldr	r3, [r0, #12]
+ 302              		.loc 1 904 21 view .LVU92
+ 303 000c 0022     		movs	r2, #0
+ 304 000e 1A60     		str	r2, [r3]
+ 905:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     gptp->tim->DIER = 0;                        /* All IRQs disabled.       */
+ 305              		.loc 1 905 5 is_stmt 1 view .LVU93
+ 306              		.loc 1 905 21 is_stmt 0 view .LVU94
+ 307 0010 DA60     		str	r2, [r3, #12]
+ 906:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     gptp->tim->SR   = 0;                        /* Clear pending IRQs.      */
+ 308              		.loc 1 906 5 is_stmt 1 view .LVU95
+ 309              		.loc 1 906 21 is_stmt 0 view .LVU96
+ 310 0012 1A61     		str	r2, [r3, #16]
+ 907:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 908:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM1
+ 909:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD1 == gptp) {
+ 910:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM1_SUPPRESS_ISR)
+ 911:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM1_UP_NUMBER);
+ 912:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 913:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM1();
+ 914:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 915:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 916:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 917:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM2
+ 918:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD2 == gptp) {
+ 919:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM2_SUPPRESS_ISR)
+ 920:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM2_NUMBER);
+ 921:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 922:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM2();
+ 923:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 924:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 925:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 926:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM3
+ 927:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD3 == gptp) {
+ 928:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM3_SUPPRESS_ISR)
+ 929:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM3_NUMBER);
+ 930:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 931:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM3();
+ 932:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 933:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 934:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 935:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM4
+ 936:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD4 == gptp) {
+ 937:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM4_SUPPRESS_ISR)
+ 938:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM4_NUMBER);
+ 939:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 940:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM4();
+ 941:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 942:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 943:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 944:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM5
+ 945:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD5 == gptp) {
+ 946:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM5_SUPPRESS_ISR)
+ 947:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM5_NUMBER);
+ 948:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 949:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM5();
+ 950:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 951:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 952:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 953:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM6
+ 954:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD6 == gptp) {
+ 311              		.loc 1 954 5 is_stmt 1 view .LVU97
+ 312              		.loc 1 954 8 is_stmt 0 view .LVU98
+ 313 0014 124B     		ldr	r3, .L18
+ 314 0016 9842     		cmp	r0, r3
+ 315 0018 08D1     		bne	.L15
+ 955:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM6_SUPPRESS_ISR)
+ 956:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM6_NUMBER);
+ 316              		.loc 1 956 7 is_stmt 1 view .LVU99
+ 317 001a 3620     		movs	r0, #54
+ 318              	.LVL13:
+ 319              		.loc 1 956 7 is_stmt 0 view .LVU100
+ 320 001c FFF7FEFF 		bl	nvicDisableVector
+ 321              	.LVL14:
+ 957:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 958:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM6();
+ 322              		.loc 1 958 7 is_stmt 1 view .LVU101
+ 323 0020 104B     		ldr	r3, .L18+4
+ 324 0022 DA69     		ldr	r2, [r3, #28]
+ 325 0024 22F01002 		bic	r2, r2, #16
+ 326 0028 DA61     		str	r2, [r3, #28]
+ 327              		.loc 1 958 7 view .LVU102
+ 328 002a DB69     		ldr	r3, [r3, #28]
+ 329              	.L15:
+ 330              		.loc 1 958 23 discriminator 1 view .LVU103
+ 959:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 960:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 961:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 962:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM7
+ 963:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD7 == gptp) {
+ 331              		.loc 1 963 5 discriminator 1 view .LVU104
+ 332              		.loc 1 963 8 is_stmt 0 discriminator 1 view .LVU105
+ 333 002c 0E4B     		ldr	r3, .L18+8
+ 334 002e 9C42     		cmp	r4, r3
+ 335 0030 08D1     		bne	.L16
+ 964:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM7_SUPPRESS_ISR)
+ 965:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM7_NUMBER);
+ 336              		.loc 1 965 7 is_stmt 1 view .LVU106
+ 337 0032 3720     		movs	r0, #55
+ 338 0034 FFF7FEFF 		bl	nvicDisableVector
+ 339              	.LVL15:
+ 966:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 967:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM7();
+ 340              		.loc 1 967 7 view .LVU107
+ 341 0038 0A4B     		ldr	r3, .L18+4
+ 342 003a DA69     		ldr	r2, [r3, #28]
+ 343 003c 22F02002 		bic	r2, r2, #32
+ 344 0040 DA61     		str	r2, [r3, #28]
+ 345              		.loc 1 967 7 view .LVU108
+ 346 0042 DB69     		ldr	r3, [r3, #28]
+ 347              	.L16:
+ 348              		.loc 1 967 23 discriminator 1 view .LVU109
+ 968:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 969:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 970:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 971:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM8
+ 972:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD8 == gptp) {
+ 349              		.loc 1 972 5 discriminator 1 view .LVU110
+ 350              		.loc 1 972 8 is_stmt 0 discriminator 1 view .LVU111
+ 351 0044 094B     		ldr	r3, .L18+12
+ 352 0046 9C42     		cmp	r4, r3
+ 353 0048 08D1     		bne	.L12
+ 973:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM8_SUPPRESS_ISR)
+ 974:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM8_UP_NUMBER);
+ 354              		.loc 1 974 7 is_stmt 1 view .LVU112
+ 355 004a 2C20     		movs	r0, #44
+ 356 004c FFF7FEFF 		bl	nvicDisableVector
+ 357              	.LVL16:
+ 975:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 976:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM8();
+ 358              		.loc 1 976 7 view .LVU113
+ 359 0050 044B     		ldr	r3, .L18+4
+ 360 0052 9A69     		ldr	r2, [r3, #24]
+ 361 0054 22F40052 		bic	r2, r2, #8192
+ 362 0058 9A61     		str	r2, [r3, #24]
+ 363              		.loc 1 976 7 view .LVU114
+ 364 005a 9B69     		ldr	r3, [r3, #24]
+ 365              		.loc 1 976 23 view .LVU115
+ 366              	.L12:
+ 977:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 978:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 979:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 980:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM9
+ 981:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD9 == gptp) {
+ 982:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM9_SUPPRESS_ISR)
+ 983:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM9_NUMBER);
+ 984:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 985:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM9();
+ 986:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 987:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 988:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 989:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM10
+ 990:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD10 == gptp) {
+ 991:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM10_SUPPRESS_ISR)
+ 992:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM10_NUMBER);
+ 993:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 994:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM10();
+ 995:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+ 996:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+ 997:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 998:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM11
+ 999:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD11 == gptp) {
+1000:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM11_SUPPRESS_ISR)
+1001:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM11_NUMBER);
+1002:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1003:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM11();
+1004:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1005:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1006:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1007:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM12
+1008:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD12 == gptp) {
+1009:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM12_SUPPRESS_ISR)
+1010:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM12_NUMBER);
+1011:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1012:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM12();
+1013:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1014:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1015:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1016:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM13
+1017:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD13 == gptp) {
+1018:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM13_SUPPRESS_ISR)
+1019:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM13_NUMBER);
+1020:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1021:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM13();
+1022:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1023:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1024:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1025:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM14
+1026:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD14 == gptp) {
+1027:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM14_SUPPRESS_ISR)
+1028:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM14_NUMBER);
+1029:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1030:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM14();
+1031:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1032:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1033:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1034:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM15
+1035:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD15 == gptp) {
+1036:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM15();
+1037:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1038:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1039:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1040:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM16
+1041:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD16 == gptp) {
+1042:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM16();
+1043:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1044:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1045:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1046:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM17
+1047:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD17 == gptp) {
+1048:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM17();
+1049:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1050:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1051:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1052:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM21
+1053:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD21 == gptp) {
+1054:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM21_SUPPRESS_ISR)
+1055:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM21_NUMBER);
+1056:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1057:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM21();
+1058:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1059:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1060:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1061:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if STM32_GPT_USE_TIM22
+1062:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     if (&GPTD22 == gptp) {
+1063:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #if !defined(STM32_TIM22_SUPPRESS_ISR)
+1064:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       nvicDisableVector(STM32_TIM22_NUMBER);
+1065:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1066:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****       rccDisableTIM22();
+1067:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     }
+1068:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif
+1069:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   }
+1070:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 367              		.loc 1 1070 1 is_stmt 0 view .LVU116
+ 368 005c 10BD     		pop	{r4, pc}
+ 369              	.LVL17:
+ 370              	.L19:
+ 371              		.loc 1 1070 1 view .LVU117
+ 372 005e 00BF     		.align	2
+ 373              	.L18:
+ 374 0060 00000000 		.word	GPTD6
+ 375 0064 00100240 		.word	1073876992
+ 376 0068 00000000 		.word	GPTD7
+ 377 006c 00000000 		.word	GPTD8
+ 378              		.cfi_endproc
+ 379              	.LFE287:
+ 381              		.section	.text.gpt_lld_start_timer,"ax",%progbits
+ 382              		.align	1
+ 383              		.global	gpt_lld_start_timer
+ 384              		.syntax unified
+ 385              		.thumb
+ 386              		.thumb_func
+ 387              		.fpu fpv4-sp-d16
+ 389              	gpt_lld_start_timer:
+ 390              	.LVL18:
+ 391              	.LFB288:
+1071:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1072:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+1073:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Starts the timer in continuous mode.
+1074:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1075:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] gptp      pointer to the @p GPTDriver object
+1076:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] interval  period in ticks
+1077:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1078:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+1079:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+1080:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_start_timer(GPTDriver *gptp, gptcnt_t interval) {
+ 392              		.loc 1 1080 62 is_stmt 1 view -0
+ 393              		.cfi_startproc
+ 394              		@ args = 0, pretend = 0, frame = 0
+ 395              		@ frame_needed = 0, uses_anonymous_args = 0
+ 396              		@ link register save eliminated.
+1081:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1082:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->ARR = (uint32_t)(interval - 1U);   /* Time constant.           */
+ 397              		.loc 1 1082 3 view .LVU119
+ 398              		.loc 1 1082 7 is_stmt 0 view .LVU120
+ 399 0000 C368     		ldr	r3, [r0, #12]
+1083:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->EGR = STM32_TIM_EGR_UG;            /* Update event.            */
+ 400              		.loc 1 1083 18 view .LVU121
+ 401 0002 0122     		movs	r2, #1
+1082:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->EGR = STM32_TIM_EGR_UG;            /* Update event.            */
+ 402              		.loc 1 1082 20 view .LVU122
+ 403 0004 0139     		subs	r1, r1, #1
+ 404              	.LVL19:
+1082:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->EGR = STM32_TIM_EGR_UG;            /* Update event.            */
+ 405              		.loc 1 1082 18 view .LVU123
+ 406 0006 D962     		str	r1, [r3, #44]
+ 407              		.loc 1 1083 3 is_stmt 1 view .LVU124
+ 408              		.loc 1 1083 18 is_stmt 0 view .LVU125
+ 409 0008 5A61     		str	r2, [r3, #20]
+1084:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CNT = 0;                           /* Reset counter.           */
+ 410              		.loc 1 1084 3 is_stmt 1 view .LVU126
+ 411              		.loc 1 1084 18 is_stmt 0 view .LVU127
+ 412 000a 0022     		movs	r2, #0
+ 413 000c 5A62     		str	r2, [r3, #36]
+1085:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1086:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* NOTE: After generating the UG event it takes several clock cycles before
+1087:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****      SR bit 0 goes to 1. This is why the clearing of CNT has been inserted
+1088:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****      before the clearing of SR, to give it some time.*/
+1089:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR = 0;                            /* Clear pending IRQs.      */
+ 414              		.loc 1 1089 3 is_stmt 1 view .LVU128
+ 415              		.loc 1 1089 17 is_stmt 0 view .LVU129
+ 416 000e 1A61     		str	r2, [r3, #16]
+1090:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   if (NULL != gptp->config->callback)
+ 417              		.loc 1 1090 3 is_stmt 1 view .LVU130
+ 418              		.loc 1 1090 27 is_stmt 0 view .LVU131
+ 419 0010 4268     		ldr	r2, [r0, #4]
+ 420              		.loc 1 1090 6 view .LVU132
+ 421 0012 5268     		ldr	r2, [r2, #4]
+ 422 0014 1AB1     		cbz	r2, .L21
+1091:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     gptp->tim->DIER |= STM32_TIM_DIER_UIE;      /* Update Event IRQ enabled.*/
+ 423              		.loc 1 1091 5 is_stmt 1 view .LVU133
+ 424              		.loc 1 1091 21 is_stmt 0 view .LVU134
+ 425 0016 DA68     		ldr	r2, [r3, #12]
+ 426 0018 42F00102 		orr	r2, r2, #1
+ 427 001c DA60     		str	r2, [r3, #12]
+ 428              	.L21:
+1092:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR1 = STM32_TIM_CR1_ARPE | STM32_TIM_CR1_URS | STM32_TIM_CR1_CEN;
+ 429              		.loc 1 1092 3 is_stmt 1 view .LVU135
+ 430              		.loc 1 1092 18 is_stmt 0 view .LVU136
+ 431 001e 8522     		movs	r2, #133
+ 432 0020 1A60     		str	r2, [r3]
+1093:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 433              		.loc 1 1093 1 view .LVU137
+ 434 0022 7047     		bx	lr
+ 435              		.cfi_endproc
+ 436              	.LFE288:
+ 438              		.section	.text.gpt_lld_stop_timer,"ax",%progbits
+ 439              		.align	1
+ 440              		.global	gpt_lld_stop_timer
+ 441              		.syntax unified
+ 442              		.thumb
+ 443              		.thumb_func
+ 444              		.fpu fpv4-sp-d16
+ 446              	gpt_lld_stop_timer:
+ 447              	.LVL20:
+ 448              	.LFB289:
+1094:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1095:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+1096:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Stops the timer.
+1097:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1098:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] gptp      pointer to the @p GPTDriver object
+1099:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1100:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+1101:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+1102:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_stop_timer(GPTDriver *gptp) {
+ 449              		.loc 1 1102 42 is_stmt 1 view -0
+ 450              		.cfi_startproc
+ 451              		@ args = 0, pretend = 0, frame = 0
+ 452              		@ frame_needed = 0, uses_anonymous_args = 0
+ 453              		@ link register save eliminated.
+1103:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1104:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR1 = 0;                           /* Initially stopped.       */
+ 454              		.loc 1 1104 3 view .LVU139
+ 455              		.loc 1 1104 7 is_stmt 0 view .LVU140
+ 456 0000 C368     		ldr	r3, [r0, #12]
+ 457              		.loc 1 1104 18 view .LVU141
+ 458 0002 0022     		movs	r2, #0
+ 459 0004 1A60     		str	r2, [r3]
+1105:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR = 0;                            /* Clear pending IRQs.      */
+ 460              		.loc 1 1105 3 is_stmt 1 view .LVU142
+ 461              		.loc 1 1105 17 is_stmt 0 view .LVU143
+ 462 0006 1A61     		str	r2, [r3, #16]
+1106:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1107:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   /* All interrupts disabled.*/
+1108:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->DIER &= ~STM32_TIM_DIER_IRQ_MASK;
+ 463              		.loc 1 1108 3 is_stmt 1 view .LVU144
+ 464              		.loc 1 1108 19 is_stmt 0 view .LVU145
+ 465 0008 DA68     		ldr	r2, [r3, #12]
+ 466 000a 22F0FF02 		bic	r2, r2, #255
+ 467 000e DA60     		str	r2, [r3, #12]
+1109:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 468              		.loc 1 1109 1 view .LVU146
+ 469 0010 7047     		bx	lr
+ 470              		.cfi_endproc
+ 471              	.LFE289:
+ 473              		.section	.text.gpt_lld_polled_delay,"ax",%progbits
+ 474              		.align	1
+ 475              		.global	gpt_lld_polled_delay
+ 476              		.syntax unified
+ 477              		.thumb
+ 478              		.thumb_func
+ 479              		.fpu fpv4-sp-d16
+ 481              	gpt_lld_polled_delay:
+ 482              	.LVL21:
+ 483              	.LFB290:
+1110:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1111:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+1112:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Starts the timer in one shot mode and waits for completion.
+1113:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @details This function specifically polls the timer waiting for completion
+1114:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *          in order to not have extra delays caused by interrupt servicing,
+1115:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *          this function is only recommended for short delays.
+1116:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1117:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] gptp      pointer to the @p GPTDriver object
+1118:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] interval  time interval in ticks
+1119:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1120:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+1121:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+1122:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_polled_delay(GPTDriver *gptp, gptcnt_t interval) {
+ 484              		.loc 1 1122 63 is_stmt 1 view -0
+ 485              		.cfi_startproc
+ 486              		@ args = 0, pretend = 0, frame = 0
+ 487              		@ frame_needed = 0, uses_anonymous_args = 0
+ 488              		@ link register save eliminated.
+1123:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1124:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->ARR = (uint32_t)(interval - 1U);   /* Time constant.           */
+ 489              		.loc 1 1124 3 view .LVU148
+ 490              		.loc 1 1124 7 is_stmt 0 view .LVU149
+ 491 0000 C368     		ldr	r3, [r0, #12]
+1125:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->EGR = STM32_TIM_EGR_UG;            /* Update event.            */
+ 492              		.loc 1 1125 18 view .LVU150
+ 493 0002 0122     		movs	r2, #1
+1124:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->EGR = STM32_TIM_EGR_UG;            /* Update event.            */
+ 494              		.loc 1 1124 20 view .LVU151
+ 495 0004 0139     		subs	r1, r1, #1
+ 496              	.LVL22:
+1124:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->EGR = STM32_TIM_EGR_UG;            /* Update event.            */
+ 497              		.loc 1 1124 18 view .LVU152
+ 498 0006 D962     		str	r1, [r3, #44]
+ 499              		.loc 1 1125 3 is_stmt 1 view .LVU153
+ 500              		.loc 1 1125 18 is_stmt 0 view .LVU154
+ 501 0008 5A61     		str	r2, [r3, #20]
+1126:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR  = 0;                           /* Clear pending IRQs.      */
+ 502              		.loc 1 1126 3 is_stmt 1 view .LVU155
+ 503              		.loc 1 1126 18 is_stmt 0 view .LVU156
+ 504 000a 0022     		movs	r2, #0
+ 505 000c 1A61     		str	r2, [r3, #16]
+1127:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->CR1 = STM32_TIM_CR1_OPM | STM32_TIM_CR1_URS | STM32_TIM_CR1_CEN;
+ 506              		.loc 1 1127 3 is_stmt 1 view .LVU157
+ 507              		.loc 1 1127 18 is_stmt 0 view .LVU158
+ 508 000e 0D22     		movs	r2, #13
+ 509 0010 1A60     		str	r2, [r3]
+1128:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   while (!(gptp->tim->SR & STM32_TIM_SR_UIF))
+ 510              		.loc 1 1128 3 is_stmt 1 view .LVU159
+ 511              	.L27:
+ 512              		.loc 1 1128 10 discriminator 1 view .LVU160
+ 513              		.loc 1 1128 21 is_stmt 0 discriminator 1 view .LVU161
+ 514 0012 1A69     		ldr	r2, [r3, #16]
+ 515              		.loc 1 1128 10 discriminator 1 view .LVU162
+ 516 0014 D207     		lsls	r2, r2, #31
+ 517 0016 FCD5     		bpl	.L27
+1129:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     ;
+1130:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR = 0;                            /* Clear pending IRQs.      */
+ 518              		.loc 1 1130 3 is_stmt 1 view .LVU163
+ 519              		.loc 1 1130 17 is_stmt 0 view .LVU164
+ 520 0018 0022     		movs	r2, #0
+ 521 001a 1A61     		str	r2, [r3, #16]
+1131:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 522              		.loc 1 1131 1 view .LVU165
+ 523 001c 7047     		bx	lr
+ 524              		.cfi_endproc
+ 525              	.LFE290:
+ 527              		.section	.text.gpt_lld_serve_interrupt,"ax",%progbits
+ 528              		.align	1
+ 529              		.global	gpt_lld_serve_interrupt
+ 530              		.syntax unified
+ 531              		.thumb
+ 532              		.thumb_func
+ 533              		.fpu fpv4-sp-d16
+ 535              	gpt_lld_serve_interrupt:
+ 536              	.LVL23:
+ 537              	.LFB291:
+1132:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1133:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** /**
+1134:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @brief   Shared IRQ handler.
+1135:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1136:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @param[in] gptp      pointer to a @p GPTDriver object
+1137:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  *
+1138:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  * @notapi
+1139:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****  */
+1140:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** void gpt_lld_serve_interrupt(GPTDriver *gptp) {
+ 538              		.loc 1 1140 47 is_stmt 1 view -0
+ 539              		.cfi_startproc
+ 540              		@ args = 0, pretend = 0, frame = 0
+ 541              		@ frame_needed = 0, uses_anonymous_args = 0
+1141:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint32_t sr;
+ 542              		.loc 1 1141 3 view .LVU167
+1142:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+1143:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   sr  = gptp->tim->SR;
+ 543              		.loc 1 1143 3 view .LVU168
+ 544              		.loc 1 1143 13 is_stmt 0 view .LVU169
+ 545 0000 C268     		ldr	r2, [r0, #12]
+1140:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint32_t sr;
+ 546              		.loc 1 1140 47 view .LVU170
+ 547 0002 10B5     		push	{r4, lr}
+ 548              		.cfi_def_cfa_offset 8
+ 549              		.cfi_offset 4, -8
+ 550              		.cfi_offset 14, -4
+ 551              		.loc 1 1143 7 view .LVU171
+ 552 0004 1469     		ldr	r4, [r2, #16]
+ 553              	.LVL24:
+1144:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   sr &= gptp->tim->DIER & STM32_TIM_DIER_IRQ_MASK;
+ 554              		.loc 1 1144 3 is_stmt 1 view .LVU172
+ 555              		.loc 1 1144 18 is_stmt 0 view .LVU173
+ 556 0006 D368     		ldr	r3, [r2, #12]
+ 557 0008 2340     		ands	r3, r3, r4
+ 558              	.LVL25:
+1145:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR = ~sr;
+ 559              		.loc 1 1145 3 is_stmt 1 view .LVU174
+1144:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   sr &= gptp->tim->DIER & STM32_TIM_DIER_IRQ_MASK;
+ 560              		.loc 1 1144 6 is_stmt 0 view .LVU175
+ 561 000a DCB2     		uxtb	r4, r3
+ 562              		.loc 1 1145 19 view .LVU176
+ 563 000c E443     		mvns	r4, r4
+1146:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   if ((sr & STM32_TIM_SR_UIF) != 0) {
+ 564              		.loc 1 1146 6 view .LVU177
+ 565 000e DB07     		lsls	r3, r3, #31
+ 566              	.LVL26:
+1140:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint32_t sr;
+ 567              		.loc 1 1140 47 view .LVU178
+ 568 0010 0146     		mov	r1, r0
+1145:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   gptp->tim->SR = ~sr;
+ 569              		.loc 1 1145 17 view .LVU179
+ 570 0012 1461     		str	r4, [r2, #16]
+ 571              		.loc 1 1146 3 is_stmt 1 view .LVU180
+ 572              		.loc 1 1146 6 is_stmt 0 view .LVU181
+ 573 0014 0DD5     		bpl	.L30
+ 574              	.LVL27:
+ 575              	.LBB4:
+ 576              	.LBI4:
+1140:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   uint32_t sr;
+ 577              		.loc 1 1140 6 is_stmt 1 view .LVU182
+ 578              	.LBB5:
+1147:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     _gpt_isr_invoke_cb(gptp);
+ 579              		.loc 1 1147 5 view .LVU183
+ 580              		.loc 1 1147 5 view .LVU184
+ 581 0016 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 582 0018 042B     		cmp	r3, #4
+ 583 001a 03D1     		bne	.L33
+ 584              		.loc 1 1147 5 view .LVU185
+ 585 001c 0223     		movs	r3, #2
+ 586 001e 0370     		strb	r3, [r0]
+ 587              		.loc 1 1147 5 view .LVU186
+ 588 0020 FFF7FEFF 		bl	gpt_lld_stop_timer
+ 589              	.LVL28:
+ 590              	.L33:
+ 591              		.loc 1 1147 5 view .LVU187
+ 592 0024 4B68     		ldr	r3, [r1, #4]
+ 593 0026 5B68     		ldr	r3, [r3, #4]
+ 594 0028 1BB1     		cbz	r3, .L30
+ 595              		.loc 1 1147 5 view .LVU188
+ 596              	.LBE5:
+ 597              	.LBE4:
+1148:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****   }
+1149:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 598              		.loc 1 1149 1 is_stmt 0 view .LVU189
+ 599 002a BDE81040 		pop	{r4, lr}
+ 600              		.cfi_remember_state
+ 601              		.cfi_restore 14
+ 602              		.cfi_restore 4
+ 603              		.cfi_def_cfa_offset 0
+ 604              	.LBB7:
+ 605              	.LBB6:
+1147:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     _gpt_isr_invoke_cb(gptp);
+ 606              		.loc 1 1147 5 view .LVU190
+ 607 002e 0846     		mov	r0, r1
+ 608              	.LVL29:
+1147:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     _gpt_isr_invoke_cb(gptp);
+ 609              		.loc 1 1147 5 view .LVU191
+ 610 0030 1847     		bx	r3	@ indirect register sibling call
+ 611              	.LVL30:
+ 612              	.L30:
+ 613              		.cfi_restore_state
+1147:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c ****     _gpt_isr_invoke_cb(gptp);
+ 614              		.loc 1 1147 5 view .LVU192
+ 615              	.LBE6:
+ 616              	.LBE7:
+ 617              		.loc 1 1149 1 view .LVU193
+ 618 0032 10BD     		pop	{r4, pc}
+ 619              		.cfi_endproc
+ 620              	.LFE291:
+ 622              		.section	.text.Vector118,"ax",%progbits
+ 623              		.align	1
+ 624              		.global	Vector118
+ 625              		.syntax unified
+ 626              		.thumb
+ 627              		.thumb_func
+ 628              		.fpu fpv4-sp-d16
+ 630              	Vector118:
+ 631              	.LFB282:
+ 316:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 632              		.loc 1 316 38 is_stmt 1 view -0
+ 633              		.cfi_startproc
+ 634              		@ args = 0, pretend = 0, frame = 0
+ 635              		@ frame_needed = 0, uses_anonymous_args = 0
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 636              		.loc 1 318 3 view .LVU195
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 637              		.loc 1 318 3 view .LVU196
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 638              		.loc 1 318 3 view .LVU197
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 639              		.loc 1 318 3 view .LVU198
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 640              		.loc 1 318 3 view .LVU199
+ 318:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 641              		.loc 1 318 22 view .LVU200
+ 320:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 642              		.loc 1 320 3 view .LVU201
+ 316:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 643              		.loc 1 316 38 is_stmt 0 view .LVU202
+ 644 0000 08B5     		push	{r3, lr}
+ 645              		.cfi_def_cfa_offset 8
+ 646              		.cfi_offset 3, -8
+ 647              		.cfi_offset 14, -4
+ 320:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 648              		.loc 1 320 3 view .LVU203
+ 649 0002 0348     		ldr	r0, .L39
+ 650 0004 FFF7FEFF 		bl	gpt_lld_serve_interrupt
+ 651              	.LVL31:
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 652              		.loc 1 322 3 is_stmt 1 view .LVU204
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 653              		.loc 1 322 3 view .LVU205
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 654              		.loc 1 322 3 view .LVU206
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 655              		.loc 1 322 3 view .LVU207
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 656              		.loc 1 322 3 view .LVU208
+ 323:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM6_SUPPRESS_ISR) */
+ 657              		.loc 1 323 1 is_stmt 0 view .LVU209
+ 658 0008 BDE80840 		pop	{r3, lr}
+ 659              		.cfi_restore 14
+ 660              		.cfi_restore 3
+ 661              		.cfi_def_cfa_offset 0
+ 322:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 662              		.loc 1 322 3 view .LVU210
+ 663 000c FFF7FEBF 		b	_port_irq_epilogue
+ 664              	.LVL32:
+ 665              	.L40:
+ 666              		.align	2
+ 667              	.L39:
+ 668 0010 00000000 		.word	GPTD6
+ 669              		.cfi_endproc
+ 670              	.LFE282:
+ 672              		.section	.text.Vector11C,"ax",%progbits
+ 673              		.align	1
+ 674              		.global	Vector11C
+ 675              		.syntax unified
+ 676              		.thumb
+ 677              		.thumb_func
+ 678              		.fpu fpv4-sp-d16
+ 680              	Vector11C:
+ 681              	.LFB283:
+ 337:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 682              		.loc 1 337 38 is_stmt 1 view -0
+ 683              		.cfi_startproc
+ 684              		@ args = 0, pretend = 0, frame = 0
+ 685              		@ frame_needed = 0, uses_anonymous_args = 0
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 686              		.loc 1 339 3 view .LVU212
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 687              		.loc 1 339 3 view .LVU213
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 688              		.loc 1 339 3 view .LVU214
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 689              		.loc 1 339 3 view .LVU215
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 690              		.loc 1 339 3 view .LVU216
+ 339:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 691              		.loc 1 339 22 view .LVU217
+ 341:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 692              		.loc 1 341 3 view .LVU218
+ 337:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 693              		.loc 1 337 38 is_stmt 0 view .LVU219
+ 694 0000 08B5     		push	{r3, lr}
+ 695              		.cfi_def_cfa_offset 8
+ 696              		.cfi_offset 3, -8
+ 697              		.cfi_offset 14, -4
+ 341:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 698              		.loc 1 341 3 view .LVU220
+ 699 0002 0348     		ldr	r0, .L42
+ 700 0004 FFF7FEFF 		bl	gpt_lld_serve_interrupt
+ 701              	.LVL33:
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 702              		.loc 1 343 3 is_stmt 1 view .LVU221
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 703              		.loc 1 343 3 view .LVU222
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 704              		.loc 1 343 3 view .LVU223
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 705              		.loc 1 343 3 view .LVU224
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 706              		.loc 1 343 3 view .LVU225
+ 344:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM7_SUPPRESS_ISR) */
+ 707              		.loc 1 344 1 is_stmt 0 view .LVU226
+ 708 0008 BDE80840 		pop	{r3, lr}
+ 709              		.cfi_restore 14
+ 710              		.cfi_restore 3
+ 711              		.cfi_def_cfa_offset 0
+ 343:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 712              		.loc 1 343 3 view .LVU227
+ 713 000c FFF7FEBF 		b	_port_irq_epilogue
+ 714              	.LVL34:
+ 715              	.L43:
+ 716              		.align	2
+ 717              	.L42:
+ 718 0010 00000000 		.word	GPTD7
+ 719              		.cfi_endproc
+ 720              	.LFE283:
+ 722              		.section	.text.VectorF0,"ax",%progbits
+ 723              		.align	1
+ 724              		.global	VectorF0
+ 725              		.syntax unified
+ 726              		.thumb
+ 727              		.thumb_func
+ 728              		.fpu fpv4-sp-d16
+ 730              	VectorF0:
+ 731              	.LFB284:
+ 358:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 732              		.loc 1 358 41 is_stmt 1 view -0
+ 733              		.cfi_startproc
+ 734              		@ args = 0, pretend = 0, frame = 0
+ 735              		@ frame_needed = 0, uses_anonymous_args = 0
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 736              		.loc 1 360 3 view .LVU229
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 737              		.loc 1 360 3 view .LVU230
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 738              		.loc 1 360 3 view .LVU231
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 739              		.loc 1 360 3 view .LVU232
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 740              		.loc 1 360 3 view .LVU233
+ 360:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 741              		.loc 1 360 22 view .LVU234
+ 362:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 742              		.loc 1 362 3 view .LVU235
+ 358:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 743              		.loc 1 358 41 is_stmt 0 view .LVU236
+ 744 0000 08B5     		push	{r3, lr}
+ 745              		.cfi_def_cfa_offset 8
+ 746              		.cfi_offset 3, -8
+ 747              		.cfi_offset 14, -4
+ 362:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** 
+ 748              		.loc 1 362 3 view .LVU237
+ 749 0002 0348     		ldr	r0, .L45
+ 750 0004 FFF7FEFF 		bl	gpt_lld_serve_interrupt
+ 751              	.LVL35:
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 752              		.loc 1 364 3 is_stmt 1 view .LVU238
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 753              		.loc 1 364 3 view .LVU239
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 754              		.loc 1 364 3 view .LVU240
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 755              		.loc 1 364 3 view .LVU241
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 756              		.loc 1 364 3 view .LVU242
+ 365:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** #endif /* !defined(STM32_TIM8_SUPPRESS_ISR) */
+ 757              		.loc 1 365 1 is_stmt 0 view .LVU243
+ 758 0008 BDE80840 		pop	{r3, lr}
+ 759              		.cfi_restore 14
+ 760              		.cfi_restore 3
+ 761              		.cfi_def_cfa_offset 0
+ 364:lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.c **** }
+ 762              		.loc 1 364 3 view .LVU244
+ 763 000c FFF7FEBF 		b	_port_irq_epilogue
+ 764              	.LVL36:
+ 765              	.L46:
+ 766              		.align	2
+ 767              	.L45:
+ 768 0010 00000000 		.word	GPTD8
+ 769              		.cfi_endproc
+ 770              	.LFE284:
+ 772              		.comm	GPTD8,16,4
+ 773              		.comm	GPTD7,16,4
+ 774              		.comm	GPTD6,16,4
+ 775              		.text
+ 776              	.Letext0:
+ 777              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 778              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 779              		.file 4 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
+ 780              		.file 5 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 781              		.file 6 "./lib/chibios/os/hal/include/hal_gpt.h"
+ 782              		.file 7 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.h"
+ 783              		.file 8 "./lib/chibios/os/hal/ports/common/ARMCMx/nvic.h"
+ 784              		.file 9 "./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 hal_gpt_lld.c
+     /tmp/cccvKMv8.s:18     .text.gpt_lld_init:0000000000000000 $t
+     /tmp/cccvKMv8.s:26     .text.gpt_lld_init:0000000000000000 gpt_lld_init
+     /tmp/cccvKMv8.s:72     .text.gpt_lld_init:0000000000000024 $d
+                            *COM*:0000000000000010 GPTD6
+                            *COM*:0000000000000010 GPTD7
+                            *COM*:0000000000000010 GPTD8
+     /tmp/cccvKMv8.s:82     .text.gpt_lld_start:0000000000000000 $t
+     /tmp/cccvKMv8.s:89     .text.gpt_lld_start:0000000000000000 gpt_lld_start
+     /tmp/cccvKMv8.s:263    .text.gpt_lld_start:00000000000000c0 $d
+     /tmp/cccvKMv8.s:272    .text.gpt_lld_stop:0000000000000000 $t
+     /tmp/cccvKMv8.s:279    .text.gpt_lld_stop:0000000000000000 gpt_lld_stop
+     /tmp/cccvKMv8.s:374    .text.gpt_lld_stop:0000000000000060 $d
+     /tmp/cccvKMv8.s:382    .text.gpt_lld_start_timer:0000000000000000 $t
+     /tmp/cccvKMv8.s:389    .text.gpt_lld_start_timer:0000000000000000 gpt_lld_start_timer
+     /tmp/cccvKMv8.s:439    .text.gpt_lld_stop_timer:0000000000000000 $t
+     /tmp/cccvKMv8.s:446    .text.gpt_lld_stop_timer:0000000000000000 gpt_lld_stop_timer
+     /tmp/cccvKMv8.s:474    .text.gpt_lld_polled_delay:0000000000000000 $t
+     /tmp/cccvKMv8.s:481    .text.gpt_lld_polled_delay:0000000000000000 gpt_lld_polled_delay
+     /tmp/cccvKMv8.s:528    .text.gpt_lld_serve_interrupt:0000000000000000 $t
+     /tmp/cccvKMv8.s:535    .text.gpt_lld_serve_interrupt:0000000000000000 gpt_lld_serve_interrupt
+     /tmp/cccvKMv8.s:623    .text.Vector118:0000000000000000 $t
+     /tmp/cccvKMv8.s:630    .text.Vector118:0000000000000000 Vector118
+     /tmp/cccvKMv8.s:668    .text.Vector118:0000000000000010 $d
+     /tmp/cccvKMv8.s:673    .text.Vector11C:0000000000000000 $t
+     /tmp/cccvKMv8.s:680    .text.Vector11C:0000000000000000 Vector11C
+     /tmp/cccvKMv8.s:718    .text.Vector11C:0000000000000010 $d
+     /tmp/cccvKMv8.s:723    .text.VectorF0:0000000000000000 $t
+     /tmp/cccvKMv8.s:730    .text.VectorF0:0000000000000000 VectorF0
+     /tmp/cccvKMv8.s:768    .text.VectorF0:0000000000000010 $d
+
+UNDEFINED SYMBOLS
+gptObjectInit
+nvicEnableVector
+nvicDisableVector
+_port_irq_epilogue

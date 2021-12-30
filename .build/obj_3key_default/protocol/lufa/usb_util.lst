@@ -1,0 +1,1057 @@
+   1               		.file	"usb_util.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.usb_disconnect,"ax",@progbits
+  11               	.global	usb_disconnect
+  13               	usb_disconnect:
+  14               	.LFB100:
+  15               		.file 1 "tmk_core/protocol/lufa/usb_util.c"
+   1:tmk_core/protocol/lufa/usb_util.c **** /* Copyright 2021 QMK
+   2:tmk_core/protocol/lufa/usb_util.c ****  *
+   3:tmk_core/protocol/lufa/usb_util.c ****  * This program is free software: you can redistribute it and/or modify
+   4:tmk_core/protocol/lufa/usb_util.c ****  * it under the terms of the GNU General Public License as published by
+   5:tmk_core/protocol/lufa/usb_util.c ****  * the Free Software Foundation, either version 3 of the License, or
+   6:tmk_core/protocol/lufa/usb_util.c ****  * (at your option) any later version.
+   7:tmk_core/protocol/lufa/usb_util.c ****  *
+   8:tmk_core/protocol/lufa/usb_util.c ****  * This program is distributed in the hope that it will be useful,
+   9:tmk_core/protocol/lufa/usb_util.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:tmk_core/protocol/lufa/usb_util.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:tmk_core/protocol/lufa/usb_util.c ****  * GNU General Public License for more details.
+  12:tmk_core/protocol/lufa/usb_util.c ****  *
+  13:tmk_core/protocol/lufa/usb_util.c ****  * You should have received a copy of the GNU General Public License
+  14:tmk_core/protocol/lufa/usb_util.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:tmk_core/protocol/lufa/usb_util.c ****  */
+  16:tmk_core/protocol/lufa/usb_util.c **** #include <LUFA/Drivers/USB/USB.h>
+  17:tmk_core/protocol/lufa/usb_util.c **** #include "usb_util.h"
+  18:tmk_core/protocol/lufa/usb_util.c **** #include "wait.h"
+  19:tmk_core/protocol/lufa/usb_util.c **** 
+  20:tmk_core/protocol/lufa/usb_util.c **** void usb_disconnect(void) {
+  16               		.loc 1 20 27 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  21:tmk_core/protocol/lufa/usb_util.c ****     USB_Disable();
+  22               		.loc 1 21 5 view .LVU1
+  23 0000 0E94 0000 		call USB_Disable
+  24               	.LVL0:
+  22:tmk_core/protocol/lufa/usb_util.c ****     USB_DeviceState = DEVICE_STATE_Unattached;
+  25               		.loc 1 22 5 view .LVU2
+  26               		.loc 1 22 21 is_stmt 0 view .LVU3
+  27 0004 1092 0000 		sts USB_DeviceState,__zero_reg__
+  28               	/* epilogue start */
+  23:tmk_core/protocol/lufa/usb_util.c **** }
+  29               		.loc 1 23 1 view .LVU4
+  30 0008 0895      		ret
+  31               		.cfi_endproc
+  32               	.LFE100:
+  34               		.section	.text.usb_connected_state,"ax",@progbits
+  35               	.global	usb_connected_state
+  37               	usb_connected_state:
+  38               	.LFB101:
+  24:tmk_core/protocol/lufa/usb_util.c **** 
+  25:tmk_core/protocol/lufa/usb_util.c **** bool usb_connected_state(void) { return USB_Device_IsAddressSet(); }
+  39               		.loc 1 25 32 is_stmt 1 view -0
+  40               		.cfi_startproc
+  41               	/* prologue: function */
+  42               	/* frame size = 0 */
+  43               	/* stack size = 0 */
+  44               	.L__stack_usage = 0
+  45               		.loc 1 25 34 view .LVU6
+  46               	.LBB10:
+  47               	.LBI10:
+  48               		.file 2 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h"
+   1:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** /*
+   2:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****              LUFA Library
+   3:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****      Copyright (C) Dean Camera, 2021.
+   4:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+   5:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   dean [at] fourwalledcubicle [dot] com
+   6:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****            www.lufa-lib.org
+   7:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** */
+   8:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+   9:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** /*
+  10:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   Copyright 2021  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+  11:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  12:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   Permission to use, copy, modify, distribute, and sell this
+  13:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   software and its documentation for any purpose is hereby granted
+  14:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   without fee, provided that the above copyright notice appear in
+  15:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   all copies and that both that the copyright notice and this
+  16:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   permission notice and warranty disclaimer appear in supporting
+  17:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   documentation, and that the name of the author not be used in
+  18:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   advertising or publicity pertaining to distribution of the
+  19:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   software without specific, written prior permission.
+  20:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  21:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   The author disclaims all warranties with regard to this
+  22:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   software, including all implied warranties of merchantability
+  23:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   and fitness.  In no event shall the author be liable for any
+  24:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   special, indirect or consequential damages or any damages
+  25:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   whatsoever resulting from loss of use, data or profits, whether
+  26:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   in an action of contract, negligence or other tortious action,
+  27:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   arising out of or in connection with the use or performance of
+  28:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****   this software.
+  29:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** */
+  30:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  31:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** /** \file
+  32:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  \brief USB Device definitions for the AVR8 microcontrollers.
+  33:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  \copydetails Group_Device_AVR8
+  34:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *
+  35:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  \note This file should not be included directly. It is automatically included as needed by the 
+  36:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *        dispatch header located in LUFA/Drivers/USB/USB.h.
+  37:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  */
+  38:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  39:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** /** \ingroup Group_Device
+  40:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  \defgroup Group_Device_AVR8 Device Management (AVR8)
+  41:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  \brief USB Device definitions for the AVR8 microcontrollers.
+  42:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *
+  43:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  Architecture specific USB Device definitions for the Atmel 8-bit AVR microcontrollers.
+  44:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *
+  45:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  *  @{
+  46:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h ****  */
+  47:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  48:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** #ifndef __USBDEVICE_AVR8_H__
+  49:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** #define __USBDEVICE_AVR8_H__
+  50:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  51:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 	/* Includes: */
+  52:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#include "../../../../Common/Common.h"
+  53:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#include "../USBController.h"
+  54:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#include "../StdDescriptors.h"
+  55:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#include "../USBInterrupt.h"
+  56:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#include "../Endpoint.h"
+  57:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  58:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 	/* Enable C linkage for C++ Compilers: */
+  59:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#if defined(__cplusplus)
+  60:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			extern "C" {
+  61:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#endif
+  62:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  63:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 	/* Preprocessor Checks: */
+  64:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#if !defined(__INCLUDE_FROM_USB_DRIVER)
+  65:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#error Do not include this file directly. Include LUFA/Drivers/USB/USB.h instead.
+  66:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#endif
+  67:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  68:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#if (defined(USE_RAM_DESCRIPTORS) && defined(USE_EEPROM_DESCRIPTORS))
+  69:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#error USE_RAM_DESCRIPTORS and USE_EEPROM_DESCRIPTORS are mutually exclusive.
+  70:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#endif
+  71:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  72:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#if (defined(USE_FLASH_DESCRIPTORS) && defined(USE_EEPROM_DESCRIPTORS))
+  73:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#error USE_FLASH_DESCRIPTORS and USE_EEPROM_DESCRIPTORS are mutually exclusive.
+  74:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#endif
+  75:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  76:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#if (defined(USE_FLASH_DESCRIPTORS) && defined(USE_RAM_DESCRIPTORS))
+  77:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#error USE_FLASH_DESCRIPTORS and USE_RAM_DESCRIPTORS are mutually exclusive.
+  78:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		#endif
+  79:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  80:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 	/* Public Interface - May be used in end-application: */
+  81:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		/* Macros: */
+  82:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			/** \name USB Device Mode Option Masks */
+  83:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			/**@{*/
+  84:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#if defined(USB_SERIES_4_AVR) || defined(USB_SERIES_6_AVR) || defined(USB_SERIES_7_AVR) || defin
+  85:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				/** Mask for the Options parameter of the \ref USB_Init() function. This indicates that the
+  86:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  USB interface should be initialized in low speed (1.5Mb/s) mode.
+  87:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *
+  88:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  \note Low Speed mode is not available on all USB AVR models.
+  89:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *        \n
+  90:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *
+  91:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  \note Restrictions apply on the number, size and type of endpoints which can be used
+  92:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *        when running in low speed mode - please refer to the USB 2.0 specification.
+  93:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 */
+  94:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#define USB_DEVICE_OPT_LOWSPEED            (1 << 0)
+  95:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#endif
+  96:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+  97:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			/** Mask for the Options parameter of the \ref USB_Init() function. This indicates that the
+  98:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  USB interface should be initialized in full speed (12Mb/s) mode.
+  99:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 */
+ 100:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#define USB_DEVICE_OPT_FULLSPEED               (0 << 0)
+ 101:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			/**@}*/
+ 102:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 103:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#if (!defined(NO_INTERNAL_SERIAL) && \
+ 104:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			     (defined(USB_SERIES_7_AVR) || defined(USB_SERIES_6_AVR) || \
+ 105:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			      defined(USB_SERIES_4_AVR) || defined(USB_SERIES_2_AVR) || \
+ 106:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				  defined(__DOXYGEN__)))
+ 107:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				/** String descriptor index for the device's unique serial number string descriptor within the 
+ 108:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  This unique serial number is used by the host to associate resources to the device (such as
+ 109:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  number allocations) to a device regardless of the port it is plugged in to on the host. Som
+ 110:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  a unique serial number internally, and setting the device descriptors serial number string 
+ 111:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  will cause it to use the internal serial number.
+ 112:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *
+ 113:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  On unsupported devices, this will evaluate to \ref NO_DESCRIPTOR and so will force the host
+ 114:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  number for the device.
+ 115:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 */
+ 116:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#ifndef USE_INTERNAL_SERIAL
+ 117:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 					#define USE_INTERNAL_SERIAL         0xDC
+ 118:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#endif
+ 119:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 120:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				/** Length of the device's unique internal serial number, in bits, if present on the selected m
+ 121:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  model.
+ 122:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 */
+ 123:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#define INTERNAL_SERIAL_LENGTH_BITS     80
+ 124:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 125:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				/** Start address of the internal serial number, in the appropriate address space, if present o
+ 126:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  model.
+ 127:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 */
+ 128:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#define INTERNAL_SERIAL_START_ADDRESS   0x0E
+ 129:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#else
+ 130:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#undef	USE_INTERNAL_SERIAL
+ 131:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#define USE_INTERNAL_SERIAL             NO_DESCRIPTOR
+ 132:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 133:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#define INTERNAL_SERIAL_LENGTH_BITS     0
+ 134:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				#define INTERNAL_SERIAL_START_ADDRESS   0
+ 135:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#endif
+ 136:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 137:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		/* Function Prototypes: */
+ 138:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			/** Sends a Remote Wakeup request to the host. This signals to the host that the device should
+ 139:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  be taken out of suspended mode, and communications should resume.
+ 140:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *
+ 141:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  Typically, this is implemented so that HID devices (mice, keyboards, etc.) can wake up the
+ 142:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  host computer when the host has suspended all USB devices to enter a low power state.
+ 143:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *
+ 144:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  \attention This function should only be used if the device has indicated to the host that it
+ 145:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             supports the Remote Wakeup feature in the device descriptors, and should only be
+ 146:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             issued if the host is currently allowing remote wakeup events from the device (i.
+ 147:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             the \ref USB_Device_RemoteWakeupEnabled flag is set). When the \c NO_DEVICE_REMOT
+ 148:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             compile time option is used, this function is unavailable.
+ 149:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             \n\n
+ 150:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *
+ 151:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  \attention The USB clock must be running for this function to operate. If the stack is initi
+ 152:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             the \ref USB_OPT_MANUAL_PLL option enabled, the user must ensure that the PLL is 
+ 153:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *             before attempting to call this function.
+ 154:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *
+ 155:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  \see \ref Group_StdDescriptors for more information on the RMWAKEUP feature and device descr
+ 156:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 */
+ 157:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			void USB_Device_SendRemoteWakeup(void);
+ 158:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 159:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		/* Inline Functions: */
+ 160:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			/** Returns the current USB frame number, when in device mode. Every millisecond the USB bus is 
+ 161:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  the frame number is incremented by one.
+ 162:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *
+ 163:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 *  \return Current USB frame number from the USB controller.
+ 164:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			 */
+ 165:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline uint16_t USB_Device_GetFrameNumber(void) ATTR_ALWAYS_INLINE ATTR_WARN_UNUSED_RESUL
+ 166:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline uint16_t USB_Device_GetFrameNumber(void)
+ 167:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			{
+ 168:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				return UDFNUM;
+ 169:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			}
+ 170:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 171:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#if !defined(NO_SOF_EVENTS)
+ 172:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				/** Enables the device mode Start Of Frame events. When enabled, this causes the
+ 173:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  \ref EVENT_USB_Device_StartOfFrame() event to fire once per millisecond, synchronized to th
+ 174:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  at the start of each USB frame when enumerated in device mode.
+ 175:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *
+ 176:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  \note This function is not available when the \c NO_SOF_EVENTS compile time token is define
+ 177:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 */
+ 178:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				static inline void USB_Device_EnableSOFEvents(void) ATTR_ALWAYS_INLINE;
+ 179:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				static inline void USB_Device_EnableSOFEvents(void)
+ 180:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				{
+ 181:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 					USB_INT_Enable(USB_INT_SOFI);
+ 182:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				}
+ 183:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 184:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				/** Disables the device mode Start Of Frame events. When disabled, this stops the firing of the
+ 185:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  \ref EVENT_USB_Device_StartOfFrame() event when enumerated in device mode.
+ 186:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *
+ 187:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 *  \note This function is not available when the \c NO_SOF_EVENTS compile time token is define
+ 188:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				 */
+ 189:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				static inline void USB_Device_DisableSOFEvents(void) ATTR_ALWAYS_INLINE;
+ 190:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				static inline void USB_Device_DisableSOFEvents(void)
+ 191:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				{
+ 192:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 					USB_INT_Disable(USB_INT_SOFI);
+ 193:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				}
+ 194:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#endif
+ 195:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 196:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 	/* Private Interface - For use in library only: */
+ 197:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 	#if !defined(__DOXYGEN__)
+ 198:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 		/* Inline Functions: */
+ 199:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#if defined(USB_DEVICE_OPT_LOWSPEED)
+ 200:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_SetLowSpeed(void) ATTR_ALWAYS_INLINE;
+ 201:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_SetLowSpeed(void)
+ 202:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			{
+ 203:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				UDCON |=  (1 << LSM);
+ 204:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			}
+ 205:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 206:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_SetFullSpeed(void) ATTR_ALWAYS_INLINE;
+ 207:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_SetFullSpeed(void)
+ 208:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			{
+ 209:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				UDCON &= ~(1 << LSM);
+ 210:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			}
+ 211:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			#endif
+ 212:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 213:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_SetDeviceAddress(const uint8_t Address) ATTR_ALWAYS_INLINE;
+ 214:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_SetDeviceAddress(const uint8_t Address)
+ 215:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			{
+ 216:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				UDADDR = (UDADDR & (1 << ADDEN)) | (Address & 0x7F);
+ 217:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			}
+ 218:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 219:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_EnableDeviceAddress(const uint8_t Address) ATTR_ALWAYS_INLINE;
+ 220:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline void USB_Device_EnableDeviceAddress(const uint8_t Address)
+ 221:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			{
+ 222:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				(void)Address;
+ 223:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 224:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				UDADDR |= (1 << ADDEN);
+ 225:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			}
+ 226:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 
+ 227:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline bool USB_Device_IsAddressSet(void) ATTR_ALWAYS_INLINE ATTR_WARN_UNUSED_RESULT;
+ 228:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			static inline bool USB_Device_IsAddressSet(void)
+  49               		.loc 2 228 23 view .LVU7
+  50               	.LBB11:
+ 229:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 			{
+ 230:lib/lufa/LUFA/Drivers/USB/Core/AVR8/../AVR8/Device_AVR8.h **** 				return (UDADDR & (1 << ADDEN));
+  51               		.loc 2 230 5 view .LVU8
+  52               		.loc 2 230 13 is_stmt 0 view .LVU9
+  53 0000 8091 E300 		lds r24,227
+  54               	.LBE11:
+  55               	.LBE10:
+  56               		.loc 1 25 68 view .LVU10
+  57 0004 881F      		rol r24
+  58 0006 8827      		clr r24
+  59 0008 881F      		rol r24
+  60               	/* epilogue start */
+  61 000a 0895      		ret
+  62               		.cfi_endproc
+  63               	.LFE101:
+  65               		.section	.text.usb_vbus_state,"ax",@progbits
+  66               	.global	usb_vbus_state
+  68               	usb_vbus_state:
+  69               	.LFB102:
+  26:tmk_core/protocol/lufa/usb_util.c **** 
+  27:tmk_core/protocol/lufa/usb_util.c **** #if defined(OTGPADE)
+  28:tmk_core/protocol/lufa/usb_util.c **** bool usb_vbus_state(void) {
+  70               		.loc 1 28 27 is_stmt 1 view -0
+  71               		.cfi_startproc
+  72               	/* prologue: function */
+  73               	/* frame size = 0 */
+  74               	/* stack size = 0 */
+  75               	.L__stack_usage = 0
+  29:tmk_core/protocol/lufa/usb_util.c ****     USB_OTGPAD_On();  // enables VBUS pad
+  76               		.loc 1 29 5 view .LVU12
+  77               	.LBB12:
+  78               	.LBI12:
+  79               		.file 3 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h"
+   1:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** /*
+   2:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****              LUFA Library
+   3:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****      Copyright (C) Dean Camera, 2021.
+   4:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+   5:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   dean [at] fourwalledcubicle [dot] com
+   6:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****            www.lufa-lib.org
+   7:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** */
+   8:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+   9:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** /*
+  10:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   Copyright 2021  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+  11:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  12:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   Permission to use, copy, modify, distribute, and sell this
+  13:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   software and its documentation for any purpose is hereby granted
+  14:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   without fee, provided that the above copyright notice appear in
+  15:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   all copies and that both that the copyright notice and this
+  16:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   permission notice and warranty disclaimer appear in supporting
+  17:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   documentation, and that the name of the author not be used in
+  18:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   advertising or publicity pertaining to distribution of the
+  19:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   software without specific, written prior permission.
+  20:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  21:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   The author disclaims all warranties with regard to this
+  22:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   software, including all implied warranties of merchantability
+  23:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   and fitness.  In no event shall the author be liable for any
+  24:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   special, indirect or consequential damages or any damages
+  25:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   whatsoever resulting from loss of use, data or profits, whether
+  26:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   in an action of contract, negligence or other tortious action,
+  27:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   arising out of or in connection with the use or performance of
+  28:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****   this software.
+  29:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** */
+  30:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  31:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** /** \file
+  32:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  \brief USB Controller definitions for the AVR8 microcontrollers.
+  33:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  \copydetails Group_USBManagement_AVR8
+  34:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *
+  35:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  \note This file should not be included directly. It is automatically included as needed by the 
+  36:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *        dispatch header located in LUFA/Drivers/USB/USB.h.
+  37:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  */
+  38:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  39:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** /** \ingroup Group_USBManagement
+  40:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  \defgroup Group_USBManagement_AVR8 USB Interface Management (AVR8)
+  41:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  \brief USB Controller definitions for the AVR8 microcontrollers.
+  42:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *
+  43:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  Functions, macros, variables, enums and types related to the setup and management of the USB in
+  44:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *
+  45:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  *  @{
+  46:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h ****  */
+  47:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  48:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** #ifndef __USBCONTROLLER_AVR8_H__
+  49:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** #define __USBCONTROLLER_AVR8_H__
+  50:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  51:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 	/* Includes: */
+  52:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#include "../../../../Common/Common.h"
+  53:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#include "../USBMode.h"
+  54:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#include "../Events.h"
+  55:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#include "../USBTask.h"
+  56:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#include "../USBInterrupt.h"
+  57:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  58:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if defined(USB_CAN_BE_HOST) || defined(__DOXYGEN__)
+  59:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../Host.h"
+  60:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../OTG.h"
+  61:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../Pipe.h"
+  62:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../HostStandardReq.h"
+  63:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../PipeStream.h"
+  64:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+  65:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  66:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if defined(USB_CAN_BE_DEVICE) || defined(__DOXYGEN__)
+  67:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../Device.h"
+  68:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../Endpoint.h"
+  69:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../DeviceStandardReq.h"
+  70:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#include "../EndpointStream.h"
+  71:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+  72:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  73:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 	/* Enable C linkage for C++ Compilers: */
+  74:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if defined(__cplusplus)
+  75:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			extern "C" {
+  76:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+  77:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  78:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 	/* Preprocessor Checks and Defines: */
+  79:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if !defined(__INCLUDE_FROM_USB_DRIVER)
+  80:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#error Do not include this file directly. Include LUFA/Drivers/USB/USB.h instead.
+  81:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+  82:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  83:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if !defined(F_USB)
+  84:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#error F_USB is not defined. You must define F_USB to the frequency of the unprescaled USB contr
+  85:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+  86:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+  87:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if (F_USB == 8000000)
+  88:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if (defined(__AVR_AT90USB82__) || defined(__AVR_AT90USB162__) || \
+  89:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			     defined(__AVR_ATmega8U2__) || defined(__AVR_ATmega16U2__) || \
+  90:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			     defined(__AVR_ATmega32U2__))
+  91:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                0
+  92:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif (defined(__AVR_ATmega16U4__) || defined(__AVR_ATmega32U4__))
+  93:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                0
+  94:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif (defined(__AVR_AT90USB646__)  || defined(__AVR_AT90USB1286__))
+  95:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                ((1 << PLLP1) | (1 << PLLP0))
+  96:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif (defined(__AVR_AT90USB647__)  || defined(__AVR_AT90USB1287__))
+  97:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                ((1 << PLLP1) | (1 << PLLP0))
+  98:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+  99:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#elif (F_USB == 16000000)
+ 100:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if (defined(__AVR_AT90USB82__) || defined(__AVR_AT90USB162__) || \
+ 101:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			     defined(__AVR_ATmega8U2__) || defined(__AVR_ATmega16U2__) || \
+ 102:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			     defined(__AVR_ATmega32U2__))
+ 103:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                (1 << PLLP0)
+ 104:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif (defined(__AVR_ATmega16U4__) || defined(__AVR_ATmega32U4__))
+ 105:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                (1 << PINDIV)
+ 106:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif (defined(__AVR_AT90USB646__) || defined(__AVR_AT90USB647__))
+ 107:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                ((1 << PLLP2) | (1 << PLLP1))
+ 108:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif (defined(__AVR_AT90USB1286__) || defined(__AVR_AT90USB1287__))
+ 109:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_PLL_PSC                ((1 << PLLP2) | (1 << PLLP0))
+ 110:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 111:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+ 112:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 113:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#if !defined(USB_PLL_PSC)
+ 114:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#error No PLL prescale value available for chosen F_USB value and AVR model.
+ 115:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		#endif
+ 116:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 117:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 	/* Public Interface - May be used in end-application: */
+ 118:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		/* Macros: */
+ 119:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** \name USB Controller Option Masks */
+ 120:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/**@{*/
+ 121:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Regulator disable option mask for \ref USB_Init(). This indicates that the internal 3.3V USB
+ 122:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  regulator should be disabled and the AVR's VCC level used for the data pads.
+ 123:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 124:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \note See USB AVR data sheet for more information on the internal pad regulator.
+ 125:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 126:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#define USB_OPT_REG_DISABLED               (1 << 1)
+ 127:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 128:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Regulator enable option mask for \ref USB_Init(). This indicates that the internal 3.3V USB 
+ 129:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  regulator should be enabled to regulate the data pin voltages from the VBUS level down to a 
+ 130:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  the range allowable by the USB standard.
+ 131:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 132:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \note See USB AVR data sheet for more information on the internal pad regulator.
+ 133:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 134:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#define USB_OPT_REG_ENABLED                (0 << 1)
+ 135:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 136:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Option mask for \ref USB_Init() to keep regulator enabled at all times. Indicates that \ref 
+ 137:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  should not disable the regulator as it would otherwise. Has no effect if regulator is disabl
+ 138:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \ref USB_OPT_REG_DISABLED.
+ 139:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 140:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \note See USB AVR data sheet for more information on the internal pad regulator.
+ 141:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 142:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#define USB_OPT_REG_KEEP_ENABLED           (1 << 3)
+ 143:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 144:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Manual PLL control option mask for \ref USB_Init(). This indicates to the library that the u
+ 145:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  will take full responsibility for controlling the AVR's PLL (used to generate the high frequ
+ 146:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  that the USB controller requires) and ensuring that it is locked at the correct frequency fo
+ 147:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 148:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#define USB_OPT_MANUAL_PLL                 (1 << 2)
+ 149:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 150:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Automatic PLL control option mask for \ref USB_Init(). This indicates to the library that th
+ 151:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  take full responsibility for controlling the AVR's PLL (used to generate the high frequency 
+ 152:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  that the USB controller requires) and ensuring that it is locked at the correct frequency fo
+ 153:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 154:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#define USB_OPT_AUTO_PLL                   (0 << 2)
+ 155:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/**@}*/
+ 156:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 157:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if !defined(USB_STREAM_TIMEOUT_MS) || defined(__DOXYGEN__)
+ 158:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				/** Constant for the maximum software timeout period of the USB data stream transfer functions
+ 159:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  (both control and standard) when in either device or host mode. If the next packet of a str
+ 160:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  is not received or acknowledged within this time period, the stream function will fail.
+ 161:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *
+ 162:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  This value may be overridden in the user project makefile as the value of the
+ 163:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \ref USB_STREAM_TIMEOUT_MS token, and passed to the compiler using the -D switch.
+ 164:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 */
+ 165:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_STREAM_TIMEOUT_MS       100
+ 166:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 167:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 168:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		/* Inline Functions: */
+ 169:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if defined(USB_SERIES_4_AVR) || defined(USB_SERIES_6_AVR) || defined(USB_SERIES_7_AVR) || defin
+ 170:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				/** Determines if the VBUS line is currently high (i.e. the USB host is supplying power).
+ 171:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *
+ 172:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \note This function is not available on some AVR models which do not support hardware VBUS 
+ 173:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *
+ 174:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \return Boolean \c true if the VBUS line is currently detecting power from a host, \c false
+ 175:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 */
+ 176:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				static inline bool USB_VBUS_GetStatus(void) ATTR_WARN_UNUSED_RESULT ATTR_ALWAYS_INLINE;
+ 177:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				static inline bool USB_VBUS_GetStatus(void)
+ 178:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				{
+ 179:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 					return ((USBSTA & (1 << VBUS)) ? true : false);
+ 180:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				}
+ 181:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 182:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 183:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Detaches the device from the USB bus. This has the effect of removing the device from any
+ 184:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  attached host, ceasing USB communications. If no host is present, this prevents any host fro
+ 185:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  enumerating the device once attached until \ref USB_Attach() is called.
+ 186:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 187:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_Detach(void) ATTR_ALWAYS_INLINE;
+ 188:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_Detach(void)
+ 189:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 190:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				UDCON  |=  (1 << DETACH);
+ 191:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 192:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 193:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Attaches the device to the USB bus. This announces the device's presence to any attached
+ 194:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  USB host, starting the enumeration process. If no host is present, attaching the device
+ 195:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  will allow for enumeration once a host is connected to the device.
+ 196:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 197:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  This is inexplicably also required for proper operation while in host mode, to enable the
+ 198:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  attachment of a device to the host. This is despite the bit being located in the device-mode
+ 199:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  register and despite the datasheet making no mention of its requirement in host mode.
+ 200:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 201:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_Attach(void) ATTR_ALWAYS_INLINE;
+ 202:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_Attach(void)
+ 203:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 204:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				UDCON  &= ~(1 << DETACH);
+ 205:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 206:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 207:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		/* Function Prototypes: */
+ 208:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Main function to initialize and start the USB interface. Once active, the USB interface will
+ 209:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  allow for device connection to a host when in device mode, or for device enumeration while i
+ 210:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  host mode.
+ 211:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 212:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  As the USB library relies on interrupts for the device and host mode enumeration processes,
+ 213:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  the user must enable global interrupts before or shortly after this function is called. In
+ 214:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  device mode, interrupts must be enabled within 500ms of this function being called to ensure
+ 215:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  that the host does not time out whilst enumerating the device. In host mode, interrupts may 
+ 216:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  enabled at the application's leisure however enumeration will not begin of an attached devic
+ 217:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  until after this has occurred.
+ 218:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 219:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  Calling this function when the USB interface is already initialized will cause a complete US
+ 220:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  interface reset and re-enumeration.
+ 221:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 222:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \param[in] Mode     Mask indicating what mode the USB interface is to be initialized to, a v
+ 223:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                      from the \ref USB_Modes_t enum.
+ 224:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                      \note This parameter does not exist on devices with only one supported U
+ 225:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                            mode (device or host).
+ 226:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 227:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \param[in] Options  Mask indicating the options which should be used when initializing the U
+ 228:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                      interface to control the USB interface's behavior. This should be compri
+ 229:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                      a \c USB_OPT_REG_* mask to control the regulator, a \c USB_OPT_*_PLL mas
+ 230:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                      PLL, and a \c USB_DEVICE_OPT_* mask (when the device mode is enabled) to
+ 231:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *                      mode speed.
+ 232:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 233:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \note To reduce the FLASH requirements of the library if only device or host mode is require
+ 234:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        the mode can be statically set in the project makefile by defining the token \c USB_DE
+ 235:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        (for device mode) or \c USB_HOST_ONLY (for host mode), passing the token to the compil
+ 236:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        via the -D switch. If the mode is statically set, this parameter does not exist in the
+ 237:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        function prototype.
+ 238:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        \n\n
+ 239:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 240:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \note To reduce the FLASH requirements of the library if only fixed settings are required,
+ 241:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        the options may be set statically in the same manner as the mode (see the Mode paramet
+ 242:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        this function). To statically set the USB options, pass in the \c USE_STATIC_OPTIONS t
+ 243:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        defined to the appropriate options masks. When the options are statically set, this
+ 244:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        parameter does not exist in the function prototype.
+ 245:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        \n\n
+ 246:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 247:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \note The mode parameter does not exist on devices where only one mode is possible, such as 
+ 248:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *        AVR models which only implement the USB device mode in hardware.
+ 249:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *
+ 250:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  \see \ref Group_Device for the \c USB_DEVICE_OPT_* masks.
+ 251:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 252:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			void USB_Init(
+ 253:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #if defined(USB_CAN_BE_BOTH) || defined(__DOXYGEN__)
+ 254:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               const uint8_t Mode
+ 255:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #endif
+ 256:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 257:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #if (defined(USB_CAN_BE_BOTH) && !defined(USE_STATIC_OPTIONS)) || defined(__DOXYG
+ 258:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               ,
+ 259:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #elif (!defined(USB_CAN_BE_BOTH) && defined(USE_STATIC_OPTIONS))
+ 260:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               void
+ 261:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #endif
+ 262:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 263:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #if !defined(USE_STATIC_OPTIONS) || defined(__DOXYGEN__)
+ 264:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               const uint8_t Options
+ 265:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               #endif
+ 266:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			               );
+ 267:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 268:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Shuts down the USB interface. This turns off the USB interface after deallocating all USB FI
+ 269:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  memory, endpoints and pipes. When turned off, no USB functionality can be used until the int
+ 270:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  is restarted with the \ref USB_Init() function.
+ 271:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 272:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			void USB_Disable(void);
+ 273:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 274:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			/** Resets the interface, when already initialized. This will re-enumerate the device if already
+ 275:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 *  to a host, or re-enumerate an already attached device when in host mode.
+ 276:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			 */
+ 277:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			void USB_ResetInterface(void);
+ 278:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 279:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		/* Global Variables: */
+ 280:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if defined(USB_CAN_BE_BOTH) || defined(__DOXYGEN__)
+ 281:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				/** Indicates the mode that the USB interface is currently initialized to, a value from the
+ 282:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \ref USB_Modes_t enum.
+ 283:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *
+ 284:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \attention This variable should be treated as read-only in the user application, and never 
+ 285:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *             changed in value.
+ 286:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *
+ 287:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \note When the controller is initialized into UID auto-detection mode, this variable will h
+ 288:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *        currently selected USB mode (i.e. \ref USB_MODE_Device or \ref USB_MODE_Host). If the
+ 289:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *        is fixed into a specific mode (either through the \c USB_DEVICE_ONLY or \c USB_HOST_O
+ 290:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *        options, or a limitation of the USB controller in the chosen device model) this will 
+ 291:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *        a constant of the appropriate value and will never evaluate to \ref USB_MODE_None eve
+ 292:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *        USB interface is not initialized.
+ 293:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 */
+ 294:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				extern volatile uint8_t USB_CurrentMode;
+ 295:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif defined(USB_CAN_BE_HOST)
+ 296:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_CurrentMode USB_MODE_Host
+ 297:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif defined(USB_CAN_BE_DEVICE)
+ 298:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_CurrentMode USB_MODE_Device
+ 299:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 300:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 301:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if !defined(USE_STATIC_OPTIONS) || defined(__DOXYGEN__)
+ 302:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				/** Indicates the current USB options that the USB interface was initialized with when \ref USB
+ 303:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  was called. This value will be one of the \c USB_MODE_* masks defined elsewhere in this mod
+ 304:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *
+ 305:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *  \attention This variable should be treated as read-only in the user application, and never 
+ 306:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 *             changed in value.
+ 307:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				 */
+ 308:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				extern volatile uint8_t USB_Options;
+ 309:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#elif defined(USE_STATIC_OPTIONS)
+ 310:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#define USB_Options USE_STATIC_OPTIONS
+ 311:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 312:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 313:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 	/* Private Interface - For use in library only: */
+ 314:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 	#if !defined(__DOXYGEN__)
+ 315:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		/* Function Prototypes: */
+ 316:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if defined(__INCLUDE_FROM_USB_CONTROLLER_C)
+ 317:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#if defined(USB_CAN_BE_DEVICE)
+ 318:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				static void USB_Init_Device(void);
+ 319:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#endif
+ 320:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 321:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#if defined(USB_CAN_BE_HOST)
+ 322:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				static void USB_Init_Host(void);
+ 323:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				#endif
+ 324:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 325:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 326:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 		/* Inline Functions: */
+ 327:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_PLL_On(void) ATTR_ALWAYS_INLINE;
+ 328:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_PLL_On(void)
+ 329:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 330:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				PLLCSR = USB_PLL_PSC;
+ 331:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				PLLCSR = (USB_PLL_PSC | (1 << PLLE));
+ 332:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 333:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 334:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_PLL_Off(void) ATTR_ALWAYS_INLINE;
+ 335:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_PLL_Off(void)
+ 336:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 337:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				PLLCSR = 0;
+ 338:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 339:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 340:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline bool USB_PLL_IsReady(void) ATTR_WARN_UNUSED_RESULT ATTR_ALWAYS_INLINE;
+ 341:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline bool USB_PLL_IsReady(void)
+ 342:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 343:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				return ((PLLCSR & (1 << PLOCK)) ? true : false);
+ 344:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 345:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 346:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_REG_On(void) ATTR_ALWAYS_INLINE;
+ 347:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_REG_On(void)
+ 348:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 349:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if defined(USB_SERIES_4_AVR) || defined(USB_SERIES_6_AVR) || defined(USB_SERIES_7_AVR)
+ 350:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				UHWCON |=  (1 << UVREGE);
+ 351:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#else
+ 352:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				REGCR  &= ~(1 << REGDIS);
+ 353:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 354:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 355:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 356:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_REG_Off(void) ATTR_ALWAYS_INLINE;
+ 357:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_REG_Off(void)
+ 358:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 359:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if defined(USB_SERIES_4_AVR) || defined(USB_SERIES_6_AVR) || defined(USB_SERIES_7_AVR)
+ 360:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				UHWCON &= ~(1 << UVREGE);
+ 361:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#else
+ 362:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				REGCR  |=  (1 << REGDIS);
+ 363:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#endif
+ 364:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			}
+ 365:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 
+ 366:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			#if defined(USB_SERIES_4_AVR) || defined(USB_SERIES_6_AVR) || defined(USB_SERIES_7_AVR)
+ 367:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_OTGPAD_On(void) ATTR_ALWAYS_INLINE;
+ 368:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			static inline void USB_OTGPAD_On(void)
+  80               		.loc 3 368 23 view .LVU13
+  81               	.LBB13:
+ 369:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 			{
+ 370:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				USBCON |=  (1 << OTGPADE);
+  82               		.loc 3 370 5 view .LVU14
+  83               		.loc 3 370 12 is_stmt 0 view .LVU15
+  84 0000 E8ED      		ldi r30,lo8(-40)
+  85 0002 F0E0      		ldi r31,0
+  86 0004 8081      		ld r24,Z
+  87 0006 8061      		ori r24,lo8(16)
+  88 0008 8083      		st Z,r24
+  89               	.LBE13:
+  90               	.LBE12:
+  30:tmk_core/protocol/lufa/usb_util.c ****     wait_us(5);
+  91               		.loc 1 30 5 is_stmt 1 view .LVU16
+  92               		.loc 1 30 5 view .LVU17
+  93               		.loc 1 30 5 view .LVU18
+  94               	.LVL1:
+  95               	.LBB14:
+  96               	.LBI14:
+  97               		.file 4 "/usr/avr/include/util/delay.h"
+   1:/usr/avr/include/util/delay.h **** /* Copyright (c) 2002, Marek Michalkiewicz
+   2:/usr/avr/include/util/delay.h ****    Copyright (c) 2004,2005,2007 Joerg Wunsch
+   3:/usr/avr/include/util/delay.h ****    Copyright (c) 2007  Florin-Viorel Petrov
+   4:/usr/avr/include/util/delay.h ****    All rights reserved.
+   5:/usr/avr/include/util/delay.h **** 
+   6:/usr/avr/include/util/delay.h ****    Redistribution and use in source and binary forms, with or without
+   7:/usr/avr/include/util/delay.h ****    modification, are permitted provided that the following conditions are met:
+   8:/usr/avr/include/util/delay.h **** 
+   9:/usr/avr/include/util/delay.h ****    * Redistributions of source code must retain the above copyright
+  10:/usr/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer.
+  11:/usr/avr/include/util/delay.h **** 
+  12:/usr/avr/include/util/delay.h ****    * Redistributions in binary form must reproduce the above copyright
+  13:/usr/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer in
+  14:/usr/avr/include/util/delay.h ****      the documentation and/or other materials provided with the
+  15:/usr/avr/include/util/delay.h ****      distribution.
+  16:/usr/avr/include/util/delay.h **** 
+  17:/usr/avr/include/util/delay.h ****    * Neither the name of the copyright holders nor the names of
+  18:/usr/avr/include/util/delay.h ****      contributors may be used to endorse or promote products derived
+  19:/usr/avr/include/util/delay.h ****      from this software without specific prior written permission.
+  20:/usr/avr/include/util/delay.h **** 
+  21:/usr/avr/include/util/delay.h ****   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  22:/usr/avr/include/util/delay.h ****   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  23:/usr/avr/include/util/delay.h ****   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  24:/usr/avr/include/util/delay.h ****   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  25:/usr/avr/include/util/delay.h ****   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  26:/usr/avr/include/util/delay.h ****   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  27:/usr/avr/include/util/delay.h ****   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:/usr/avr/include/util/delay.h ****   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:/usr/avr/include/util/delay.h ****   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  30:/usr/avr/include/util/delay.h ****   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  31:/usr/avr/include/util/delay.h ****   POSSIBILITY OF SUCH DAMAGE. */
+  32:/usr/avr/include/util/delay.h **** 
+  33:/usr/avr/include/util/delay.h **** /* $Id: delay.h.in 2506 2016-02-08 10:05:45Z joerg_wunsch $ */
+  34:/usr/avr/include/util/delay.h **** 
+  35:/usr/avr/include/util/delay.h **** #ifndef _UTIL_DELAY_H_
+  36:/usr/avr/include/util/delay.h **** #define _UTIL_DELAY_H_ 1
+  37:/usr/avr/include/util/delay.h **** 
+  38:/usr/avr/include/util/delay.h **** #ifndef __DOXYGEN__
+  39:/usr/avr/include/util/delay.h **** #  ifndef __HAS_DELAY_CYCLES
+  40:/usr/avr/include/util/delay.h **** #    define __HAS_DELAY_CYCLES 1
+  41:/usr/avr/include/util/delay.h **** #  endif
+  42:/usr/avr/include/util/delay.h **** #endif  /* __DOXYGEN__ */
+  43:/usr/avr/include/util/delay.h **** 
+  44:/usr/avr/include/util/delay.h **** #include <inttypes.h>
+  45:/usr/avr/include/util/delay.h **** #include <util/delay_basic.h>
+  46:/usr/avr/include/util/delay.h **** #include <math.h>
+  47:/usr/avr/include/util/delay.h **** 
+  48:/usr/avr/include/util/delay.h **** /** \file */
+  49:/usr/avr/include/util/delay.h **** /** \defgroup util_delay <util/delay.h>: Convenience functions for busy-wait delay loops
+  50:/usr/avr/include/util/delay.h ****     \code
+  51:/usr/avr/include/util/delay.h ****     #define F_CPU 1000000UL  // 1 MHz
+  52:/usr/avr/include/util/delay.h ****     //#define F_CPU 14.7456E6
+  53:/usr/avr/include/util/delay.h ****     #include <util/delay.h>
+  54:/usr/avr/include/util/delay.h ****     \endcode
+  55:/usr/avr/include/util/delay.h **** 
+  56:/usr/avr/include/util/delay.h ****     \note As an alternative method, it is possible to pass the
+  57:/usr/avr/include/util/delay.h ****     F_CPU macro down to the compiler from the Makefile.
+  58:/usr/avr/include/util/delay.h ****     Obviously, in that case, no \c \#define statement should be
+  59:/usr/avr/include/util/delay.h ****     used.
+  60:/usr/avr/include/util/delay.h **** 
+  61:/usr/avr/include/util/delay.h ****     The functions in this header file are wrappers around the basic
+  62:/usr/avr/include/util/delay.h ****     busy-wait functions from <util/delay_basic.h>.  They are meant as
+  63:/usr/avr/include/util/delay.h ****     convenience functions where actual time values can be specified
+  64:/usr/avr/include/util/delay.h ****     rather than a number of cycles to wait for.  The idea behind is
+  65:/usr/avr/include/util/delay.h ****     that compile-time constant expressions will be eliminated by
+  66:/usr/avr/include/util/delay.h ****     compiler optimization so floating-point expressions can be used
+  67:/usr/avr/include/util/delay.h ****     to calculate the number of delay cycles needed based on the CPU
+  68:/usr/avr/include/util/delay.h ****     frequency passed by the macro F_CPU.
+  69:/usr/avr/include/util/delay.h **** 
+  70:/usr/avr/include/util/delay.h ****     \note In order for these functions to work as intended, compiler
+  71:/usr/avr/include/util/delay.h ****     optimizations <em>must</em> be enabled, and the delay time
+  72:/usr/avr/include/util/delay.h ****     <em>must</em> be an expression that is a known constant at
+  73:/usr/avr/include/util/delay.h ****     compile-time.  If these requirements are not met, the resulting
+  74:/usr/avr/include/util/delay.h ****     delay will be much longer (and basically unpredictable), and
+  75:/usr/avr/include/util/delay.h ****     applications that otherwise do not use floating-point calculations
+  76:/usr/avr/include/util/delay.h ****     will experience severe code bloat by the floating-point library
+  77:/usr/avr/include/util/delay.h ****     routines linked into the application.
+  78:/usr/avr/include/util/delay.h **** 
+  79:/usr/avr/include/util/delay.h ****     The functions available allow the specification of microsecond, and
+  80:/usr/avr/include/util/delay.h ****     millisecond delays directly, using the application-supplied macro
+  81:/usr/avr/include/util/delay.h ****     F_CPU as the CPU clock frequency (in Hertz).
+  82:/usr/avr/include/util/delay.h **** 
+  83:/usr/avr/include/util/delay.h **** */
+  84:/usr/avr/include/util/delay.h **** 
+  85:/usr/avr/include/util/delay.h **** #if !defined(__DOXYGEN__)
+  86:/usr/avr/include/util/delay.h **** static __inline__ void _delay_us(double __us) __attribute__((__always_inline__));
+  87:/usr/avr/include/util/delay.h **** static __inline__ void _delay_ms(double __ms) __attribute__((__always_inline__));
+  88:/usr/avr/include/util/delay.h **** #endif
+  89:/usr/avr/include/util/delay.h **** 
+  90:/usr/avr/include/util/delay.h **** #ifndef F_CPU
+  91:/usr/avr/include/util/delay.h **** /* prevent compiler error by supplying a default */
+  92:/usr/avr/include/util/delay.h **** # warning "F_CPU not defined for <util/delay.h>"
+  93:/usr/avr/include/util/delay.h **** /** \ingroup util_delay
+  94:/usr/avr/include/util/delay.h ****     \def F_CPU
+  95:/usr/avr/include/util/delay.h ****     \brief CPU frequency in Hz
+  96:/usr/avr/include/util/delay.h **** 
+  97:/usr/avr/include/util/delay.h ****     The macro F_CPU specifies the CPU frequency to be considered by
+  98:/usr/avr/include/util/delay.h ****     the delay macros.  This macro is normally supplied by the
+  99:/usr/avr/include/util/delay.h ****     environment (e.g. from within a project header, or the project's
+ 100:/usr/avr/include/util/delay.h ****     Makefile).  The value 1 MHz here is only provided as a "vanilla"
+ 101:/usr/avr/include/util/delay.h ****     fallback if no such user-provided definition could be found.
+ 102:/usr/avr/include/util/delay.h **** 
+ 103:/usr/avr/include/util/delay.h ****     In terms of the delay functions, the CPU frequency can be given as
+ 104:/usr/avr/include/util/delay.h ****     a floating-point constant (e.g. 3.6864E6 for 3.6864 MHz).
+ 105:/usr/avr/include/util/delay.h ****     However, the macros in <util/setbaud.h> require it to be an
+ 106:/usr/avr/include/util/delay.h ****     integer value.
+ 107:/usr/avr/include/util/delay.h ****  */
+ 108:/usr/avr/include/util/delay.h **** # define F_CPU 1000000UL
+ 109:/usr/avr/include/util/delay.h **** #endif
+ 110:/usr/avr/include/util/delay.h **** 
+ 111:/usr/avr/include/util/delay.h **** #ifndef __OPTIMIZE__
+ 112:/usr/avr/include/util/delay.h **** # warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+ 113:/usr/avr/include/util/delay.h **** #endif
+ 114:/usr/avr/include/util/delay.h **** 
+ 115:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 116:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 117:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 118:/usr/avr/include/util/delay.h **** #  include <math.h>
+ 119:/usr/avr/include/util/delay.h **** #endif
+ 120:/usr/avr/include/util/delay.h **** 
+ 121:/usr/avr/include/util/delay.h **** /**
+ 122:/usr/avr/include/util/delay.h ****    \ingroup util_delay
+ 123:/usr/avr/include/util/delay.h **** 
+ 124:/usr/avr/include/util/delay.h ****    Perform a delay of \c __ms milliseconds, using _delay_loop_2().
+ 125:/usr/avr/include/util/delay.h **** 
+ 126:/usr/avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 127:/usr/avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 128:/usr/avr/include/util/delay.h **** 
+ 129:/usr/avr/include/util/delay.h ****    The maximal possible delay is 262.14 ms / F_CPU in MHz.
+ 130:/usr/avr/include/util/delay.h **** 
+ 131:/usr/avr/include/util/delay.h ****    When the user request delay which exceed the maximum possible one,
+ 132:/usr/avr/include/util/delay.h ****    _delay_ms() provides a decreased resolution functionality. In this
+ 133:/usr/avr/include/util/delay.h ****    mode _delay_ms() will work with a resolution of 1/10 ms, providing
+ 134:/usr/avr/include/util/delay.h ****    delays up to 6.5535 seconds (independent from CPU frequency).  The
+ 135:/usr/avr/include/util/delay.h ****    user will not be informed about decreased resolution.
+ 136:/usr/avr/include/util/delay.h **** 
+ 137:/usr/avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles()
+ 138:/usr/avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 ms/ F_CPU in MHz. For
+ 139:/usr/avr/include/util/delay.h ****    values greater than the maximal possible delay, overflows results in
+ 140:/usr/avr/include/util/delay.h ****    no delay i.e., 0ms.
+ 141:/usr/avr/include/util/delay.h **** 
+ 142:/usr/avr/include/util/delay.h ****    Conversion of \c __ms into clock cycles may not always result in
+ 143:/usr/avr/include/util/delay.h ****    integer.  By default, the clock cycles rounded up to next
+ 144:/usr/avr/include/util/delay.h ****    integer. This ensures that the user gets at least \c __ms
+ 145:/usr/avr/include/util/delay.h ****    microseconds of delay.
+ 146:/usr/avr/include/util/delay.h **** 
+ 147:/usr/avr/include/util/delay.h ****    Alternatively, by defining the macro \c __DELAY_ROUND_DOWN__, or
+ 148:/usr/avr/include/util/delay.h ****    \c __DELAY_ROUND_CLOSEST__, before including this header file, the
+ 149:/usr/avr/include/util/delay.h ****    algorithm can be made to round down, or round to closest integer,
+ 150:/usr/avr/include/util/delay.h ****    respectively.
+ 151:/usr/avr/include/util/delay.h **** 
+ 152:/usr/avr/include/util/delay.h ****    \note
+ 153:/usr/avr/include/util/delay.h **** 
+ 154:/usr/avr/include/util/delay.h ****    The implementation of _delay_ms() based on
+ 155:/usr/avr/include/util/delay.h ****    __builtin_avr_delay_cycles() is not backward compatible with older
+ 156:/usr/avr/include/util/delay.h ****    implementations.  In order to get functionality backward compatible
+ 157:/usr/avr/include/util/delay.h ****    with previous versions, the macro \c "__DELAY_BACKWARD_COMPATIBLE__"
+ 158:/usr/avr/include/util/delay.h ****    must be defined before including this header file. Also, the
+ 159:/usr/avr/include/util/delay.h ****    backward compatible algorithm will be chosen if the code is
+ 160:/usr/avr/include/util/delay.h ****    compiled in a <em>freestanding environment</em> (GCC option
+ 161:/usr/avr/include/util/delay.h ****    \c -ffreestanding), as the math functions required for rounding are
+ 162:/usr/avr/include/util/delay.h ****    not available to the compiler then.
+ 163:/usr/avr/include/util/delay.h **** 
+ 164:/usr/avr/include/util/delay.h ****  */
+ 165:/usr/avr/include/util/delay.h **** void
+ 166:/usr/avr/include/util/delay.h **** _delay_ms(double __ms)
+ 167:/usr/avr/include/util/delay.h **** {
+ 168:/usr/avr/include/util/delay.h **** 	double __tmp ;
+ 169:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 170:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 171:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 172:/usr/avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 173:/usr/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 174:/usr/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e3) * __ms;
+ 175:/usr/avr/include/util/delay.h **** 
+ 176:/usr/avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 177:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 178:/usr/avr/include/util/delay.h **** 
+ 179:/usr/avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 180:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 181:/usr/avr/include/util/delay.h **** 
+ 182:/usr/avr/include/util/delay.h **** 	#else
+ 183:/usr/avr/include/util/delay.h **** 		//round up by default
+ 184:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 185:/usr/avr/include/util/delay.h **** 	#endif
+ 186:/usr/avr/include/util/delay.h **** 
+ 187:/usr/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 188:/usr/avr/include/util/delay.h **** 
+ 189:/usr/avr/include/util/delay.h **** #else
+ 190:/usr/avr/include/util/delay.h **** 	uint16_t __ticks;
+ 191:/usr/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 4e3) * __ms;
+ 192:/usr/avr/include/util/delay.h **** 	if (__tmp < 1.0)
+ 193:/usr/avr/include/util/delay.h **** 		__ticks = 1;
+ 194:/usr/avr/include/util/delay.h **** 	else if (__tmp > 65535)
+ 195:/usr/avr/include/util/delay.h **** 	{
+ 196:/usr/avr/include/util/delay.h **** 		//	__ticks = requested delay in 1/10 ms
+ 197:/usr/avr/include/util/delay.h **** 		__ticks = (uint16_t) (__ms * 10.0);
+ 198:/usr/avr/include/util/delay.h **** 		while(__ticks)
+ 199:/usr/avr/include/util/delay.h **** 		{
+ 200:/usr/avr/include/util/delay.h **** 			// wait 1/10 ms
+ 201:/usr/avr/include/util/delay.h **** 			_delay_loop_2(((F_CPU) / 4e3) / 10);
+ 202:/usr/avr/include/util/delay.h **** 			__ticks --;
+ 203:/usr/avr/include/util/delay.h **** 		}
+ 204:/usr/avr/include/util/delay.h **** 		return;
+ 205:/usr/avr/include/util/delay.h **** 	}
+ 206:/usr/avr/include/util/delay.h **** 	else
+ 207:/usr/avr/include/util/delay.h **** 		__ticks = (uint16_t)__tmp;
+ 208:/usr/avr/include/util/delay.h **** 	_delay_loop_2(__ticks);
+ 209:/usr/avr/include/util/delay.h **** #endif
+ 210:/usr/avr/include/util/delay.h **** }
+ 211:/usr/avr/include/util/delay.h **** 
+ 212:/usr/avr/include/util/delay.h **** /**
+ 213:/usr/avr/include/util/delay.h ****    \ingroup util_delay
+ 214:/usr/avr/include/util/delay.h **** 
+ 215:/usr/avr/include/util/delay.h ****    Perform a delay of \c __us microseconds, using _delay_loop_1().
+ 216:/usr/avr/include/util/delay.h **** 
+ 217:/usr/avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 218:/usr/avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 219:/usr/avr/include/util/delay.h **** 
+ 220:/usr/avr/include/util/delay.h ****    The maximal possible delay is 768 us / F_CPU in MHz.
+ 221:/usr/avr/include/util/delay.h **** 
+ 222:/usr/avr/include/util/delay.h ****    If the user requests a delay greater than the maximal possible one,
+ 223:/usr/avr/include/util/delay.h ****    _delay_us() will automatically call _delay_ms() instead.  The user
+ 224:/usr/avr/include/util/delay.h ****    will not be informed about this case.
+ 225:/usr/avr/include/util/delay.h **** 
+ 226:/usr/avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles()
+ 227:/usr/avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 us/ F_CPU in MHz. For
+ 228:/usr/avr/include/util/delay.h ****    values greater than the maximal possible delay, overflow results in
+ 229:/usr/avr/include/util/delay.h ****    no delay i.e., 0us.
+ 230:/usr/avr/include/util/delay.h **** 
+ 231:/usr/avr/include/util/delay.h ****    Conversion of \c __us into clock cycles may not always result in
+ 232:/usr/avr/include/util/delay.h ****    integer.  By default, the clock cycles rounded up to next
+ 233:/usr/avr/include/util/delay.h ****    integer. This ensures that the user gets at least \c __us
+ 234:/usr/avr/include/util/delay.h ****    microseconds of delay.
+ 235:/usr/avr/include/util/delay.h **** 
+ 236:/usr/avr/include/util/delay.h ****    Alternatively, by defining the macro \c __DELAY_ROUND_DOWN__, or
+ 237:/usr/avr/include/util/delay.h ****    \c __DELAY_ROUND_CLOSEST__, before including this header file, the
+ 238:/usr/avr/include/util/delay.h ****    algorithm can be made to round down, or round to closest integer,
+ 239:/usr/avr/include/util/delay.h ****    respectively.
+ 240:/usr/avr/include/util/delay.h **** 
+ 241:/usr/avr/include/util/delay.h ****    \note
+ 242:/usr/avr/include/util/delay.h **** 
+ 243:/usr/avr/include/util/delay.h ****    The implementation of _delay_ms() based on
+ 244:/usr/avr/include/util/delay.h ****    __builtin_avr_delay_cycles() is not backward compatible with older
+ 245:/usr/avr/include/util/delay.h ****    implementations.  In order to get functionality backward compatible
+ 246:/usr/avr/include/util/delay.h ****    with previous versions, the macro \c __DELAY_BACKWARD_COMPATIBLE__
+ 247:/usr/avr/include/util/delay.h ****    must be defined before including this header file. Also, the
+ 248:/usr/avr/include/util/delay.h ****    backward compatible algorithm will be chosen if the code is
+ 249:/usr/avr/include/util/delay.h ****    compiled in a <em>freestanding environment</em> (GCC option
+ 250:/usr/avr/include/util/delay.h ****    \c -ffreestanding), as the math functions required for rounding are
+ 251:/usr/avr/include/util/delay.h ****    not available to the compiler then.
+ 252:/usr/avr/include/util/delay.h **** 
+ 253:/usr/avr/include/util/delay.h ****  */
+ 254:/usr/avr/include/util/delay.h **** void
+ 255:/usr/avr/include/util/delay.h **** _delay_us(double __us)
+  98               		.loc 4 255 1 view .LVU19
+  99               	.LBB15:
+ 256:/usr/avr/include/util/delay.h **** {
+ 257:/usr/avr/include/util/delay.h **** 	double __tmp ;
+ 100               		.loc 4 257 2 view .LVU20
+ 258:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 259:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 260:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 261:/usr/avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 101               		.loc 4 261 2 view .LVU21
+ 262:/usr/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 102               		.loc 4 262 2 view .LVU22
+ 263:/usr/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e6) * __us;
+ 103               		.loc 4 263 2 view .LVU23
+ 264:/usr/avr/include/util/delay.h **** 
+ 265:/usr/avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 266:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 267:/usr/avr/include/util/delay.h **** 
+ 268:/usr/avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 269:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 270:/usr/avr/include/util/delay.h **** 
+ 271:/usr/avr/include/util/delay.h **** 	#else
+ 272:/usr/avr/include/util/delay.h **** 		//round up by default
+ 273:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 104               		.loc 4 273 3 view .LVU24
+ 274:/usr/avr/include/util/delay.h **** 	#endif
+ 275:/usr/avr/include/util/delay.h **** 
+ 276:/usr/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 105               		.loc 4 276 2 view .LVU25
+ 106 000a 8AE1      		ldi r24,lo8(26)
+ 107 000c 8A95      	1:	dec r24
+ 108 000e 01F4      		brne 1b
+ 109 0010 00C0      		rjmp .
+ 110               	.LVL2:
+ 111               		.loc 4 276 2 is_stmt 0 view .LVU26
+ 112               	.LBE15:
+ 113               	.LBE14:
+ 114               		.loc 1 30 5 is_stmt 1 view .LVU27
+  31:tmk_core/protocol/lufa/usb_util.c **** 
+  32:tmk_core/protocol/lufa/usb_util.c ****     return USB_VBUS_GetStatus();  // checks state of VBUS
+ 115               		.loc 1 32 5 view .LVU28
+ 116               	.LBB16:
+ 117               	.LBI16:
+ 177:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				{
+ 118               		.loc 3 177 24 view .LVU29
+ 119               	.LBB17:
+ 179:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				}
+ 120               		.loc 3 179 6 view .LVU30
+ 179:lib/lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.h **** 				}
+ 121               		.loc 3 179 15 is_stmt 0 view .LVU31
+ 122 0012 8091 D900 		lds r24,217
+ 123               	.LBE17:
+ 124               	.LBE16:
+  33:tmk_core/protocol/lufa/usb_util.c **** }
+ 125               		.loc 1 33 1 view .LVU32
+ 126 0016 8170      		andi r24,lo8(1)
+ 127               	/* epilogue start */
+ 128 0018 0895      		ret
+ 129               		.cfi_endproc
+ 130               	.LFE102:
+ 132               		.text
+ 133               	.Letext0:
+ 134               		.file 5 "/usr/avr/include/stdint.h"
+ 135               		.file 6 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../Device.h"
+ 136               		.file 7 "lib/lufa/LUFA/Drivers/USB/Core/USBTask.h"
+ 137               		.file 8 "/usr/avr/include/math.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 usb_util.c
+     /tmp/ccU7GsPu.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccU7GsPu.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccU7GsPu.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccU7GsPu.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccU7GsPu.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccU7GsPu.s:13     .text.usb_disconnect:0000000000000000 usb_disconnect
+     /tmp/ccU7GsPu.s:37     .text.usb_connected_state:0000000000000000 usb_connected_state
+     /tmp/ccU7GsPu.s:68     .text.usb_vbus_state:0000000000000000 usb_vbus_state
+
+UNDEFINED SYMBOLS
+USB_Disable
+USB_DeviceState

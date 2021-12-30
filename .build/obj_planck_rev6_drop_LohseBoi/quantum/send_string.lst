@@ -1,0 +1,1258 @@
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 2
+  13              		.file	"send_string.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.send_char,"ax",%progbits
+  18              		.align	1
+  19              		.global	send_char
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	send_char:
+  27              	.LVL0:
+  28              	.LFB300:
+  29              		.file 1 "quantum/send_string.c"
+   1:quantum/send_string.c **** /* Copyright 2021
+   2:quantum/send_string.c ****  *
+   3:quantum/send_string.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/send_string.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/send_string.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:quantum/send_string.c ****  * (at your option) any later version.
+   7:quantum/send_string.c ****  *
+   8:quantum/send_string.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/send_string.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/send_string.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/send_string.c ****  * GNU General Public License for more details.
+  12:quantum/send_string.c ****  *
+  13:quantum/send_string.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/send_string.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/send_string.c ****  */
+  16:quantum/send_string.c **** 
+  17:quantum/send_string.c **** #include <ctype.h>
+  18:quantum/send_string.c **** 
+  19:quantum/send_string.c **** #include "quantum.h"
+  20:quantum/send_string.c **** 
+  21:quantum/send_string.c **** #include "send_string.h"
+  22:quantum/send_string.c **** 
+  23:quantum/send_string.c **** #if defined(AUDIO_ENABLE) && defined(SENDSTRING_BELL)
+  24:quantum/send_string.c **** #    include "audio.h"
+  25:quantum/send_string.c **** #    ifndef BELL_SOUND
+  26:quantum/send_string.c **** #        define BELL_SOUND TERMINAL_SOUND
+  27:quantum/send_string.c **** #    endif
+  28:quantum/send_string.c **** float bell_song[][2] = SONG(BELL_SOUND);
+  29:quantum/send_string.c **** #endif
+  30:quantum/send_string.c **** 
+  31:quantum/send_string.c **** // clang-format off
+  32:quantum/send_string.c **** 
+  33:quantum/send_string.c **** /* Bit-Packed look-up table to convert an ASCII character to whether
+  34:quantum/send_string.c ****  * [Shift] needs to be sent with the keycode.
+  35:quantum/send_string.c ****  */
+  36:quantum/send_string.c **** __attribute__((weak)) const uint8_t ascii_to_shift_lut[16] PROGMEM = {
+  37:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  38:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  39:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  40:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  41:quantum/send_string.c **** 
+  42:quantum/send_string.c ****     KCLUT_ENTRY(0, 1, 1, 1, 1, 1, 1, 0),
+  43:quantum/send_string.c ****     KCLUT_ENTRY(1, 1, 1, 1, 0, 0, 0, 0),
+  44:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  45:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 1, 0, 1, 0, 1, 1),
+  46:quantum/send_string.c ****     KCLUT_ENTRY(1, 1, 1, 1, 1, 1, 1, 1),
+  47:quantum/send_string.c ****     KCLUT_ENTRY(1, 1, 1, 1, 1, 1, 1, 1),
+  48:quantum/send_string.c ****     KCLUT_ENTRY(1, 1, 1, 1, 1, 1, 1, 1),
+  49:quantum/send_string.c ****     KCLUT_ENTRY(1, 1, 1, 0, 0, 0, 1, 1),
+  50:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  51:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  52:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  53:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 1, 1, 1, 1, 0)
+  54:quantum/send_string.c **** };
+  55:quantum/send_string.c **** 
+  56:quantum/send_string.c **** /* Bit-Packed look-up table to convert an ASCII character to whether
+  57:quantum/send_string.c ****  * [AltGr] needs to be sent with the keycode.
+  58:quantum/send_string.c ****  */
+  59:quantum/send_string.c **** __attribute__((weak)) const uint8_t ascii_to_altgr_lut[16] PROGMEM = {
+  60:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  61:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  62:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  63:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  64:quantum/send_string.c **** 
+  65:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  66:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  67:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  68:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  69:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  70:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  71:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  72:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  73:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  74:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  75:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  76:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0)
+  77:quantum/send_string.c **** };
+  78:quantum/send_string.c **** 
+  79:quantum/send_string.c **** /* Bit-Packed look-up table to convert an ASCII character to whether
+  80:quantum/send_string.c ****  * [Space] needs to be sent after the keycode
+  81:quantum/send_string.c ****  */
+  82:quantum/send_string.c **** __attribute__((weak)) const uint8_t ascii_to_dead_lut[16] PROGMEM = {
+  83:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  84:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  85:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  86:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  87:quantum/send_string.c **** 
+  88:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  89:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  90:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  91:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  92:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  93:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  94:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  95:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  96:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  97:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  98:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0),
+  99:quantum/send_string.c ****     KCLUT_ENTRY(0, 0, 0, 0, 0, 0, 0, 0)
+ 100:quantum/send_string.c **** };
+ 101:quantum/send_string.c **** 
+ 102:quantum/send_string.c **** /* Look-up table to convert an ASCII character to a keycode.
+ 103:quantum/send_string.c ****  */
+ 104:quantum/send_string.c **** __attribute__((weak)) const uint8_t ascii_to_keycode_lut[128] PROGMEM = {
+ 105:quantum/send_string.c ****     // NUL   SOH      STX      ETX      EOT      ENQ      ACK      BEL
+ 106:quantum/send_string.c ****     XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+ 107:quantum/send_string.c ****     // BS    TAB      LF       VT       FF       CR       SO       SI
+ 108:quantum/send_string.c ****     KC_BSPC, KC_TAB,  KC_ENT,  XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+ 109:quantum/send_string.c ****     // DLE   DC1      DC2      DC3      DC4      NAK      SYN      ETB
+ 110:quantum/send_string.c ****     XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+ 111:quantum/send_string.c ****     // CAN   EM       SUB      ESC      FS       GS       RS       US
+ 112:quantum/send_string.c ****     XXXXXXX, XXXXXXX, XXXXXXX, KC_ESC,  XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+ 113:quantum/send_string.c **** 
+ 114:quantum/send_string.c ****     //       !        "        #        $        %        &        '
+ 115:quantum/send_string.c ****     KC_SPC,  KC_1,    KC_QUOT, KC_3,    KC_4,    KC_5,    KC_7,    KC_QUOT,
+ 116:quantum/send_string.c ****     // (     )        *        +        ,        -        .        /
+ 117:quantum/send_string.c ****     KC_9,    KC_0,    KC_8,    KC_EQL,  KC_COMM, KC_MINS, KC_DOT,  KC_SLSH,
+ 118:quantum/send_string.c ****     // 0     1        2        3        4        5        6        7
+ 119:quantum/send_string.c ****     KC_0,    KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,
+ 120:quantum/send_string.c ****     // 8     9        :        ;        <        =        >        ?
+ 121:quantum/send_string.c ****     KC_8,    KC_9,    KC_SCLN, KC_SCLN, KC_COMM, KC_EQL,  KC_DOT,  KC_SLSH,
+ 122:quantum/send_string.c ****     // @     A        B        C        D        E        F        G
+ 123:quantum/send_string.c ****     KC_2,    KC_A,    KC_B,    KC_C,    KC_D,    KC_E,    KC_F,    KC_G,
+ 124:quantum/send_string.c ****     // H     I        J        K        L        M        N        O
+ 125:quantum/send_string.c ****     KC_H,    KC_I,    KC_J,    KC_K,    KC_L,    KC_M,    KC_N,    KC_O,
+ 126:quantum/send_string.c ****     // P     Q        R        S        T        U        V        W
+ 127:quantum/send_string.c ****     KC_P,    KC_Q,    KC_R,    KC_S,    KC_T,    KC_U,    KC_V,    KC_W,
+ 128:quantum/send_string.c ****     // X     Y        Z        [        \        ]        ^        _
+ 129:quantum/send_string.c ****     KC_X,    KC_Y,    KC_Z,    KC_LBRC, KC_BSLS, KC_RBRC, KC_6,    KC_MINS,
+ 130:quantum/send_string.c ****     // `     a        b        c        d        e        f        g
+ 131:quantum/send_string.c ****     KC_GRV,  KC_A,    KC_B,    KC_C,    KC_D,    KC_E,    KC_F,    KC_G,
+ 132:quantum/send_string.c ****     // h     i        j        k        l        m        n        o
+ 133:quantum/send_string.c ****     KC_H,    KC_I,    KC_J,    KC_K,    KC_L,    KC_M,    KC_N,    KC_O,
+ 134:quantum/send_string.c ****     // p     q        r        s        t        u        v        w
+ 135:quantum/send_string.c ****     KC_P,    KC_Q,    KC_R,    KC_S,    KC_T,    KC_U,    KC_V,    KC_W,
+ 136:quantum/send_string.c ****     // x     y        z        {        |        }        ~        DEL
+ 137:quantum/send_string.c ****     KC_X,    KC_Y,    KC_Z,    KC_LBRC, KC_BSLS, KC_RBRC, KC_GRV,  KC_DEL
+ 138:quantum/send_string.c **** };
+ 139:quantum/send_string.c **** 
+ 140:quantum/send_string.c **** // clang-format on
+ 141:quantum/send_string.c **** 
+ 142:quantum/send_string.c **** // Note: we bit-pack in "reverse" order to optimize loading
+ 143:quantum/send_string.c **** #define PGM_LOADBIT(mem, pos) ((pgm_read_byte(&((mem)[(pos) / 8])) >> ((pos) % 8)) & 0x01)
+ 144:quantum/send_string.c **** 
+ 145:quantum/send_string.c **** void send_string(const char *str) { send_string_with_delay(str, 0); }
+ 146:quantum/send_string.c **** 
+ 147:quantum/send_string.c **** void send_string_P(const char *str) { send_string_with_delay_P(str, 0); }
+ 148:quantum/send_string.c **** 
+ 149:quantum/send_string.c **** void send_string_with_delay(const char *str, uint8_t interval) {
+ 150:quantum/send_string.c ****     while (1) {
+ 151:quantum/send_string.c ****         char ascii_code = *str;
+ 152:quantum/send_string.c ****         if (!ascii_code) break;
+ 153:quantum/send_string.c ****         if (ascii_code == SS_QMK_PREFIX) {
+ 154:quantum/send_string.c ****             ascii_code = *(++str);
+ 155:quantum/send_string.c ****             if (ascii_code == SS_TAP_CODE) {
+ 156:quantum/send_string.c ****                 // tap
+ 157:quantum/send_string.c ****                 uint8_t keycode = *(++str);
+ 158:quantum/send_string.c ****                 tap_code(keycode);
+ 159:quantum/send_string.c ****             } else if (ascii_code == SS_DOWN_CODE) {
+ 160:quantum/send_string.c ****                 // down
+ 161:quantum/send_string.c ****                 uint8_t keycode = *(++str);
+ 162:quantum/send_string.c ****                 register_code(keycode);
+ 163:quantum/send_string.c ****             } else if (ascii_code == SS_UP_CODE) {
+ 164:quantum/send_string.c ****                 // up
+ 165:quantum/send_string.c ****                 uint8_t keycode = *(++str);
+ 166:quantum/send_string.c ****                 unregister_code(keycode);
+ 167:quantum/send_string.c ****             } else if (ascii_code == SS_DELAY_CODE) {
+ 168:quantum/send_string.c ****                 // delay
+ 169:quantum/send_string.c ****                 int     ms      = 0;
+ 170:quantum/send_string.c ****                 uint8_t keycode = *(++str);
+ 171:quantum/send_string.c ****                 while (isdigit(keycode)) {
+ 172:quantum/send_string.c ****                     ms *= 10;
+ 173:quantum/send_string.c ****                     ms += keycode - '0';
+ 174:quantum/send_string.c ****                     keycode = *(++str);
+ 175:quantum/send_string.c ****                 }
+ 176:quantum/send_string.c ****                 while (ms--) wait_ms(1);
+ 177:quantum/send_string.c ****             }
+ 178:quantum/send_string.c ****         } else {
+ 179:quantum/send_string.c ****             send_char(ascii_code);
+ 180:quantum/send_string.c ****         }
+ 181:quantum/send_string.c ****         ++str;
+ 182:quantum/send_string.c ****         // interval
+ 183:quantum/send_string.c ****         {
+ 184:quantum/send_string.c ****             uint8_t ms = interval;
+ 185:quantum/send_string.c ****             while (ms--) wait_ms(1);
+ 186:quantum/send_string.c ****         }
+ 187:quantum/send_string.c ****     }
+ 188:quantum/send_string.c **** }
+ 189:quantum/send_string.c **** 
+ 190:quantum/send_string.c **** void send_string_with_delay_P(const char *str, uint8_t interval) {
+ 191:quantum/send_string.c ****     while (1) {
+ 192:quantum/send_string.c ****         char ascii_code = pgm_read_byte(str);
+ 193:quantum/send_string.c ****         if (!ascii_code) break;
+ 194:quantum/send_string.c ****         if (ascii_code == SS_QMK_PREFIX) {
+ 195:quantum/send_string.c ****             ascii_code = pgm_read_byte(++str);
+ 196:quantum/send_string.c ****             if (ascii_code == SS_TAP_CODE) {
+ 197:quantum/send_string.c ****                 // tap
+ 198:quantum/send_string.c ****                 uint8_t keycode = pgm_read_byte(++str);
+ 199:quantum/send_string.c ****                 tap_code(keycode);
+ 200:quantum/send_string.c ****             } else if (ascii_code == SS_DOWN_CODE) {
+ 201:quantum/send_string.c ****                 // down
+ 202:quantum/send_string.c ****                 uint8_t keycode = pgm_read_byte(++str);
+ 203:quantum/send_string.c ****                 register_code(keycode);
+ 204:quantum/send_string.c ****             } else if (ascii_code == SS_UP_CODE) {
+ 205:quantum/send_string.c ****                 // up
+ 206:quantum/send_string.c ****                 uint8_t keycode = pgm_read_byte(++str);
+ 207:quantum/send_string.c ****                 unregister_code(keycode);
+ 208:quantum/send_string.c ****             } else if (ascii_code == SS_DELAY_CODE) {
+ 209:quantum/send_string.c ****                 // delay
+ 210:quantum/send_string.c ****                 int     ms      = 0;
+ 211:quantum/send_string.c ****                 uint8_t keycode = pgm_read_byte(++str);
+ 212:quantum/send_string.c ****                 while (isdigit(keycode)) {
+ 213:quantum/send_string.c ****                     ms *= 10;
+ 214:quantum/send_string.c ****                     ms += keycode - '0';
+ 215:quantum/send_string.c ****                     keycode = pgm_read_byte(++str);
+ 216:quantum/send_string.c ****                 }
+ 217:quantum/send_string.c ****                 while (ms--) wait_ms(1);
+ 218:quantum/send_string.c ****             }
+ 219:quantum/send_string.c ****         } else {
+ 220:quantum/send_string.c ****             send_char(ascii_code);
+ 221:quantum/send_string.c ****         }
+ 222:quantum/send_string.c ****         ++str;
+ 223:quantum/send_string.c ****         // interval
+ 224:quantum/send_string.c ****         {
+ 225:quantum/send_string.c ****             uint8_t ms = interval;
+ 226:quantum/send_string.c ****             while (ms--) wait_ms(1);
+ 227:quantum/send_string.c ****         }
+ 228:quantum/send_string.c ****     }
+ 229:quantum/send_string.c **** }
+ 230:quantum/send_string.c **** 
+ 231:quantum/send_string.c **** void send_char(char ascii_code) {
+  30              		.loc 1 231 33 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+ 232:quantum/send_string.c **** #if defined(AUDIO_ENABLE) && defined(SENDSTRING_BELL)
+ 233:quantum/send_string.c ****     if (ascii_code == '\a') {  // BEL
+ 234:quantum/send_string.c ****         PLAY_SONG(bell_song);
+ 235:quantum/send_string.c ****         return;
+ 236:quantum/send_string.c ****     }
+ 237:quantum/send_string.c **** #endif
+ 238:quantum/send_string.c **** 
+ 239:quantum/send_string.c ****     uint8_t keycode    = pgm_read_byte(&ascii_to_keycode_lut[(uint8_t)ascii_code]);
+  34              		.loc 1 239 5 view .LVU1
+ 231:quantum/send_string.c **** #if defined(AUDIO_ENABLE) && defined(SENDSTRING_BELL)
+  35              		.loc 1 231 33 is_stmt 0 view .LVU2
+  36 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+  37              		.cfi_def_cfa_offset 24
+  38              		.cfi_offset 3, -24
+  39              		.cfi_offset 4, -20
+  40              		.cfi_offset 5, -16
+  41              		.cfi_offset 6, -12
+  42              		.cfi_offset 7, -8
+  43              		.cfi_offset 14, -4
+  44              		.loc 1 239 13 view .LVU3
+  45 0002 174B     		ldr	r3, .L19
+ 240:quantum/send_string.c ****     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
+ 241:quantum/send_string.c ****     bool    is_altgred = PGM_LOADBIT(ascii_to_altgr_lut, (uint8_t)ascii_code);
+  46              		.loc 1 241 26 view .LVU4
+  47 0004 1749     		ldr	r1, .L19+4
+ 239:quantum/send_string.c ****     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
+  48              		.loc 1 239 13 view .LVU5
+  49 0006 1F5C     		ldrb	r7, [r3, r0]	@ zero_extendqisi2
+  50              	.LVL1:
+ 240:quantum/send_string.c ****     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
+  51              		.loc 1 240 5 is_stmt 1 view .LVU6
+ 240:quantum/send_string.c ****     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
+  52              		.loc 1 240 26 is_stmt 0 view .LVU7
+  53 0008 174B     		ldr	r3, .L19+8
+  54 000a C208     		lsrs	r2, r0, #3
+  55 000c 00F00700 		and	r0, r0, #7
+  56              	.LVL2:
+  57              		.loc 1 241 26 view .LVU8
+  58 0010 8D5C     		ldrb	r5, [r1, r2]	@ zero_extendqisi2
+ 242:quantum/send_string.c ****     bool    is_dead    = PGM_LOADBIT(ascii_to_dead_lut, (uint8_t)ascii_code);
+  59              		.loc 1 242 26 view .LVU9
+  60 0012 1649     		ldr	r1, .L19+12
+ 240:quantum/send_string.c ****     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
+  61              		.loc 1 240 26 view .LVU10
+  62 0014 9B5C     		ldrb	r3, [r3, r2]	@ zero_extendqisi2
+  63              		.loc 1 242 26 view .LVU11
+  64 0016 8E5C     		ldrb	r6, [r1, r2]	@ zero_extendqisi2
+ 240:quantum/send_string.c ****     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
+  65              		.loc 1 240 26 view .LVU12
+  66 0018 0341     		asrs	r3, r3, r0
+  67              	.LVL3:
+ 241:quantum/send_string.c ****     bool    is_dead    = PGM_LOADBIT(ascii_to_dead_lut, (uint8_t)ascii_code);
+  68              		.loc 1 241 5 is_stmt 1 view .LVU13
+ 241:quantum/send_string.c ****     bool    is_dead    = PGM_LOADBIT(ascii_to_dead_lut, (uint8_t)ascii_code);
+  69              		.loc 1 241 26 is_stmt 0 view .LVU14
+  70 001a 0541     		asrs	r5, r5, r0
+  71              		.loc 1 242 26 view .LVU15
+  72 001c 0641     		asrs	r6, r6, r0
+ 243:quantum/send_string.c **** 
+ 244:quantum/send_string.c ****     if (is_shifted) {
+  73              		.loc 1 244 8 view .LVU16
+  74 001e 13F00104 		ands	r4, r3, #1
+ 241:quantum/send_string.c ****     bool    is_dead    = PGM_LOADBIT(ascii_to_dead_lut, (uint8_t)ascii_code);
+  75              		.loc 1 241 26 view .LVU17
+  76 0022 05F00105 		and	r5, r5, #1
+  77              	.LVL4:
+ 242:quantum/send_string.c **** 
+  78              		.loc 1 242 5 is_stmt 1 view .LVU18
+ 242:quantum/send_string.c **** 
+  79              		.loc 1 242 26 is_stmt 0 view .LVU19
+  80 0026 06F00106 		and	r6, r6, #1
+  81              	.LVL5:
+  82              		.loc 1 244 5 is_stmt 1 view .LVU20
+  83              		.loc 1 244 8 is_stmt 0 view .LVU21
+  84 002a 02D0     		beq	.L2
+ 245:quantum/send_string.c ****         register_code(KC_LSFT);
+  85              		.loc 1 245 9 is_stmt 1 view .LVU22
+  86 002c E120     		movs	r0, #225
+  87 002e FFF7FEFF 		bl	register_code
+  88              	.LVL6:
+  89              	.L2:
+ 246:quantum/send_string.c ****     }
+ 247:quantum/send_string.c ****     if (is_altgred) {
+  90              		.loc 1 247 5 view .LVU23
+  91              		.loc 1 247 8 is_stmt 0 view .LVU24
+  92 0032 15B1     		cbz	r5, .L3
+ 248:quantum/send_string.c ****         register_code(KC_RALT);
+  93              		.loc 1 248 9 is_stmt 1 view .LVU25
+  94 0034 E620     		movs	r0, #230
+  95 0036 FFF7FEFF 		bl	register_code
+  96              	.LVL7:
+  97              	.L3:
+ 249:quantum/send_string.c ****     }
+ 250:quantum/send_string.c ****     tap_code(keycode);
+  98              		.loc 1 250 5 view .LVU26
+  99 003a 3846     		mov	r0, r7
+ 100 003c FFF7FEFF 		bl	tap_code
+ 101              	.LVL8:
+ 251:quantum/send_string.c ****     if (is_altgred) {
+ 102              		.loc 1 251 5 view .LVU27
+ 103              		.loc 1 251 8 is_stmt 0 view .LVU28
+ 104 0040 15B1     		cbz	r5, .L4
+ 252:quantum/send_string.c ****         unregister_code(KC_RALT);
+ 105              		.loc 1 252 9 is_stmt 1 view .LVU29
+ 106 0042 E620     		movs	r0, #230
+ 107 0044 FFF7FEFF 		bl	unregister_code
+ 108              	.LVL9:
+ 109              	.L4:
+ 253:quantum/send_string.c ****     }
+ 254:quantum/send_string.c ****     if (is_shifted) {
+ 110              		.loc 1 254 5 view .LVU30
+ 111              		.loc 1 254 8 is_stmt 0 view .LVU31
+ 112 0048 14B1     		cbz	r4, .L5
+ 255:quantum/send_string.c ****         unregister_code(KC_LSFT);
+ 113              		.loc 1 255 9 is_stmt 1 view .LVU32
+ 114 004a E120     		movs	r0, #225
+ 115 004c FFF7FEFF 		bl	unregister_code
+ 116              	.LVL10:
+ 117              	.L5:
+ 256:quantum/send_string.c ****     }
+ 257:quantum/send_string.c ****     if (is_dead) {
+ 118              		.loc 1 257 5 view .LVU33
+ 119              		.loc 1 257 8 is_stmt 0 view .LVU34
+ 120 0050 26B1     		cbz	r6, .L1
+ 258:quantum/send_string.c ****         tap_code(KC_SPACE);
+ 121              		.loc 1 258 9 is_stmt 1 view .LVU35
+ 259:quantum/send_string.c ****     }
+ 260:quantum/send_string.c **** }
+ 122              		.loc 1 260 1 is_stmt 0 view .LVU36
+ 123 0052 BDE8F840 		pop	{r3, r4, r5, r6, r7, lr}
+ 124              		.cfi_remember_state
+ 125              		.cfi_restore 14
+ 126              		.cfi_restore 7
+ 127              		.cfi_restore 6
+ 128              		.cfi_restore 5
+ 129              		.cfi_restore 4
+ 130              		.cfi_restore 3
+ 131              		.cfi_def_cfa_offset 0
+ 132              	.LVL11:
+ 258:quantum/send_string.c ****         tap_code(KC_SPACE);
+ 133              		.loc 1 258 9 view .LVU37
+ 134 0056 2C20     		movs	r0, #44
+ 135 0058 FFF7FEBF 		b	tap_code
+ 136              	.LVL12:
+ 137              	.L1:
+ 138              		.cfi_restore_state
+ 139              		.loc 1 260 1 view .LVU38
+ 140 005c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 141              	.LVL13:
+ 142              	.L20:
+ 143              		.loc 1 260 1 view .LVU39
+ 144 005e 00BF     		.align	2
+ 145              	.L19:
+ 146 0060 00000000 		.word	ascii_to_keycode_lut
+ 147 0064 00000000 		.word	ascii_to_altgr_lut
+ 148 0068 00000000 		.word	ascii_to_shift_lut
+ 149 006c 00000000 		.word	ascii_to_dead_lut
+ 150              		.cfi_endproc
+ 151              	.LFE300:
+ 153              		.section	.text.send_string_with_delay,"ax",%progbits
+ 154              		.align	1
+ 155              		.global	send_string_with_delay
+ 156              		.syntax unified
+ 157              		.thumb
+ 158              		.thumb_func
+ 159              		.fpu fpv4-sp-d16
+ 161              	send_string_with_delay:
+ 162              	.LVL14:
+ 163              	.LFB298:
+ 149:quantum/send_string.c ****     while (1) {
+ 164              		.loc 1 149 64 is_stmt 1 view -0
+ 165              		.cfi_startproc
+ 166              		@ args = 0, pretend = 0, frame = 0
+ 167              		@ frame_needed = 0, uses_anonymous_args = 0
+ 149:quantum/send_string.c ****     while (1) {
+ 168              		.loc 1 149 64 is_stmt 0 view .LVU41
+ 169 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 170              		.cfi_def_cfa_offset 24
+ 171              		.cfi_offset 4, -24
+ 172              		.cfi_offset 5, -20
+ 173              		.cfi_offset 6, -16
+ 174              		.cfi_offset 7, -12
+ 175              		.cfi_offset 8, -8
+ 176              		.cfi_offset 14, -4
+ 177              	.LBB2:
+ 178              	.LBB3:
+ 171:quantum/send_string.c ****                     ms *= 10;
+ 179              		.loc 1 171 24 view .LVU42
+ 180 0004 234F     		ldr	r7, .L37
+ 181              	.LBE3:
+ 182              	.LBE2:
+ 149:quantum/send_string.c ****     while (1) {
+ 183              		.loc 1 149 64 view .LVU43
+ 184 0006 0446     		mov	r4, r0
+ 185 0008 0E46     		mov	r6, r1
+ 186              	.LBB11:
+ 187              	.LBB4:
+ 172:quantum/send_string.c ****                     ms += keycode - '0';
+ 188              		.loc 1 172 24 view .LVU44
+ 189 000a 4FF00A08 		mov	r8, #10
+ 190              	.LVL15:
+ 191              	.L35:
+ 172:quantum/send_string.c ****                     ms += keycode - '0';
+ 192              		.loc 1 172 24 view .LVU45
+ 193              	.LBE4:
+ 194              	.LBE11:
+ 150:quantum/send_string.c ****         char ascii_code = *str;
+ 195              		.loc 1 150 5 is_stmt 1 view .LVU46
+ 196              	.LBB12:
+ 151:quantum/send_string.c ****         if (!ascii_code) break;
+ 197              		.loc 1 151 9 view .LVU47
+ 151:quantum/send_string.c ****         if (!ascii_code) break;
+ 198              		.loc 1 151 14 is_stmt 0 view .LVU48
+ 199 000e 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 200              	.LVL16:
+ 152:quantum/send_string.c ****         if (ascii_code == SS_QMK_PREFIX) {
+ 201              		.loc 1 152 9 is_stmt 1 view .LVU49
+ 152:quantum/send_string.c ****         if (ascii_code == SS_QMK_PREFIX) {
+ 202              		.loc 1 152 12 is_stmt 0 view .LVU50
+ 203 0010 0028     		cmp	r0, #0
+ 204 0012 3DD0     		beq	.L21
+ 153:quantum/send_string.c ****             ascii_code = *(++str);
+ 205              		.loc 1 153 9 is_stmt 1 view .LVU51
+ 153:quantum/send_string.c ****             ascii_code = *(++str);
+ 206              		.loc 1 153 12 is_stmt 0 view .LVU52
+ 207 0014 0128     		cmp	r0, #1
+ 208 0016 38D1     		bne	.L23
+ 154:quantum/send_string.c ****             if (ascii_code == SS_TAP_CODE) {
+ 209              		.loc 1 154 13 is_stmt 1 view .LVU53
+ 210              	.LVL17:
+ 154:quantum/send_string.c ****             if (ascii_code == SS_TAP_CODE) {
+ 211              		.loc 1 154 24 is_stmt 0 view .LVU54
+ 212 0018 6378     		ldrb	r3, [r4, #1]	@ zero_extendqisi2
+ 213              	.LVL18:
+ 155:quantum/send_string.c ****                 // tap
+ 214              		.loc 1 155 13 is_stmt 1 view .LVU55
+ 155:quantum/send_string.c ****                 // tap
+ 215              		.loc 1 155 16 is_stmt 0 view .LVU56
+ 216 001a 012B     		cmp	r3, #1
+ 217 001c 0ED1     		bne	.L24
+ 218              	.LBB5:
+ 157:quantum/send_string.c ****                 tap_code(keycode);
+ 219              		.loc 1 157 17 is_stmt 1 view .LVU57
+ 158:quantum/send_string.c ****             } else if (ascii_code == SS_DOWN_CODE) {
+ 220              		.loc 1 158 17 is_stmt 0 view .LVU58
+ 221 001e A078     		ldrb	r0, [r4, #2]	@ zero_extendqisi2
+ 157:quantum/send_string.c ****                 tap_code(keycode);
+ 222              		.loc 1 157 25 view .LVU59
+ 223 0020 A51C     		adds	r5, r4, #2
+ 224              	.LVL19:
+ 158:quantum/send_string.c ****             } else if (ascii_code == SS_DOWN_CODE) {
+ 225              		.loc 1 158 17 is_stmt 1 view .LVU60
+ 226 0022 FFF7FEFF 		bl	tap_code
+ 227              	.LVL20:
+ 228              	.L36:
+ 158:quantum/send_string.c ****             } else if (ascii_code == SS_DOWN_CODE) {
+ 229              		.loc 1 158 17 is_stmt 0 view .LVU61
+ 230              	.LBE5:
+ 231              	.LBB6:
+ 161:quantum/send_string.c ****                 register_code(keycode);
+ 232              		.loc 1 161 25 view .LVU62
+ 233 0026 2C46     		mov	r4, r5
+ 234              	.LVL21:
+ 235              	.L25:
+ 161:quantum/send_string.c ****                 register_code(keycode);
+ 236              		.loc 1 161 25 view .LVU63
+ 237              	.LBE6:
+ 181:quantum/send_string.c ****         // interval
+ 238              		.loc 1 181 9 is_stmt 1 view .LVU64
+ 181:quantum/send_string.c ****         // interval
+ 239              		.loc 1 181 9 is_stmt 0 view .LVU65
+ 240 0028 0134     		adds	r4, r4, #1
+ 241              	.LVL22:
+ 242              	.LBB7:
+ 184:quantum/send_string.c ****             while (ms--) wait_ms(1);
+ 243              		.loc 1 184 13 is_stmt 1 view .LVU66
+ 185:quantum/send_string.c ****         }
+ 244              		.loc 1 185 13 view .LVU67
+ 185:quantum/send_string.c ****         }
+ 245              		.loc 1 185 19 is_stmt 0 view .LVU68
+ 246 002a 3546     		mov	r5, r6
+ 247              	.LVL23:
+ 248              	.L33:
+ 185:quantum/send_string.c ****         }
+ 249              		.loc 1 185 26 is_stmt 1 discriminator 4 view .LVU69
+ 185:quantum/send_string.c ****         }
+ 250              		.loc 1 185 20 discriminator 4 view .LVU70
+ 185:quantum/send_string.c ****         }
+ 251              		.loc 1 185 20 is_stmt 0 discriminator 4 view .LVU71
+ 252 002c 002D     		cmp	r5, #0
+ 253 002e EED0     		beq	.L35
+ 185:quantum/send_string.c ****         }
+ 254              		.loc 1 185 26 is_stmt 1 discriminator 1 view .LVU72
+ 185:quantum/send_string.c ****         }
+ 255              		.loc 1 185 26 discriminator 1 view .LVU73
+ 185:quantum/send_string.c ****         }
+ 256              		.loc 1 185 26 discriminator 1 view .LVU74
+ 257 0030 0A20     		movs	r0, #10
+ 258 0032 013D     		subs	r5, r5, #1
+ 259              	.LVL24:
+ 185:quantum/send_string.c ****         }
+ 260              		.loc 1 185 26 is_stmt 0 discriminator 1 view .LVU75
+ 261 0034 FFF7FEFF 		bl	chThdSleep
+ 262              	.LVL25:
+ 263 0038 EDB2     		uxtb	r5, r5
+ 264 003a F7E7     		b	.L33
+ 265              	.LVL26:
+ 266              	.L24:
+ 185:quantum/send_string.c ****         }
+ 267              		.loc 1 185 26 discriminator 1 view .LVU76
+ 268              	.LBE7:
+ 159:quantum/send_string.c ****                 // down
+ 269              		.loc 1 159 20 is_stmt 1 view .LVU77
+ 159:quantum/send_string.c ****                 // down
+ 270              		.loc 1 159 23 is_stmt 0 view .LVU78
+ 271 003c 022B     		cmp	r3, #2
+ 272 003e 04D1     		bne	.L26
+ 273              	.LBB8:
+ 161:quantum/send_string.c ****                 register_code(keycode);
+ 274              		.loc 1 161 17 is_stmt 1 view .LVU79
+ 162:quantum/send_string.c ****             } else if (ascii_code == SS_UP_CODE) {
+ 275              		.loc 1 162 17 is_stmt 0 view .LVU80
+ 276 0040 A078     		ldrb	r0, [r4, #2]	@ zero_extendqisi2
+ 161:quantum/send_string.c ****                 register_code(keycode);
+ 277              		.loc 1 161 25 view .LVU81
+ 278 0042 A51C     		adds	r5, r4, #2
+ 279              	.LVL27:
+ 162:quantum/send_string.c ****             } else if (ascii_code == SS_UP_CODE) {
+ 280              		.loc 1 162 17 is_stmt 1 view .LVU82
+ 281 0044 FFF7FEFF 		bl	register_code
+ 282              	.LVL28:
+ 162:quantum/send_string.c ****             } else if (ascii_code == SS_UP_CODE) {
+ 283              		.loc 1 162 17 is_stmt 0 view .LVU83
+ 284 0048 EDE7     		b	.L36
+ 285              	.LVL29:
+ 286              	.L26:
+ 162:quantum/send_string.c ****             } else if (ascii_code == SS_UP_CODE) {
+ 287              		.loc 1 162 17 view .LVU84
+ 288              	.LBE8:
+ 163:quantum/send_string.c ****                 // up
+ 289              		.loc 1 163 20 is_stmt 1 view .LVU85
+ 163:quantum/send_string.c ****                 // up
+ 290              		.loc 1 163 23 is_stmt 0 view .LVU86
+ 291 004a 032B     		cmp	r3, #3
+ 292 004c 04D1     		bne	.L27
+ 293              	.LBB9:
+ 165:quantum/send_string.c ****                 unregister_code(keycode);
+ 294              		.loc 1 165 17 is_stmt 1 view .LVU87
+ 166:quantum/send_string.c ****             } else if (ascii_code == SS_DELAY_CODE) {
+ 295              		.loc 1 166 17 is_stmt 0 view .LVU88
+ 296 004e A078     		ldrb	r0, [r4, #2]	@ zero_extendqisi2
+ 165:quantum/send_string.c ****                 unregister_code(keycode);
+ 297              		.loc 1 165 25 view .LVU89
+ 298 0050 A51C     		adds	r5, r4, #2
+ 299              	.LVL30:
+ 166:quantum/send_string.c ****             } else if (ascii_code == SS_DELAY_CODE) {
+ 300              		.loc 1 166 17 is_stmt 1 view .LVU90
+ 301 0052 FFF7FEFF 		bl	unregister_code
+ 302              	.LVL31:
+ 166:quantum/send_string.c ****             } else if (ascii_code == SS_DELAY_CODE) {
+ 303              		.loc 1 166 17 is_stmt 0 view .LVU91
+ 304 0056 E6E7     		b	.L36
+ 305              	.LVL32:
+ 306              	.L27:
+ 166:quantum/send_string.c ****             } else if (ascii_code == SS_DELAY_CODE) {
+ 307              		.loc 1 166 17 view .LVU92
+ 308              	.LBE9:
+ 167:quantum/send_string.c ****                 // delay
+ 309              		.loc 1 167 20 is_stmt 1 view .LVU93
+ 167:quantum/send_string.c ****                 // delay
+ 310              		.loc 1 167 23 is_stmt 0 view .LVU94
+ 311 0058 042B     		cmp	r3, #4
+ 312 005a 01D0     		beq	.L28
+ 313              	.LVL33:
+ 154:quantum/send_string.c ****             if (ascii_code == SS_TAP_CODE) {
+ 314              		.loc 1 154 24 view .LVU95
+ 315 005c 0134     		adds	r4, r4, #1
+ 316              	.LVL34:
+ 154:quantum/send_string.c ****             if (ascii_code == SS_TAP_CODE) {
+ 317              		.loc 1 154 24 view .LVU96
+ 318 005e E3E7     		b	.L25
+ 319              	.L28:
+ 320              	.LBB10:
+ 169:quantum/send_string.c ****                 uint8_t keycode = *(++str);
+ 321              		.loc 1 169 17 is_stmt 1 view .LVU97
+ 322              	.LVL35:
+ 170:quantum/send_string.c ****                 while (isdigit(keycode)) {
+ 323              		.loc 1 170 17 view .LVU98
+ 170:quantum/send_string.c ****                 while (isdigit(keycode)) {
+ 324              		.loc 1 170 25 is_stmt 0 view .LVU99
+ 325 0060 2246     		mov	r2, r4
+ 169:quantum/send_string.c ****                 uint8_t keycode = *(++str);
+ 326              		.loc 1 169 25 view .LVU100
+ 327 0062 0025     		movs	r5, #0
+ 170:quantum/send_string.c ****                 while (isdigit(keycode)) {
+ 328              		.loc 1 170 25 view .LVU101
+ 329 0064 12F8023F 		ldrb	r3, [r2, #2]!	@ zero_extendqisi2
+ 330              	.LVL36:
+ 171:quantum/send_string.c ****                     ms *= 10;
+ 331              		.loc 1 171 17 is_stmt 1 view .LVU102
+ 332              	.L29:
+ 171:quantum/send_string.c ****                     ms *= 10;
+ 333              		.loc 1 171 24 is_stmt 0 view .LVU103
+ 334 0068 F95C     		ldrb	r1, [r7, r3]	@ zero_extendqisi2
+ 335 006a 4907     		lsls	r1, r1, #29
+ 336 006c 1446     		mov	r4, r2
+ 337              	.LVL37:
+ 171:quantum/send_string.c ****                     ms *= 10;
+ 338              		.loc 1 171 24 is_stmt 1 view .LVU104
+ 339 006e 06D4     		bmi	.L30
+ 340              	.LVL38:
+ 341              	.L31:
+ 176:quantum/send_string.c ****             }
+ 342              		.loc 1 176 30 discriminator 4 view .LVU105
+ 176:quantum/send_string.c ****             }
+ 343              		.loc 1 176 24 discriminator 4 view .LVU106
+ 176:quantum/send_string.c ****             }
+ 344              		.loc 1 176 24 is_stmt 0 discriminator 4 view .LVU107
+ 345 0070 002D     		cmp	r5, #0
+ 346 0072 D9D0     		beq	.L25
+ 176:quantum/send_string.c ****             }
+ 347              		.loc 1 176 30 is_stmt 1 discriminator 1 view .LVU108
+ 176:quantum/send_string.c ****             }
+ 348              		.loc 1 176 30 discriminator 1 view .LVU109
+ 176:quantum/send_string.c ****             }
+ 349              		.loc 1 176 30 discriminator 1 view .LVU110
+ 350 0074 0A20     		movs	r0, #10
+ 351 0076 FFF7FEFF 		bl	chThdSleep
+ 352              	.LVL39:
+ 353 007a 013D     		subs	r5, r5, #1
+ 354              	.LVL40:
+ 176:quantum/send_string.c ****             }
+ 355              		.loc 1 176 30 is_stmt 0 discriminator 1 view .LVU111
+ 356 007c F8E7     		b	.L31
+ 357              	.LVL41:
+ 358              	.L30:
+ 172:quantum/send_string.c ****                     ms += keycode - '0';
+ 359              		.loc 1 172 21 is_stmt 1 view .LVU112
+ 173:quantum/send_string.c ****                     keycode = *(++str);
+ 360              		.loc 1 173 21 view .LVU113
+ 173:quantum/send_string.c ****                     keycode = *(++str);
+ 361              		.loc 1 173 35 is_stmt 0 view .LVU114
+ 362 007e 303B     		subs	r3, r3, #48
+ 363              	.LVL42:
+ 173:quantum/send_string.c ****                     keycode = *(++str);
+ 364              		.loc 1 173 24 view .LVU115
+ 365 0080 08FB0535 		mla	r5, r8, r5, r3
+ 366              	.LVL43:
+ 174:quantum/send_string.c ****                 }
+ 367              		.loc 1 174 21 is_stmt 1 view .LVU116
+ 174:quantum/send_string.c ****                 }
+ 368              		.loc 1 174 29 is_stmt 0 view .LVU117
+ 369 0084 12F8013F 		ldrb	r3, [r2, #1]!	@ zero_extendqisi2
+ 370              	.LVL44:
+ 174:quantum/send_string.c ****                 }
+ 371              		.loc 1 174 29 view .LVU118
+ 372 0088 EEE7     		b	.L29
+ 373              	.LVL45:
+ 374              	.L23:
+ 174:quantum/send_string.c ****                 }
+ 375              		.loc 1 174 29 view .LVU119
+ 376              	.LBE10:
+ 179:quantum/send_string.c ****         }
+ 377              		.loc 1 179 13 is_stmt 1 view .LVU120
+ 378 008a FFF7FEFF 		bl	send_char
+ 379              	.LVL46:
+ 179:quantum/send_string.c ****         }
+ 380              		.loc 1 179 13 is_stmt 0 view .LVU121
+ 381 008e CBE7     		b	.L25
+ 382              	.LVL47:
+ 383              	.L21:
+ 179:quantum/send_string.c ****         }
+ 384              		.loc 1 179 13 view .LVU122
+ 385              	.LBE12:
+ 188:quantum/send_string.c **** 
+ 386              		.loc 1 188 1 view .LVU123
+ 387 0090 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 388              	.LVL48:
+ 389              	.L38:
+ 188:quantum/send_string.c **** 
+ 390              		.loc 1 188 1 view .LVU124
+ 391              		.align	2
+ 392              	.L37:
+ 393 0094 01000000 		.word	_ctype_+1
+ 394              		.cfi_endproc
+ 395              	.LFE298:
+ 397              		.section	.text.send_string,"ax",%progbits
+ 398              		.align	1
+ 399              		.global	send_string
+ 400              		.syntax unified
+ 401              		.thumb
+ 402              		.thumb_func
+ 403              		.fpu fpv4-sp-d16
+ 405              	send_string:
+ 406              	.LVL49:
+ 407              	.LFB296:
+ 145:quantum/send_string.c **** 
+ 408              		.loc 1 145 35 is_stmt 1 view -0
+ 409              		.cfi_startproc
+ 410              		@ args = 0, pretend = 0, frame = 0
+ 411              		@ frame_needed = 0, uses_anonymous_args = 0
+ 412              		@ link register save eliminated.
+ 145:quantum/send_string.c **** 
+ 413              		.loc 1 145 37 view .LVU126
+ 414 0000 0021     		movs	r1, #0
+ 415 0002 FFF7FEBF 		b	send_string_with_delay
+ 416              	.LVL50:
+ 145:quantum/send_string.c **** 
+ 417              		.loc 1 145 37 is_stmt 0 view .LVU127
+ 418              		.cfi_endproc
+ 419              	.LFE296:
+ 421              		.section	.text.send_string_P,"ax",%progbits
+ 422              		.align	1
+ 423              		.global	send_string_P
+ 424              		.syntax unified
+ 425              		.thumb
+ 426              		.thumb_func
+ 427              		.fpu fpv4-sp-d16
+ 429              	send_string_P:
+ 430              	.LFB307:
+ 431              		.cfi_startproc
+ 432              		@ args = 0, pretend = 0, frame = 0
+ 433              		@ frame_needed = 0, uses_anonymous_args = 0
+ 434              		@ link register save eliminated.
+ 435 0000 FFF7FEBF 		b	send_string
+ 436              		.cfi_endproc
+ 437              	.LFE307:
+ 439              		.section	.text.send_string_with_delay_P,"ax",%progbits
+ 440              		.align	1
+ 441              		.global	send_string_with_delay_P
+ 442              		.syntax unified
+ 443              		.thumb
+ 444              		.thumb_func
+ 445              		.fpu fpv4-sp-d16
+ 447              	send_string_with_delay_P:
+ 448              	.LFB309:
+ 449              		.cfi_startproc
+ 450              		@ args = 0, pretend = 0, frame = 0
+ 451              		@ frame_needed = 0, uses_anonymous_args = 0
+ 452              		@ link register save eliminated.
+ 453 0000 FFF7FEBF 		b	send_string_with_delay
+ 454              		.cfi_endproc
+ 455              	.LFE309:
+ 457              		.section	.text.send_nibble,"ax",%progbits
+ 458              		.align	1
+ 459              		.global	send_nibble
+ 460              		.syntax unified
+ 461              		.thumb
+ 462              		.thumb_func
+ 463              		.fpu fpv4-sp-d16
+ 465              	send_nibble:
+ 466              	.LVL51:
+ 467              	.LFB304:
+ 261:quantum/send_string.c **** 
+ 262:quantum/send_string.c **** void send_dword(uint32_t number) {
+ 263:quantum/send_string.c ****     send_word(number >> 16);
+ 264:quantum/send_string.c ****     send_word(number & 0xFFFFUL);
+ 265:quantum/send_string.c **** }
+ 266:quantum/send_string.c **** 
+ 267:quantum/send_string.c **** void send_word(uint16_t number) {
+ 268:quantum/send_string.c ****     send_byte(number >> 8);
+ 269:quantum/send_string.c ****     send_byte(number & 0xFF);
+ 270:quantum/send_string.c **** }
+ 271:quantum/send_string.c **** 
+ 272:quantum/send_string.c **** void send_byte(uint8_t number) {
+ 273:quantum/send_string.c ****     send_nibble(number >> 4);
+ 274:quantum/send_string.c ****     send_nibble(number & 0xF);
+ 275:quantum/send_string.c **** }
+ 276:quantum/send_string.c **** 
+ 277:quantum/send_string.c **** void send_nibble(uint8_t number) {
+ 468              		.loc 1 277 34 is_stmt 1 view -0
+ 469              		.cfi_startproc
+ 470              		@ args = 0, pretend = 0, frame = 0
+ 471              		@ frame_needed = 0, uses_anonymous_args = 0
+ 472              		@ link register save eliminated.
+ 278:quantum/send_string.c ****     switch (number & 0xF) {
+ 473              		.loc 1 278 5 view .LVU129
+ 474 0000 00F00F03 		and	r3, r0, #15
+ 475 0004 0A3B     		subs	r3, r3, #10
+ 476 0006 052B     		cmp	r3, #5
+ 279:quantum/send_string.c ****         case 0 ... 9:
+ 280:quantum/send_string.c ****             send_char(number + '0');
+ 477              		.loc 1 280 13 view .LVU130
+ 478 0008 8CBF     		ite	hi
+ 479 000a 3030     		addhi	r0, r0, #48
+ 480              	.LVL52:
+ 281:quantum/send_string.c ****             break;
+ 282:quantum/send_string.c ****         case 10 ... 15:
+ 283:quantum/send_string.c ****             send_char(number - 10 + 'a');
+ 481              		.loc 1 283 13 view .LVU131
+ 482 000c 5730     		addls	r0, r0, #87
+ 483 000e C0B2     		uxtb	r0, r0
+ 484 0010 FFF7FEBF 		b	send_char
+ 485              	.LVL53:
+ 486              		.cfi_endproc
+ 487              	.LFE304:
+ 489              		.section	.text.send_byte,"ax",%progbits
+ 490              		.align	1
+ 491              		.global	send_byte
+ 492              		.syntax unified
+ 493              		.thumb
+ 494              		.thumb_func
+ 495              		.fpu fpv4-sp-d16
+ 497              	send_byte:
+ 498              	.LVL54:
+ 499              	.LFB303:
+ 272:quantum/send_string.c ****     send_nibble(number >> 4);
+ 500              		.loc 1 272 32 view -0
+ 501              		.cfi_startproc
+ 502              		@ args = 0, pretend = 0, frame = 0
+ 503              		@ frame_needed = 0, uses_anonymous_args = 0
+ 273:quantum/send_string.c ****     send_nibble(number & 0xF);
+ 504              		.loc 1 273 5 view .LVU133
+ 272:quantum/send_string.c ****     send_nibble(number >> 4);
+ 505              		.loc 1 272 32 is_stmt 0 view .LVU134
+ 506 0000 10B5     		push	{r4, lr}
+ 507              		.cfi_def_cfa_offset 8
+ 508              		.cfi_offset 4, -8
+ 509              		.cfi_offset 14, -4
+ 272:quantum/send_string.c ****     send_nibble(number >> 4);
+ 510              		.loc 1 272 32 view .LVU135
+ 511 0002 0446     		mov	r4, r0
+ 273:quantum/send_string.c ****     send_nibble(number & 0xF);
+ 512              		.loc 1 273 5 view .LVU136
+ 513 0004 0009     		lsrs	r0, r0, #4
+ 514              	.LVL55:
+ 273:quantum/send_string.c ****     send_nibble(number & 0xF);
+ 515              		.loc 1 273 5 view .LVU137
+ 516 0006 FFF7FEFF 		bl	send_nibble
+ 517              	.LVL56:
+ 274:quantum/send_string.c **** }
+ 518              		.loc 1 274 5 is_stmt 1 view .LVU138
+ 519 000a 04F00F00 		and	r0, r4, #15
+ 275:quantum/send_string.c **** 
+ 520              		.loc 1 275 1 is_stmt 0 view .LVU139
+ 521 000e BDE81040 		pop	{r4, lr}
+ 522              		.cfi_restore 14
+ 523              		.cfi_restore 4
+ 524              		.cfi_def_cfa_offset 0
+ 274:quantum/send_string.c **** }
+ 525              		.loc 1 274 5 view .LVU140
+ 526 0012 FFF7FEBF 		b	send_nibble
+ 527              	.LVL57:
+ 528              		.cfi_endproc
+ 529              	.LFE303:
+ 531              		.section	.text.send_word,"ax",%progbits
+ 532              		.align	1
+ 533              		.global	send_word
+ 534              		.syntax unified
+ 535              		.thumb
+ 536              		.thumb_func
+ 537              		.fpu fpv4-sp-d16
+ 539              	send_word:
+ 540              	.LVL58:
+ 541              	.LFB302:
+ 267:quantum/send_string.c ****     send_byte(number >> 8);
+ 542              		.loc 1 267 33 is_stmt 1 view -0
+ 543              		.cfi_startproc
+ 544              		@ args = 0, pretend = 0, frame = 0
+ 545              		@ frame_needed = 0, uses_anonymous_args = 0
+ 268:quantum/send_string.c ****     send_byte(number & 0xFF);
+ 546              		.loc 1 268 5 view .LVU142
+ 267:quantum/send_string.c ****     send_byte(number >> 8);
+ 547              		.loc 1 267 33 is_stmt 0 view .LVU143
+ 548 0000 10B5     		push	{r4, lr}
+ 549              		.cfi_def_cfa_offset 8
+ 550              		.cfi_offset 4, -8
+ 551              		.cfi_offset 14, -4
+ 267:quantum/send_string.c ****     send_byte(number >> 8);
+ 552              		.loc 1 267 33 view .LVU144
+ 553 0002 0446     		mov	r4, r0
+ 268:quantum/send_string.c ****     send_byte(number & 0xFF);
+ 554              		.loc 1 268 5 view .LVU145
+ 555 0004 000A     		lsrs	r0, r0, #8
+ 556              	.LVL59:
+ 268:quantum/send_string.c ****     send_byte(number & 0xFF);
+ 557              		.loc 1 268 5 view .LVU146
+ 558 0006 FFF7FEFF 		bl	send_byte
+ 559              	.LVL60:
+ 269:quantum/send_string.c **** }
+ 560              		.loc 1 269 5 is_stmt 1 view .LVU147
+ 561 000a E0B2     		uxtb	r0, r4
+ 270:quantum/send_string.c **** 
+ 562              		.loc 1 270 1 is_stmt 0 view .LVU148
+ 563 000c BDE81040 		pop	{r4, lr}
+ 564              		.cfi_restore 14
+ 565              		.cfi_restore 4
+ 566              		.cfi_def_cfa_offset 0
+ 269:quantum/send_string.c **** }
+ 567              		.loc 1 269 5 view .LVU149
+ 568 0010 FFF7FEBF 		b	send_byte
+ 569              	.LVL61:
+ 570              		.cfi_endproc
+ 571              	.LFE302:
+ 573              		.section	.text.send_dword,"ax",%progbits
+ 574              		.align	1
+ 575              		.global	send_dword
+ 576              		.syntax unified
+ 577              		.thumb
+ 578              		.thumb_func
+ 579              		.fpu fpv4-sp-d16
+ 581              	send_dword:
+ 582              	.LVL62:
+ 583              	.LFB301:
+ 262:quantum/send_string.c ****     send_word(number >> 16);
+ 584              		.loc 1 262 34 is_stmt 1 view -0
+ 585              		.cfi_startproc
+ 586              		@ args = 0, pretend = 0, frame = 0
+ 587              		@ frame_needed = 0, uses_anonymous_args = 0
+ 263:quantum/send_string.c ****     send_word(number & 0xFFFFUL);
+ 588              		.loc 1 263 5 view .LVU151
+ 262:quantum/send_string.c ****     send_word(number >> 16);
+ 589              		.loc 1 262 34 is_stmt 0 view .LVU152
+ 590 0000 10B5     		push	{r4, lr}
+ 591              		.cfi_def_cfa_offset 8
+ 592              		.cfi_offset 4, -8
+ 593              		.cfi_offset 14, -4
+ 262:quantum/send_string.c ****     send_word(number >> 16);
+ 594              		.loc 1 262 34 view .LVU153
+ 595 0002 0446     		mov	r4, r0
+ 263:quantum/send_string.c ****     send_word(number & 0xFFFFUL);
+ 596              		.loc 1 263 5 view .LVU154
+ 597 0004 000C     		lsrs	r0, r0, #16
+ 598              	.LVL63:
+ 263:quantum/send_string.c ****     send_word(number & 0xFFFFUL);
+ 599              		.loc 1 263 5 view .LVU155
+ 600 0006 FFF7FEFF 		bl	send_word
+ 601              	.LVL64:
+ 264:quantum/send_string.c **** }
+ 602              		.loc 1 264 5 is_stmt 1 view .LVU156
+ 603 000a A0B2     		uxth	r0, r4
+ 265:quantum/send_string.c **** 
+ 604              		.loc 1 265 1 is_stmt 0 view .LVU157
+ 605 000c BDE81040 		pop	{r4, lr}
+ 606              		.cfi_restore 14
+ 607              		.cfi_restore 4
+ 608              		.cfi_def_cfa_offset 0
+ 609              	.LVL65:
+ 264:quantum/send_string.c **** }
+ 610              		.loc 1 264 5 view .LVU158
+ 611 0010 FFF7FEBF 		b	send_word
+ 612              	.LVL66:
+ 613              		.cfi_endproc
+ 614              	.LFE301:
+ 616              		.section	.text.tap_random_base64,"ax",%progbits
+ 617              		.align	1
+ 618              		.global	tap_random_base64
+ 619              		.syntax unified
+ 620              		.thumb
+ 621              		.thumb_func
+ 622              		.fpu fpv4-sp-d16
+ 624              	tap_random_base64:
+ 625              	.LFB305:
+ 284:quantum/send_string.c ****             break;
+ 285:quantum/send_string.c ****     }
+ 286:quantum/send_string.c **** }
+ 287:quantum/send_string.c **** 
+ 288:quantum/send_string.c **** void tap_random_base64(void) {
+ 626              		.loc 1 288 30 is_stmt 1 view -0
+ 627              		.cfi_startproc
+ 628              		@ args = 0, pretend = 0, frame = 0
+ 629              		@ frame_needed = 0, uses_anonymous_args = 0
+ 289:quantum/send_string.c **** #if defined(__AVR_ATmega32U4__)
+ 290:quantum/send_string.c ****     uint8_t key = (TCNT0 + TCNT1 + TCNT3 + TCNT4) % 64;
+ 291:quantum/send_string.c **** #else
+ 292:quantum/send_string.c ****     uint8_t key = rand() % 64;
+ 630              		.loc 1 292 5 view .LVU160
+ 288:quantum/send_string.c **** #if defined(__AVR_ATmega32U4__)
+ 631              		.loc 1 288 30 is_stmt 0 view .LVU161
+ 632 0000 08B5     		push	{r3, lr}
+ 633              		.cfi_def_cfa_offset 8
+ 634              		.cfi_offset 3, -8
+ 635              		.cfi_offset 14, -4
+ 636              		.loc 1 292 19 view .LVU162
+ 637 0002 FFF7FEFF 		bl	rand
+ 638              	.LVL67:
+ 639              		.loc 1 292 26 view .LVU163
+ 640 0006 4342     		rsbs	r3, r0, #0
+ 641 0008 03F03F03 		and	r3, r3, #63
+ 642 000c 00F03F00 		and	r0, r0, #63
+ 643 0010 58BF     		it	pl
+ 644 0012 5842     		rsbpl	r0, r3, #0
+ 293:quantum/send_string.c **** #endif
+ 294:quantum/send_string.c ****     switch (key) {
+ 645              		.loc 1 294 5 view .LVU164
+ 646 0014 10F0C00F 		tst	r0, #192
+ 292:quantum/send_string.c **** #endif
+ 647              		.loc 1 292 13 view .LVU165
+ 648 0018 C3B2     		uxtb	r3, r0
+ 649              	.LVL68:
+ 650              		.loc 1 294 5 is_stmt 1 view .LVU166
+ 651 001a 21D1     		bne	.L48
+ 652 001c 332B     		cmp	r3, #51
+ 653 001e 04DC     		bgt	.L50
+ 654 0020 192B     		cmp	r3, #25
+ 655 0022 0EDC     		bgt	.L51
+ 295:quantum/send_string.c ****         case 0 ... 25:
+ 296:quantum/send_string.c ****             send_char(key + 'A');
+ 656              		.loc 1 296 13 view .LVU167
+ 657 0024 03F14100 		add	r0, r3, #65
+ 658 0028 0DE0     		b	.L60
+ 659              	.L50:
+ 294:quantum/send_string.c ****         case 0 ... 25:
+ 660              		.loc 1 294 5 is_stmt 0 view .LVU168
+ 661 002a A3F13502 		sub	r2, r3, #53
+ 662 002e 0A2A     		cmp	r2, #10
+ 663 0030 0ED8     		bhi	.L53
+ 664 0032 DFE802F0 		tbb	[pc, r2]
+ 665              	.L55:
+ 666 0036 0F       		.byte	(.L57-.L55)/2
+ 667 0037 0F       		.byte	(.L57-.L55)/2
+ 668 0038 0F       		.byte	(.L57-.L55)/2
+ 669 0039 0F       		.byte	(.L57-.L55)/2
+ 670 003a 0F       		.byte	(.L57-.L55)/2
+ 671 003b 0F       		.byte	(.L57-.L55)/2
+ 672 003c 0F       		.byte	(.L57-.L55)/2
+ 673 003d 0F       		.byte	(.L57-.L55)/2
+ 674 003e 0F       		.byte	(.L57-.L55)/2
+ 675 003f 11       		.byte	(.L56-.L55)/2
+ 676 0040 13       		.byte	(.L54-.L55)/2
+ 677 0041 00       		.p2align 1
+ 678              	.L51:
+ 297:quantum/send_string.c ****             break;
+ 298:quantum/send_string.c ****         case 26 ... 51:
+ 299:quantum/send_string.c ****             send_char(key - 26 + 'a');
+ 679              		.loc 1 299 13 is_stmt 1 view .LVU169
+ 680 0042 03F14700 		add	r0, r3, #71
+ 681              	.L60:
+ 296:quantum/send_string.c ****             break;
+ 682              		.loc 1 296 13 is_stmt 0 view .LVU170
+ 683 0046 C0B2     		uxtb	r0, r0
+ 684              	.L59:
+ 300:quantum/send_string.c ****             break;
+ 301:quantum/send_string.c ****         case 52:
+ 302:quantum/send_string.c ****             send_char('0');
+ 303:quantum/send_string.c ****             break;
+ 304:quantum/send_string.c ****         case 53 ... 61:
+ 305:quantum/send_string.c ****             send_char(key - 53 + '1');
+ 306:quantum/send_string.c ****             break;
+ 307:quantum/send_string.c ****         case 62:
+ 308:quantum/send_string.c ****             send_char('+');
+ 309:quantum/send_string.c ****             break;
+ 310:quantum/send_string.c ****         case 63:
+ 311:quantum/send_string.c ****             send_char('/');
+ 312:quantum/send_string.c ****             break;
+ 313:quantum/send_string.c ****     }
+ 314:quantum/send_string.c **** }
+ 685              		.loc 1 314 1 view .LVU171
+ 686 0048 BDE80840 		pop	{r3, lr}
+ 687              		.cfi_remember_state
+ 688              		.cfi_restore 14
+ 689              		.cfi_restore 3
+ 690              		.cfi_def_cfa_offset 0
+ 691              	.LVL69:
+ 311:quantum/send_string.c ****             break;
+ 692              		.loc 1 311 13 view .LVU172
+ 693 004c FFF7FEBF 		b	send_char
+ 694              	.LVL70:
+ 695              	.L53:
+ 696              		.cfi_restore_state
+ 302:quantum/send_string.c ****             break;
+ 697              		.loc 1 302 13 is_stmt 1 view .LVU173
+ 698 0050 3020     		movs	r0, #48
+ 699 0052 F9E7     		b	.L59
+ 700              	.L57:
+ 305:quantum/send_string.c ****             break;
+ 701              		.loc 1 305 13 view .LVU174
+ 702 0054 181F     		subs	r0, r3, #4
+ 703 0056 F6E7     		b	.L60
+ 704              	.L56:
+ 308:quantum/send_string.c ****             break;
+ 705              		.loc 1 308 13 view .LVU175
+ 706 0058 2B20     		movs	r0, #43
+ 707 005a F5E7     		b	.L59
+ 708              	.L54:
+ 311:quantum/send_string.c ****             break;
+ 709              		.loc 1 311 13 view .LVU176
+ 710 005c 2F20     		movs	r0, #47
+ 711 005e F3E7     		b	.L59
+ 712              	.L48:
+ 713              		.loc 1 314 1 is_stmt 0 view .LVU177
+ 714 0060 08BD     		pop	{r3, pc}
+ 715              		.loc 1 314 1 view .LVU178
+ 716              		.cfi_endproc
+ 717              	.LFE305:
+ 719              		.weak	ascii_to_keycode_lut
+ 720              		.weak	ascii_to_dead_lut
+ 721              		.weak	ascii_to_altgr_lut
+ 722              		.weak	ascii_to_shift_lut
+ 723              		.section	.rodata.ascii_to_altgr_lut,"a"
+ 726              	ascii_to_altgr_lut:
+ 727 0000 00000000 		.space	16
+ 727      00000000 
+ 727      00000000 
+ 727      00000000 
+ 728              		.section	.rodata.ascii_to_dead_lut,"a"
+ 731              	ascii_to_dead_lut:
+ 732 0000 00000000 		.space	16
+ 732      00000000 
+ 732      00000000 
+ 732      00000000 
+ 733              		.section	.rodata.ascii_to_keycode_lut,"a"
+ 736              	ascii_to_keycode_lut:
+ 737 0000 00000000 		.ascii	"\000\000\000\000\000\000\000\000*+(\000\000\000\000"
+ 737      00000000 
+ 737      2A2B2800 
+ 737      000000
+ 738 000f 00000000 		.ascii	"\000\000\000\000\000\000\000\000\000\000\000\000)\000"
+ 738      00000000 
+ 738      00000000 
+ 738      2900
+ 739 001d 0000002C 		.ascii	"\000\000\000,\0364 !\"$4&'%.6-78'\036\037 !\"#$%&33"
+ 739      1E342021 
+ 739      22243426 
+ 739      27252E36 
+ 739      2D373827 
+ 740 003c 362E3738 		.ascii	"6.78\037\004\005\006\007\010\011\012\013\014\015\016"
+ 740      1F040506 
+ 740      0708090A 
+ 740      0B0C0D0E 
+ 741 004c 0F101112 		.ascii	"\017\020\021\022\023\024\025\026\027\030\031\032\033"
+ 741      13141516 
+ 741      1718191A 
+ 741      1B
+ 742 0059 1C1D2F31 		.ascii	"\034\035/10#-5\004\005\006\007\010\011\012\013\014\015"
+ 742      30232D35 
+ 742      04050607 
+ 742      08090A0B 
+ 742      0C0D
+ 743 006b 0E0F1011 		.ascii	"\016\017\020\021\022\023\024\025\026\027\030\031\032"
+ 743      12131415 
+ 743      16171819 
+ 743      1A
+ 744 0078 1B1C1D2F 		.ascii	"\033\034\035/105L"
+ 744      3130354C 
+ 745              		.section	.rodata.ascii_to_shift_lut,"a"
+ 748              	ascii_to_shift_lut:
+ 749 0000 00000000 		.ascii	"\000\000\000\000~\017\000\324\377\377\377\307\000\000"
+ 749      7E0F00D4 
+ 749      FFFFFFC7 
+ 749      0000
+ 750 000e 0078     		.ascii	"\000x"
+ 751              		.text
+ 752              	.Letext0:
+ 753              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 754              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 755              		.file 4 "./lib/chibios/os/rt/include/chtime.h"
+ 756              		.file 5 "/usr/arm-none-eabi/include/ctype.h"
+ 757              		.file 6 "quantum/send_string.h"
+ 758              		.file 7 "./lib/chibios/os/rt/include/chthreads.h"
+ 759              		.file 8 "quantum/action.h"
+ 760              		.file 9 "quantum/keycode.h"
+ 761              		.file 10 "quantum/sequencer/sequencer.h"
+ 762              		.file 11 "/usr/arm-none-eabi/include/stdlib.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 send_string.c
+     /tmp/cc1zTkwN.s:18     .text.send_char:0000000000000000 $t
+     /tmp/cc1zTkwN.s:26     .text.send_char:0000000000000000 send_char
+     /tmp/cc1zTkwN.s:146    .text.send_char:0000000000000060 $d
+     /tmp/cc1zTkwN.s:736    .rodata.ascii_to_keycode_lut:0000000000000000 ascii_to_keycode_lut
+     /tmp/cc1zTkwN.s:726    .rodata.ascii_to_altgr_lut:0000000000000000 ascii_to_altgr_lut
+     /tmp/cc1zTkwN.s:748    .rodata.ascii_to_shift_lut:0000000000000000 ascii_to_shift_lut
+     /tmp/cc1zTkwN.s:731    .rodata.ascii_to_dead_lut:0000000000000000 ascii_to_dead_lut
+     /tmp/cc1zTkwN.s:154    .text.send_string_with_delay:0000000000000000 $t
+     /tmp/cc1zTkwN.s:161    .text.send_string_with_delay:0000000000000000 send_string_with_delay
+     /tmp/cc1zTkwN.s:393    .text.send_string_with_delay:0000000000000094 $d
+     /tmp/cc1zTkwN.s:398    .text.send_string:0000000000000000 $t
+     /tmp/cc1zTkwN.s:405    .text.send_string:0000000000000000 send_string
+     /tmp/cc1zTkwN.s:422    .text.send_string_P:0000000000000000 $t
+     /tmp/cc1zTkwN.s:429    .text.send_string_P:0000000000000000 send_string_P
+     /tmp/cc1zTkwN.s:440    .text.send_string_with_delay_P:0000000000000000 $t
+     /tmp/cc1zTkwN.s:447    .text.send_string_with_delay_P:0000000000000000 send_string_with_delay_P
+     /tmp/cc1zTkwN.s:458    .text.send_nibble:0000000000000000 $t
+     /tmp/cc1zTkwN.s:465    .text.send_nibble:0000000000000000 send_nibble
+     /tmp/cc1zTkwN.s:490    .text.send_byte:0000000000000000 $t
+     /tmp/cc1zTkwN.s:497    .text.send_byte:0000000000000000 send_byte
+     /tmp/cc1zTkwN.s:532    .text.send_word:0000000000000000 $t
+     /tmp/cc1zTkwN.s:539    .text.send_word:0000000000000000 send_word
+     /tmp/cc1zTkwN.s:574    .text.send_dword:0000000000000000 $t
+     /tmp/cc1zTkwN.s:581    .text.send_dword:0000000000000000 send_dword
+     /tmp/cc1zTkwN.s:617    .text.tap_random_base64:0000000000000000 $t
+     /tmp/cc1zTkwN.s:624    .text.tap_random_base64:0000000000000000 tap_random_base64
+     /tmp/cc1zTkwN.s:666    .text.tap_random_base64:0000000000000036 $d
+     /tmp/cc1zTkwN.s:727    .rodata.ascii_to_altgr_lut:0000000000000000 $d
+     /tmp/cc1zTkwN.s:732    .rodata.ascii_to_dead_lut:0000000000000000 $d
+     /tmp/cc1zTkwN.s:677    .text.tap_random_base64:0000000000000041 $d
+     /tmp/cc1zTkwN.s:677    .text.tap_random_base64:0000000000000042 $t
+
+UNDEFINED SYMBOLS
+register_code
+tap_code
+unregister_code
+chThdSleep
+_ctype_
+rand
