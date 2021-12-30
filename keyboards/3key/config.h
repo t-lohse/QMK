@@ -46,7 +46,6 @@
 /* prevent stuck modifiers */
 #define PREVENT_STUCK_MODIFIERS
 
-#define WS2812_EXTERNAL_PULLUP
 #define RGBLIGHT_LAYERS
 #define RGB_DI_PIN B1
 #ifdef RGB_DI_PIN
