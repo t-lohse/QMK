@@ -1,0 +1,499 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"process_rgb.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/process_keycode/process_rgb.c"
+  20              		.section	.text.handleKeycodeRGB,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	handleKeycodeRGB:
+  27              	.LVL0:
+  28              	.LFB295:
+   1:quantum/process_keycode/process_rgb.c **** /* Copyright 2019
+   2:quantum/process_keycode/process_rgb.c ****  *
+   3:quantum/process_keycode/process_rgb.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/process_keycode/process_rgb.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/process_keycode/process_rgb.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:quantum/process_keycode/process_rgb.c ****  * (at your option) any later version.
+   7:quantum/process_keycode/process_rgb.c ****  *
+   8:quantum/process_keycode/process_rgb.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/process_keycode/process_rgb.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/process_keycode/process_rgb.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/process_keycode/process_rgb.c ****  * GNU General Public License for more details.
+  12:quantum/process_keycode/process_rgb.c ****  *
+  13:quantum/process_keycode/process_rgb.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/process_keycode/process_rgb.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/process_keycode/process_rgb.c ****  */
+  16:quantum/process_keycode/process_rgb.c **** #include "process_rgb.h"
+  17:quantum/process_keycode/process_rgb.c **** 
+  18:quantum/process_keycode/process_rgb.c **** typedef void (*rgb_func_pointer)(void);
+  19:quantum/process_keycode/process_rgb.c **** 
+  20:quantum/process_keycode/process_rgb.c **** /**
+  21:quantum/process_keycode/process_rgb.c ****  * Wrapper for inc/dec rgb keycode
+  22:quantum/process_keycode/process_rgb.c ****  *
+  23:quantum/process_keycode/process_rgb.c ****  * noinline to optimise for firmware size not speed (not in hot path)
+  24:quantum/process_keycode/process_rgb.c ****  */
+  25:quantum/process_keycode/process_rgb.c **** #if (defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)) || (defined(RGB_MATRIX_ENABLE
+  26:quantum/process_keycode/process_rgb.c **** static void __attribute__((noinline)) handleKeycodeRGB(const uint8_t is_shifted, const rgb_func_poi
+  29              		.loc 1 26 148 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  27:quantum/process_keycode/process_rgb.c ****     if (is_shifted) {
+  34              		.loc 1 27 5 view .LVU1
+  35              		.loc 1 27 8 is_stmt 0 view .LVU2
+  36 0000 00B1     		cbz	r0, .L2
+  28:quantum/process_keycode/process_rgb.c ****         dec_func();
+  37              		.loc 1 28 9 is_stmt 1 view .LVU3
+  38 0002 1047     		bx	r2	@ indirect register sibling call
+  39              	.LVL1:
+  40              	.L2:
+  29:quantum/process_keycode/process_rgb.c ****     } else {
+  30:quantum/process_keycode/process_rgb.c ****         inc_func();
+  41              		.loc 1 30 9 view .LVU4
+  42 0004 0847     		bx	r1	@ indirect register sibling call
+  43              	.LVL2:
+  44              		.loc 1 30 9 is_stmt 0 view .LVU5
+  45              		.cfi_endproc
+  46              	.LFE295:
+  48              		.section	.text.process_rgb,"ax",%progbits
+  49              		.align	1
+  50              		.global	process_rgb
+  51              		.syntax unified
+  52              		.thumb
+  53              		.thumb_func
+  55              	process_rgb:
+  56              	.LVL3:
+  57              	.LFB297:
+  31:quantum/process_keycode/process_rgb.c ****     }
+  32:quantum/process_keycode/process_rgb.c **** }
+  33:quantum/process_keycode/process_rgb.c **** #endif
+  34:quantum/process_keycode/process_rgb.c **** 
+  35:quantum/process_keycode/process_rgb.c **** /**
+  36:quantum/process_keycode/process_rgb.c ****  * Wrapper for animation mode
+  37:quantum/process_keycode/process_rgb.c ****  *   - if not in animation family -> jump to that animation
+  38:quantum/process_keycode/process_rgb.c ****  *   - otherwise -> wrap round animation speed
+  39:quantum/process_keycode/process_rgb.c ****  *
+  40:quantum/process_keycode/process_rgb.c ****  * noinline to optimise for firmware size not speed (not in hot path)
+  41:quantum/process_keycode/process_rgb.c ****  */
+  42:quantum/process_keycode/process_rgb.c **** static void __attribute__((noinline, unused)) handleKeycodeRGBMode(const uint8_t start, const uint8
+  43:quantum/process_keycode/process_rgb.c ****     if ((start <= rgblight_get_mode()) && (rgblight_get_mode() < end)) {
+  44:quantum/process_keycode/process_rgb.c ****         rgblight_step();
+  45:quantum/process_keycode/process_rgb.c ****     } else {
+  46:quantum/process_keycode/process_rgb.c ****         rgblight_mode(start);
+  47:quantum/process_keycode/process_rgb.c ****     }
+  48:quantum/process_keycode/process_rgb.c **** }
+  49:quantum/process_keycode/process_rgb.c **** 
+  50:quantum/process_keycode/process_rgb.c **** /**
+  51:quantum/process_keycode/process_rgb.c ****  * Handle keycodes for both rgblight and rgbmatrix
+  52:quantum/process_keycode/process_rgb.c ****  */
+  53:quantum/process_keycode/process_rgb.c **** bool process_rgb(const uint16_t keycode, const keyrecord_t *record) {
+  58              		.loc 1 53 69 is_stmt 1 view -0
+  59              		.cfi_startproc
+  60              		@ args = 0, pretend = 0, frame = 0
+  61              		@ frame_needed = 0, uses_anonymous_args = 0
+  54:quantum/process_keycode/process_rgb.c **** #ifndef SPLIT_KEYBOARD
+  55:quantum/process_keycode/process_rgb.c ****     if (record->event.pressed) {
+  62              		.loc 1 55 5 view .LVU7
+  63              		.loc 1 55 8 is_stmt 0 view .LVU8
+  64 0000 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+  53:quantum/process_keycode/process_rgb.c **** #ifndef SPLIT_KEYBOARD
+  65              		.loc 1 53 69 view .LVU9
+  66 0002 10B5     		push	{r4, lr}
+  67              		.cfi_def_cfa_offset 8
+  68              		.cfi_offset 4, -8
+  69              		.cfi_offset 14, -4
+  53:quantum/process_keycode/process_rgb.c **** #ifndef SPLIT_KEYBOARD
+  70              		.loc 1 53 69 view .LVU10
+  71 0004 0446     		mov	r4, r0
+  72              		.loc 1 55 8 view .LVU11
+  73 0006 03B3     		cbz	r3, .L4
+  74              	.LBB2:
+  56:quantum/process_keycode/process_rgb.c **** #else
+  57:quantum/process_keycode/process_rgb.c ****     // Split keyboards need to trigger on key-up for edge-case issue
+  58:quantum/process_keycode/process_rgb.c ****     if (!record->event.pressed) {
+  59:quantum/process_keycode/process_rgb.c **** #endif
+  60:quantum/process_keycode/process_rgb.c **** #if (defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)) || (defined(RGB_MATRIX_ENABLE
+  61:quantum/process_keycode/process_rgb.c ****         uint8_t shifted = get_mods() & MOD_MASK_SHIFT;
+  75              		.loc 1 61 9 is_stmt 1 view .LVU12
+  76              		.loc 1 61 27 is_stmt 0 view .LVU13
+  77 0008 FFF7FEFF 		bl	get_mods
+  78              	.LVL4:
+  62:quantum/process_keycode/process_rgb.c **** #endif
+  63:quantum/process_keycode/process_rgb.c ****         switch (keycode) {
+  79              		.loc 1 63 9 view .LVU14
+  80 000c 45F6D643 		movw	r3, #23766
+  81 0010 9C42     		cmp	r4, r3
+  61:quantum/process_keycode/process_rgb.c **** #endif
+  82              		.loc 1 61 17 view .LVU15
+  83 0012 00F02200 		and	r0, r0, #34
+  84              	.LVL5:
+  85              		.loc 1 63 9 is_stmt 1 view .LVU16
+  86 0016 14D8     		bhi	.L5
+  87 0018 45F6C243 		movw	r3, #23746
+  88 001c 9C42     		cmp	r4, r3
+  89 001e 14D9     		bls	.L4
+  90 0020 A4F5B944 		sub	r4, r4, #23680
+  91 0024 443C     		subs	r4, r4, #68
+  92 0026 122C     		cmp	r4, #18
+  93 0028 11D8     		bhi	.L6
+  94 002a DFE804F0 		tbb	[pc, r4]
+  95              	.L8:
+  96 002e 14       		.byte	(.L19-.L8)/2
+  97 002f 19       		.byte	(.L18-.L8)/2
+  98 0030 1C       		.byte	(.L17-.L8)/2
+  99 0031 1F       		.byte	(.L16-.L8)/2
+ 100 0032 22       		.byte	(.L15-.L8)/2
+ 101 0033 25       		.byte	(.L14-.L8)/2
+ 102 0034 28       		.byte	(.L13-.L8)/2
+ 103 0035 2B       		.byte	(.L12-.L8)/2
+ 104 0036 2E       		.byte	(.L11-.L8)/2
+ 105 0037 31       		.byte	(.L10-.L8)/2
+ 106 0038 34       		.byte	(.L9-.L8)/2
+ 107 0039 12       		.byte	(.L7-.L8)/2
+ 108 003a 12       		.byte	(.L7-.L8)/2
+ 109 003b 12       		.byte	(.L7-.L8)/2
+ 110 003c 12       		.byte	(.L7-.L8)/2
+ 111 003d 12       		.byte	(.L7-.L8)/2
+ 112 003e 12       		.byte	(.L7-.L8)/2
+ 113 003f 12       		.byte	(.L7-.L8)/2
+ 114 0040 12       		.byte	(.L7-.L8)/2
+ 115 0041 00       		.p2align 1
+ 116              	.L5:
+ 117 0042 45F65E53 		movw	r3, #23902
+ 118 0046 9C42     		cmp	r4, r3
+ 119 0048 03D0     		beq	.L7
+ 120              	.LVL6:
+ 121              	.L4:
+ 122              		.loc 1 63 9 is_stmt 0 view .LVU17
+ 123              	.LBE2:
+  64:quantum/process_keycode/process_rgb.c ****             case RGB_TOG:
+  65:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+  66:quantum/process_keycode/process_rgb.c ****                 rgblight_toggle();
+  67:quantum/process_keycode/process_rgb.c **** #endif
+  68:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+  69:quantum/process_keycode/process_rgb.c ****                 rgb_matrix_toggle();
+  70:quantum/process_keycode/process_rgb.c **** #endif
+  71:quantum/process_keycode/process_rgb.c ****                 return false;
+  72:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_FORWARD:
+  73:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+  74:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_step, rgblight_step_reverse);
+  75:quantum/process_keycode/process_rgb.c **** #endif
+  76:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+  77:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_step, rgb_matrix_step_reverse);
+  78:quantum/process_keycode/process_rgb.c **** #endif
+  79:quantum/process_keycode/process_rgb.c ****                 return false;
+  80:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_REVERSE:
+  81:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+  82:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_step_reverse, rgblight_step);
+  83:quantum/process_keycode/process_rgb.c **** #endif
+  84:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+  85:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_step_reverse, rgb_matrix_step);
+  86:quantum/process_keycode/process_rgb.c **** #endif
+  87:quantum/process_keycode/process_rgb.c ****                 return false;
+  88:quantum/process_keycode/process_rgb.c ****             case RGB_HUI:
+  89:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+  90:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_increase_hue, rgblight_decrease_hue);
+  91:quantum/process_keycode/process_rgb.c **** #endif
+  92:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+  93:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_increase_hue, rgb_matrix_decrease_hue);
+  94:quantum/process_keycode/process_rgb.c **** #endif
+  95:quantum/process_keycode/process_rgb.c ****                 return false;
+  96:quantum/process_keycode/process_rgb.c ****             case RGB_HUD:
+  97:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+  98:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_decrease_hue, rgblight_increase_hue);
+  99:quantum/process_keycode/process_rgb.c **** #endif
+ 100:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 101:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_decrease_hue, rgb_matrix_increase_hue);
+ 102:quantum/process_keycode/process_rgb.c **** #endif
+ 103:quantum/process_keycode/process_rgb.c ****                 return false;
+ 104:quantum/process_keycode/process_rgb.c ****             case RGB_SAI:
+ 105:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 106:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_increase_sat, rgblight_decrease_sat);
+ 107:quantum/process_keycode/process_rgb.c **** #endif
+ 108:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 109:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_increase_sat, rgb_matrix_decrease_sat);
+ 110:quantum/process_keycode/process_rgb.c **** #endif
+ 111:quantum/process_keycode/process_rgb.c ****                 return false;
+ 112:quantum/process_keycode/process_rgb.c ****             case RGB_SAD:
+ 113:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 114:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_decrease_sat, rgblight_increase_sat);
+ 115:quantum/process_keycode/process_rgb.c **** #endif
+ 116:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 117:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_decrease_sat, rgb_matrix_increase_sat);
+ 118:quantum/process_keycode/process_rgb.c **** #endif
+ 119:quantum/process_keycode/process_rgb.c ****                 return false;
+ 120:quantum/process_keycode/process_rgb.c ****             case RGB_VAI:
+ 121:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 122:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_increase_val, rgblight_decrease_val);
+ 123:quantum/process_keycode/process_rgb.c **** #endif
+ 124:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 125:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_increase_val, rgb_matrix_decrease_val);
+ 126:quantum/process_keycode/process_rgb.c **** #endif
+ 127:quantum/process_keycode/process_rgb.c ****                 return false;
+ 128:quantum/process_keycode/process_rgb.c ****             case RGB_VAD:
+ 129:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 130:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_decrease_val, rgblight_increase_val);
+ 131:quantum/process_keycode/process_rgb.c **** #endif
+ 132:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 133:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_decrease_val, rgb_matrix_increase_val);
+ 134:quantum/process_keycode/process_rgb.c **** #endif
+ 135:quantum/process_keycode/process_rgb.c ****                 return false;
+ 136:quantum/process_keycode/process_rgb.c ****             case RGB_SPI:
+ 137:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 138:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_increase_speed, rgblight_decrease_speed);
+ 139:quantum/process_keycode/process_rgb.c **** #endif
+ 140:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 141:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_increase_speed, rgb_matrix_decrease_speed);
+ 142:quantum/process_keycode/process_rgb.c **** #endif
+ 143:quantum/process_keycode/process_rgb.c ****                 return false;
+ 144:quantum/process_keycode/process_rgb.c ****             case RGB_SPD:
+ 145:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 146:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgblight_decrease_speed, rgblight_increase_speed);
+ 147:quantum/process_keycode/process_rgb.c **** #endif
+ 148:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 149:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGB(shifted, rgb_matrix_decrease_speed, rgb_matrix_increase_speed);
+ 150:quantum/process_keycode/process_rgb.c **** #endif
+ 151:quantum/process_keycode/process_rgb.c ****                 return false;
+ 152:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_PLAIN:
+ 153:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES)
+ 154:quantum/process_keycode/process_rgb.c ****                 rgblight_mode(RGBLIGHT_MODE_STATIC_LIGHT);
+ 155:quantum/process_keycode/process_rgb.c **** #endif
+ 156:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES)
+ 157:quantum/process_keycode/process_rgb.c ****                 rgb_matrix_mode(RGB_MATRIX_SOLID_COLOR);
+ 158:quantum/process_keycode/process_rgb.c **** #endif
+ 159:quantum/process_keycode/process_rgb.c ****                 return false;
+ 160:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_BREATHE:
+ 161:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_BREA
+ 162:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_BREATHING, RGBLIGHT_MODE_BREATHING_end);
+ 163:quantum/process_keycode/process_rgb.c **** #endif
+ 164:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES) && defined(ENABLE_RGB_MATRI
+ 165:quantum/process_keycode/process_rgb.c ****                 rgb_matrix_mode(RGB_MATRIX_BREATHING);
+ 166:quantum/process_keycode/process_rgb.c **** #endif
+ 167:quantum/process_keycode/process_rgb.c ****                 return false;
+ 168:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_RAINBOW:
+ 169:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_RAIN
+ 170:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_RAINBOW_MOOD, RGBLIGHT_MODE_RAINBOW_MOOD_end);
+ 171:quantum/process_keycode/process_rgb.c **** #endif
+ 172:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES) && defined(ENABLE_RGB_MATRI
+ 173:quantum/process_keycode/process_rgb.c ****                 rgb_matrix_mode(RGB_MATRIX_CYCLE_LEFT_RIGHT);
+ 174:quantum/process_keycode/process_rgb.c **** #endif
+ 175:quantum/process_keycode/process_rgb.c ****                 return false;
+ 176:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_SWIRL:
+ 177:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_RAIN
+ 178:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_RAINBOW_SWIRL, RGBLIGHT_MODE_RAINBOW_SWIRL_end);
+ 179:quantum/process_keycode/process_rgb.c **** #endif
+ 180:quantum/process_keycode/process_rgb.c **** #if defined(RGB_MATRIX_ENABLE) && !defined(RGB_MATRIX_DISABLE_KEYCODES) && defined(ENABLE_RGB_MATRI
+ 181:quantum/process_keycode/process_rgb.c ****                 rgb_matrix_mode(RGB_MATRIX_CYCLE_PINWHEEL);
+ 182:quantum/process_keycode/process_rgb.c **** #endif
+ 183:quantum/process_keycode/process_rgb.c ****                 return false;
+ 184:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_SNAKE:
+ 185:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_SNAK
+ 186:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_SNAKE, RGBLIGHT_MODE_SNAKE_end);
+ 187:quantum/process_keycode/process_rgb.c **** #endif
+ 188:quantum/process_keycode/process_rgb.c ****                 return false;
+ 189:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_KNIGHT:
+ 190:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_KNIG
+ 191:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_KNIGHT, RGBLIGHT_MODE_KNIGHT_end);
+ 192:quantum/process_keycode/process_rgb.c **** #endif
+ 193:quantum/process_keycode/process_rgb.c ****                 return false;
+ 194:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_XMAS:
+ 195:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_CHRI
+ 196:quantum/process_keycode/process_rgb.c ****                 rgblight_mode(RGBLIGHT_MODE_CHRISTMAS);
+ 197:quantum/process_keycode/process_rgb.c **** #endif
+ 198:quantum/process_keycode/process_rgb.c ****                 return false;
+ 199:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_GRADIENT:
+ 200:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_STAT
+ 201:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_STATIC_GRADIENT, RGBLIGHT_MODE_STATIC_GRADIENT_e
+ 202:quantum/process_keycode/process_rgb.c **** #endif
+ 203:quantum/process_keycode/process_rgb.c ****                 return false;
+ 204:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_RGBTEST:
+ 205:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_RGB_
+ 206:quantum/process_keycode/process_rgb.c ****                 rgblight_mode(RGBLIGHT_MODE_RGB_TEST);
+ 207:quantum/process_keycode/process_rgb.c **** #endif
+ 208:quantum/process_keycode/process_rgb.c ****                 return false;
+ 209:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_TWINKLE:
+ 210:quantum/process_keycode/process_rgb.c **** #if defined(RGBLIGHT_ENABLE) && !defined(RGBLIGHT_DISABLE_KEYCODES) && defined(RGBLIGHT_EFFECT_TWIN
+ 211:quantum/process_keycode/process_rgb.c ****                 handleKeycodeRGBMode(RGBLIGHT_MODE_TWINKLE, RGBLIGHT_MODE_TWINKLE_end);
+ 212:quantum/process_keycode/process_rgb.c **** #endif
+ 213:quantum/process_keycode/process_rgb.c ****                 return false;
+ 214:quantum/process_keycode/process_rgb.c ****         }
+ 215:quantum/process_keycode/process_rgb.c ****     }
+ 216:quantum/process_keycode/process_rgb.c **** 
+ 217:quantum/process_keycode/process_rgb.c ****     return true;
+ 124              		.loc 1 217 12 view .LVU18
+ 125 004a 0120     		movs	r0, #1
+ 126 004c 02E0     		b	.L20
+ 127              	.LVL7:
+ 128              	.L6:
+ 129              	.LBB3:
+  66:quantum/process_keycode/process_rgb.c **** #endif
+ 130              		.loc 1 66 17 is_stmt 1 view .LVU19
+ 131 004e FFF7FEFF 		bl	rgblight_toggle
+ 132              	.LVL8:
+  71:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_FORWARD:
+ 133              		.loc 1 71 17 view .LVU20
+ 134              	.L7:
+  71:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_FORWARD:
+ 135              		.loc 1 71 24 is_stmt 0 view .LVU21
+ 136 0052 0020     		movs	r0, #0
+ 137              	.LVL9:
+ 138              	.L20:
+  71:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_FORWARD:
+ 139              		.loc 1 71 24 view .LVU22
+ 140              	.LBE3:
+ 218:quantum/process_keycode/process_rgb.c **** }
+ 141              		.loc 1 218 1 view .LVU23
+ 142 0054 10BD     		pop	{r4, pc}
+ 143              	.LVL10:
+ 144              	.L19:
+ 145              	.LBB4:
+  74:quantum/process_keycode/process_rgb.c **** #endif
+ 146              		.loc 1 74 17 is_stmt 1 view .LVU24
+ 147 0056 124A     		ldr	r2, .L26
+ 148 0058 1249     		ldr	r1, .L26+4
+ 149              	.L25:
+ 150 005a FFF7FEFF 		bl	handleKeycodeRGB
+ 151              	.LVL11:
+  79:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_REVERSE:
+ 152              		.loc 1 79 17 view .LVU25
+  79:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_REVERSE:
+ 153              		.loc 1 79 24 is_stmt 0 view .LVU26
+ 154 005e F8E7     		b	.L7
+ 155              	.LVL12:
+ 156              	.L18:
+  82:quantum/process_keycode/process_rgb.c **** #endif
+ 157              		.loc 1 82 17 is_stmt 1 view .LVU27
+ 158 0060 104A     		ldr	r2, .L26+4
+ 159 0062 0F49     		ldr	r1, .L26
+ 160 0064 F9E7     		b	.L25
+ 161              	.L17:
+  90:quantum/process_keycode/process_rgb.c **** #endif
+ 162              		.loc 1 90 17 view .LVU28
+ 163 0066 104A     		ldr	r2, .L26+8
+ 164 0068 1049     		ldr	r1, .L26+12
+ 165 006a F6E7     		b	.L25
+ 166              	.L16:
+  98:quantum/process_keycode/process_rgb.c **** #endif
+ 167              		.loc 1 98 17 view .LVU29
+ 168 006c 0F4A     		ldr	r2, .L26+12
+ 169 006e 0E49     		ldr	r1, .L26+8
+ 170 0070 F3E7     		b	.L25
+ 171              	.L15:
+ 106:quantum/process_keycode/process_rgb.c **** #endif
+ 172              		.loc 1 106 17 view .LVU30
+ 173 0072 0F4A     		ldr	r2, .L26+16
+ 174 0074 0F49     		ldr	r1, .L26+20
+ 175 0076 F0E7     		b	.L25
+ 176              	.L14:
+ 114:quantum/process_keycode/process_rgb.c **** #endif
+ 177              		.loc 1 114 17 view .LVU31
+ 178 0078 0E4A     		ldr	r2, .L26+20
+ 179 007a 0D49     		ldr	r1, .L26+16
+ 180 007c EDE7     		b	.L25
+ 181              	.L13:
+ 122:quantum/process_keycode/process_rgb.c **** #endif
+ 182              		.loc 1 122 17 view .LVU32
+ 183 007e 0E4A     		ldr	r2, .L26+24
+ 184 0080 0E49     		ldr	r1, .L26+28
+ 185 0082 EAE7     		b	.L25
+ 186              	.L12:
+ 130:quantum/process_keycode/process_rgb.c **** #endif
+ 187              		.loc 1 130 17 view .LVU33
+ 188 0084 0D4A     		ldr	r2, .L26+28
+ 189 0086 0C49     		ldr	r1, .L26+24
+ 190 0088 E7E7     		b	.L25
+ 191              	.L11:
+ 138:quantum/process_keycode/process_rgb.c **** #endif
+ 192              		.loc 1 138 17 view .LVU34
+ 193 008a 0D4A     		ldr	r2, .L26+32
+ 194 008c 0D49     		ldr	r1, .L26+36
+ 195 008e E4E7     		b	.L25
+ 196              	.L10:
+ 146:quantum/process_keycode/process_rgb.c **** #endif
+ 197              		.loc 1 146 17 view .LVU35
+ 198 0090 0C4A     		ldr	r2, .L26+36
+ 199 0092 0B49     		ldr	r1, .L26+32
+ 200 0094 E1E7     		b	.L25
+ 201              	.L9:
+ 154:quantum/process_keycode/process_rgb.c **** #endif
+ 202              		.loc 1 154 17 view .LVU36
+ 203 0096 0120     		movs	r0, #1
+ 204              	.LVL13:
+ 154:quantum/process_keycode/process_rgb.c **** #endif
+ 205              		.loc 1 154 17 is_stmt 0 view .LVU37
+ 206 0098 FFF7FEFF 		bl	rgblight_mode
+ 207              	.LVL14:
+ 159:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_BREATHE:
+ 208              		.loc 1 159 17 is_stmt 1 view .LVU38
+ 159:quantum/process_keycode/process_rgb.c ****             case RGB_MODE_BREATHE:
+ 209              		.loc 1 159 24 is_stmt 0 view .LVU39
+ 210 009c D9E7     		b	.L7
+ 211              	.L27:
+ 212 009e 00BF     		.align	2
+ 213              	.L26:
+ 214 00a0 00000000 		.word	rgblight_step_reverse
+ 215 00a4 00000000 		.word	rgblight_step
+ 216 00a8 00000000 		.word	rgblight_decrease_hue
+ 217 00ac 00000000 		.word	rgblight_increase_hue
+ 218 00b0 00000000 		.word	rgblight_decrease_sat
+ 219 00b4 00000000 		.word	rgblight_increase_sat
+ 220 00b8 00000000 		.word	rgblight_decrease_val
+ 221 00bc 00000000 		.word	rgblight_increase_val
+ 222 00c0 00000000 		.word	rgblight_decrease_speed
+ 223 00c4 00000000 		.word	rgblight_increase_speed
+ 224              	.LBE4:
+ 225              		.cfi_endproc
+ 226              	.LFE297:
+ 228              		.text
+ 229              	.Letext0:
+ 230              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 231              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 232              		.file 4 "quantum/keyboard.h"
+ 233              		.file 5 "quantum/action.h"
+ 234              		.file 6 "quantum/keycode.h"
+ 235              		.file 7 "quantum/quantum_keycodes.h"
+ 236              		.file 8 "quantum/rgblight/rgblight.h"
+ 237              		.file 9 "quantum/action_util.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 process_rgb.c
+     /tmp/cctsQsmh.s:21     .text.handleKeycodeRGB:0000000000000000 $t
+     /tmp/cctsQsmh.s:26     .text.handleKeycodeRGB:0000000000000000 handleKeycodeRGB
+     /tmp/cctsQsmh.s:49     .text.process_rgb:0000000000000000 $t
+     /tmp/cctsQsmh.s:55     .text.process_rgb:0000000000000000 process_rgb
+     /tmp/cctsQsmh.s:96     .text.process_rgb:000000000000002e $d
+     /tmp/cctsQsmh.s:214    .text.process_rgb:00000000000000a0 $d
+     /tmp/cctsQsmh.s:115    .text.process_rgb:0000000000000041 $d
+     /tmp/cctsQsmh.s:115    .text.process_rgb:0000000000000042 $t
+
+UNDEFINED SYMBOLS
+get_mods
+rgblight_toggle
+rgblight_mode
+rgblight_step_reverse
+rgblight_step
+rgblight_decrease_hue
+rgblight_increase_hue
+rgblight_decrease_sat
+rgblight_increase_sat
+rgblight_decrease_val
+rgblight_increase_val
+rgblight_decrease_speed
+rgblight_increase_speed

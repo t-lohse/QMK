@@ -5,7 +5,7 @@
 #define GREEN 85
 #define BLUE 169
 
-#define ASCII_WRITER
+//#define ASCII_WRITER
 #ifdef ASCII_WRITER
 uint8_t asciiChar = 0;
 uint8_t asciiCounter = 0;
@@ -17,8 +17,31 @@ uint8_t asciiClick = 0;
 bool asciiHolding = false;
 #endif
 
+//#define SLOPE
+#ifdef SLOPE
+//variables
+#endif
+
+//#define STACK
+#ifdef STACK
+//variables
+enum custom_keycodes {
+    KC_STACK = SAFE_RANGE,
+    KC_CHAOW,
+};
+#endif
+
+
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+#ifdef SLOPE
+	LAYOUT(KC_LEFT, KC_ENT, KC_RGHT)
+#endif
+#ifdef STACK
+	LAYOUT(KC_STACK, KC_CHAOW, KC_VOLU)
+#else
 	LAYOUT(KC_1, KC_2, KC_3)
+#endif
 };
 
 const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt) {
@@ -117,6 +140,50 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     return false;
 #endif
+#ifdef STACK
+    switch(keycode) {
+        case KC_STACK:
+            if (record->event.pressed) { //Check for OS?
+                tap_code(KC_COPY);
+                
+                register_code(KC_LGUI);
+                tap_code(KC_ENT);
+                unregister_code(KC_LGUI);
+                SEND_STRING(SS_DELAY(500) "firefox --new-tab 'https://stackoverflow.com/search?q=");
+                /*
+                register_code(KC_LCTL);
+                register_code(KC_LSFT);
+                tap_code(KC_V);
+                unregister_code(KC_LSFT);
+                unregister_code(KC_LCTL);
+                */
+                tap_code(KC_PASTE);
+                SEND_STRING("'" SS_DELAY(500) SS_TAP(X_ENT));
+            } else {
+                // when keycode is released
+            }
+            break;
+        case KC_CHAOW:
+            if (record->event.pressed) { //Check for OS?
+                register_code(KC_LGUI);
+                tap_code(KC_ENT);
+                unregister_code(KC_LGUI);
+                SEND_STRING(SS_DELAY(500) "cvlc --no-video https://www.youtube.com/watch?v=qGk4E9ss95s&t=13s" SS_TAP(X_ENT));
+                /*
+                register_code(KC_LCTL);
+                register_code(KC_LSFT);
+                tap_code(KC_V);
+                unregister_code(KC_LSFT);
+                unregister_code(KC_LCTL);
+                */
+            } else {
+                // when keycode is released
+            }
+
+            break;
+    }
+#endif
 
 	return true;
 }
+

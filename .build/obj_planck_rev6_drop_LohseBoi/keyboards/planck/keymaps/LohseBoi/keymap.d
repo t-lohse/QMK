@@ -158,7 +158,7 @@
  quantum/process_keycode/process_magic.h \
  quantum/process_keycode/process_grave_esc.h quantum/dip_switch.h \
  quantum/encoder.h keyboards/planck/rev6_drop/rev6_drop.h \
- quantum/audio/muse.h
+ quantum/audio/muse.h keyboards/planck/keymaps/LohseBoi/../../../tlohse.h
 platforms/chibios/boards/GENERIC_STM32_F303XC/configs/bootloader_defs.h:
 keyboards/planck/config.h:
 quantum/config_common.h:
@@ -362,3 +362,4 @@ quantum/dip_switch.h:
 quantum/encoder.h:
 keyboards/planck/rev6_drop/rev6_drop.h:
 quantum/audio/muse.h:
+keyboards/planck/keymaps/LohseBoi/../../../tlohse.h:
