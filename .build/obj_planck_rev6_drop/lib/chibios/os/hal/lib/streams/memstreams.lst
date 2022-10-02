@@ -1,0 +1,428 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"memstreams.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "lib/chibios/os/hal/lib/streams/memstreams.c"
+  20              		.section	.text._put,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	_put:
+  27              	.LVL0:
+  28              	.LFB284:
+   1:lib/chibios/os/hal/lib/streams/memstreams.c **** /*
+   2:lib/chibios/os/hal/lib/streams/memstreams.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+   4:lib/chibios/os/hal/lib/streams/memstreams.c ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:lib/chibios/os/hal/lib/streams/memstreams.c ****     you may not use this file except in compliance with the License.
+   6:lib/chibios/os/hal/lib/streams/memstreams.c ****     You may obtain a copy of the License at
+   7:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+   8:lib/chibios/os/hal/lib/streams/memstreams.c ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  10:lib/chibios/os/hal/lib/streams/memstreams.c ****     Unless required by applicable law or agreed to in writing, software
+  11:lib/chibios/os/hal/lib/streams/memstreams.c ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:lib/chibios/os/hal/lib/streams/memstreams.c ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:lib/chibios/os/hal/lib/streams/memstreams.c ****     See the License for the specific language governing permissions and
+  14:lib/chibios/os/hal/lib/streams/memstreams.c ****     limitations under the License.
+  15:lib/chibios/os/hal/lib/streams/memstreams.c **** */
+  16:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  17:lib/chibios/os/hal/lib/streams/memstreams.c **** /**
+  18:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @file    memstreams.c
+  19:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @brief   Memory streams code.
+  20:lib/chibios/os/hal/lib/streams/memstreams.c ****  *
+  21:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @addtogroup HAL_MEMORY_STREAMS
+  22:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @details Memory buffers handled as streams.
+  23:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @{
+  24:lib/chibios/os/hal/lib/streams/memstreams.c ****  */
+  25:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  26:lib/chibios/os/hal/lib/streams/memstreams.c **** #include <string.h>
+  27:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  28:lib/chibios/os/hal/lib/streams/memstreams.c **** #include "hal.h"
+  29:lib/chibios/os/hal/lib/streams/memstreams.c **** #include "memstreams.h"
+  30:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  31:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  32:lib/chibios/os/hal/lib/streams/memstreams.c **** /* Driver local definitions.                                                 */
+  33:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  34:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  35:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  36:lib/chibios/os/hal/lib/streams/memstreams.c **** /* Driver exported variables.                                                */
+  37:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  38:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  39:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  40:lib/chibios/os/hal/lib/streams/memstreams.c **** /* Driver local variables.                                                   */
+  41:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  42:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  43:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  44:lib/chibios/os/hal/lib/streams/memstreams.c **** /* Driver local functions.                                                   */
+  45:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  46:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  47:lib/chibios/os/hal/lib/streams/memstreams.c **** static size_t _writes(void *ip, const uint8_t *bp, size_t n) {
+  48:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+  49:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  50:lib/chibios/os/hal/lib/streams/memstreams.c ****   if (msp->size - msp->eos < n)
+  51:lib/chibios/os/hal/lib/streams/memstreams.c ****     n = msp->size - msp->eos;
+  52:lib/chibios/os/hal/lib/streams/memstreams.c ****   memcpy(msp->buffer + msp->eos, bp, n);
+  53:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos += n;
+  54:lib/chibios/os/hal/lib/streams/memstreams.c ****   return n;
+  55:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+  56:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  57:lib/chibios/os/hal/lib/streams/memstreams.c **** static size_t _reads(void *ip, uint8_t *bp, size_t n) {
+  58:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+  59:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  60:lib/chibios/os/hal/lib/streams/memstreams.c ****   if (msp->eos - msp->offset < n)
+  61:lib/chibios/os/hal/lib/streams/memstreams.c ****     n = msp->eos - msp->offset;
+  62:lib/chibios/os/hal/lib/streams/memstreams.c ****   memcpy(bp, msp->buffer + msp->offset, n);
+  63:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->offset += n;
+  64:lib/chibios/os/hal/lib/streams/memstreams.c ****   return n;
+  65:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+  66:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  67:lib/chibios/os/hal/lib/streams/memstreams.c **** static msg_t _put(void *ip, uint8_t b) {
+  29              		.loc 1 67 40 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  68:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+  34              		.loc 1 68 3 view .LVU1
+  69:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  70:lib/chibios/os/hal/lib/streams/memstreams.c ****   if (msp->size - msp->eos <= 0)
+  35              		.loc 1 70 3 view .LVU2
+  36              		.loc 1 70 6 is_stmt 0 view .LVU3
+  37 0000 D0E90223 		ldrd	r2, r3, [r0, #8]
+  38 0004 9A42     		cmp	r2, r3
+  71:lib/chibios/os/hal/lib/streams/memstreams.c ****     return MSG_RESET;
+  72:lib/chibios/os/hal/lib/streams/memstreams.c ****   *(msp->buffer + msp->eos) = b;
+  39              		.loc 1 72 3 is_stmt 1 view .LVU4
+  40              		.loc 1 72 29 is_stmt 0 view .LVU5
+  41 0006 1FBF     		itttt	ne
+  42 0008 4268     		ldrne	r2, [r0, #4]
+  43 000a D154     		strbne	r1, [r2, r3]
+  73:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos += 1;
+  44              		.loc 1 73 3 is_stmt 1 view .LVU6
+  45              		.loc 1 73 12 is_stmt 0 view .LVU7
+  46 000c C368     		ldrne	r3, [r0, #12]
+  47 000e 0133     		addne	r3, r3, #1
+  48 0010 1ABF     		itte	ne
+  49 0012 C360     		strne	r3, [r0, #12]
+  74:lib/chibios/os/hal/lib/streams/memstreams.c ****   return MSG_OK;
+  50              		.loc 1 74 3 is_stmt 1 view .LVU8
+  51              		.loc 1 74 10 is_stmt 0 view .LVU9
+  52 0014 0020     		movne	r0, #0
+  53              	.LVL1:
+  71:lib/chibios/os/hal/lib/streams/memstreams.c ****     return MSG_RESET;
+  54              		.loc 1 71 12 view .LVU10
+  55 0016 6FF00100 		mvneq	r0, #1
+  75:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+  56              		.loc 1 75 1 view .LVU11
+  57 001a 7047     		bx	lr
+  58              		.cfi_endproc
+  59              	.LFE284:
+  61              		.section	.text._get,"ax",%progbits
+  62              		.align	1
+  63              		.syntax unified
+  64              		.thumb
+  65              		.thumb_func
+  67              	_get:
+  68              	.LVL2:
+  69              	.LFB285:
+  76:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  77:lib/chibios/os/hal/lib/streams/memstreams.c **** static msg_t _get(void *ip) {
+  70              		.loc 1 77 29 is_stmt 1 view -0
+  71              		.cfi_startproc
+  72              		@ args = 0, pretend = 0, frame = 0
+  73              		@ frame_needed = 0, uses_anonymous_args = 0
+  74              		@ link register save eliminated.
+  78:lib/chibios/os/hal/lib/streams/memstreams.c ****   uint8_t b;
+  75              		.loc 1 78 3 view .LVU13
+  79:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+  76              		.loc 1 79 3 view .LVU14
+  80:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  81:lib/chibios/os/hal/lib/streams/memstreams.c ****   if (msp->eos - msp->offset <= 0)
+  77              		.loc 1 81 3 view .LVU15
+  78              		.loc 1 81 6 is_stmt 0 view .LVU16
+  79 0000 D0E90323 		ldrd	r2, r3, [r0, #12]
+  80 0004 9A42     		cmp	r2, r3
+  82:lib/chibios/os/hal/lib/streams/memstreams.c ****     return MSG_RESET;
+  83:lib/chibios/os/hal/lib/streams/memstreams.c ****   b = *(msp->buffer + msp->offset);
+  81              		.loc 1 83 3 is_stmt 1 view .LVU17
+  82              		.loc 1 83 5 is_stmt 0 view .LVU18
+  83 0006 1FBF     		itttt	ne
+  84 0008 4268     		ldrne	r2, [r0, #4]
+  85 000a D25C     		ldrbne	r2, [r2, r3]	@ zero_extendqisi2
+  86              	.LVL3:
+  84:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->offset += 1;
+  87              		.loc 1 84 3 is_stmt 1 view .LVU19
+  88              		.loc 1 84 15 is_stmt 0 view .LVU20
+  89 000c 0133     		addne	r3, r3, #1
+  90              	.LVL4:
+  91              		.loc 1 84 15 view .LVU21
+  92 000e 0361     		strne	r3, [r0, #16]
+  93              	.LVL5:
+  85:lib/chibios/os/hal/lib/streams/memstreams.c ****   return b;
+  94              		.loc 1 85 3 is_stmt 1 view .LVU22
+  95              		.loc 1 85 10 is_stmt 0 view .LVU23
+  96 0010 14BF     		ite	ne
+  97 0012 1046     		movne	r0, r2
+  98              	.LVL6:
+  82:lib/chibios/os/hal/lib/streams/memstreams.c ****     return MSG_RESET;
+  99              		.loc 1 82 12 view .LVU24
+ 100 0014 6FF00100 		mvneq	r0, #1
+  86:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+ 101              		.loc 1 86 1 view .LVU25
+ 102 0018 7047     		bx	lr
+ 103              		.cfi_endproc
+ 104              	.LFE285:
+ 106              		.section	.text._reads,"ax",%progbits
+ 107              		.align	1
+ 108              		.syntax unified
+ 109              		.thumb
+ 110              		.thumb_func
+ 112              	_reads:
+ 113              	.LVL7:
+ 114              	.LFB283:
+  57:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 115              		.loc 1 57 55 is_stmt 1 view -0
+ 116              		.cfi_startproc
+ 117              		@ args = 0, pretend = 0, frame = 0
+ 118              		@ frame_needed = 0, uses_anonymous_args = 0
+  58:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 119              		.loc 1 58 3 view .LVU27
+  57:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 120              		.loc 1 57 55 is_stmt 0 view .LVU28
+ 121 0000 38B5     		push	{r3, r4, r5, lr}
+ 122              		.cfi_def_cfa_offset 16
+ 123              		.cfi_offset 3, -16
+ 124              		.cfi_offset 4, -12
+ 125              		.cfi_offset 5, -8
+ 126              		.cfi_offset 14, -4
+  57:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 127              		.loc 1 57 55 view .LVU29
+ 128 0002 0546     		mov	r5, r0
+ 129              	.LVL8:
+  60:lib/chibios/os/hal/lib/streams/memstreams.c ****     n = msp->eos - msp->offset;
+ 130              		.loc 1 60 3 is_stmt 1 view .LVU30
+  60:lib/chibios/os/hal/lib/streams/memstreams.c ****     n = msp->eos - msp->offset;
+ 131              		.loc 1 60 16 is_stmt 0 view .LVU31
+ 132 0004 D5E90343 		ldrd	r4, r3, [r5, #12]
+ 133 0008 E41A     		subs	r4, r4, r3
+ 134 000a 9442     		cmp	r4, r2
+  57:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 135              		.loc 1 57 55 view .LVU32
+ 136 000c 0846     		mov	r0, r1
+ 137              	.LVL9:
+  62:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->offset += n;
+ 138              		.loc 1 62 26 view .LVU33
+ 139 000e 6968     		ldr	r1, [r5, #4]
+ 140              	.LVL10:
+  62:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->offset += n;
+ 141              		.loc 1 62 26 view .LVU34
+ 142 0010 28BF     		it	cs
+ 143 0012 1446     		movcs	r4, r2
+ 144              	.LVL11:
+  62:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->offset += n;
+ 145              		.loc 1 62 3 is_stmt 1 view .LVU35
+ 146 0014 1944     		add	r1, r1, r3
+ 147 0016 2246     		mov	r2, r4
+ 148 0018 FFF7FEFF 		bl	memcpy
+ 149              	.LVL12:
+  63:lib/chibios/os/hal/lib/streams/memstreams.c ****   return n;
+ 150              		.loc 1 63 3 view .LVU36
+  63:lib/chibios/os/hal/lib/streams/memstreams.c ****   return n;
+ 151              		.loc 1 63 15 is_stmt 0 view .LVU37
+ 152 001c 2B69     		ldr	r3, [r5, #16]
+ 153 001e 2344     		add	r3, r3, r4
+ 154 0020 2B61     		str	r3, [r5, #16]
+  64:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+ 155              		.loc 1 64 3 is_stmt 1 view .LVU38
+  65:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 156              		.loc 1 65 1 is_stmt 0 view .LVU39
+ 157 0022 2046     		mov	r0, r4
+ 158 0024 38BD     		pop	{r3, r4, r5, pc}
+  65:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 159              		.loc 1 65 1 view .LVU40
+ 160              		.cfi_endproc
+ 161              	.LFE283:
+ 163              		.section	.text._writes,"ax",%progbits
+ 164              		.align	1
+ 165              		.syntax unified
+ 166              		.thumb
+ 167              		.thumb_func
+ 169              	_writes:
+ 170              	.LVL13:
+ 171              	.LFB282:
+  47:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 172              		.loc 1 47 62 is_stmt 1 view -0
+ 173              		.cfi_startproc
+ 174              		@ args = 0, pretend = 0, frame = 0
+ 175              		@ frame_needed = 0, uses_anonymous_args = 0
+  48:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 176              		.loc 1 48 3 view .LVU42
+  50:lib/chibios/os/hal/lib/streams/memstreams.c ****     n = msp->size - msp->eos;
+ 177              		.loc 1 50 3 view .LVU43
+  47:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 178              		.loc 1 47 62 is_stmt 0 view .LVU44
+ 179 0000 38B5     		push	{r3, r4, r5, lr}
+ 180              		.cfi_def_cfa_offset 16
+ 181              		.cfi_offset 3, -16
+ 182              		.cfi_offset 4, -12
+ 183              		.cfi_offset 5, -8
+ 184              		.cfi_offset 14, -4
+  50:lib/chibios/os/hal/lib/streams/memstreams.c ****     n = msp->size - msp->eos;
+ 185              		.loc 1 50 17 view .LVU45
+ 186 0002 D0E90243 		ldrd	r4, r3, [r0, #8]
+ 187 0006 E41A     		subs	r4, r4, r3
+  47:lib/chibios/os/hal/lib/streams/memstreams.c ****   MemoryStream *msp = ip;
+ 188              		.loc 1 47 62 view .LVU46
+ 189 0008 0546     		mov	r5, r0
+ 190 000a 9442     		cmp	r4, r2
+  52:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos += n;
+ 191              		.loc 1 52 22 view .LVU47
+ 192 000c 4068     		ldr	r0, [r0, #4]
+ 193              	.LVL14:
+  52:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos += n;
+ 194              		.loc 1 52 22 view .LVU48
+ 195 000e 28BF     		it	cs
+ 196 0010 1446     		movcs	r4, r2
+ 197              	.LVL15:
+  52:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos += n;
+ 198              		.loc 1 52 3 is_stmt 1 view .LVU49
+ 199 0012 2246     		mov	r2, r4
+ 200 0014 1844     		add	r0, r0, r3
+ 201 0016 FFF7FEFF 		bl	memcpy
+ 202              	.LVL16:
+  53:lib/chibios/os/hal/lib/streams/memstreams.c ****   return n;
+ 203              		.loc 1 53 3 view .LVU50
+  53:lib/chibios/os/hal/lib/streams/memstreams.c ****   return n;
+ 204              		.loc 1 53 12 is_stmt 0 view .LVU51
+ 205 001a EB68     		ldr	r3, [r5, #12]
+ 206 001c 2344     		add	r3, r3, r4
+ 207 001e EB60     		str	r3, [r5, #12]
+  54:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+ 208              		.loc 1 54 3 is_stmt 1 view .LVU52
+  55:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 209              		.loc 1 55 1 is_stmt 0 view .LVU53
+ 210 0020 2046     		mov	r0, r4
+ 211 0022 38BD     		pop	{r3, r4, r5, pc}
+  55:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 212              		.loc 1 55 1 view .LVU54
+ 213              		.cfi_endproc
+ 214              	.LFE282:
+ 216              		.section	.text.msObjectInit,"ax",%progbits
+ 217              		.align	1
+ 218              		.global	msObjectInit
+ 219              		.syntax unified
+ 220              		.thumb
+ 221              		.thumb_func
+ 223              	msObjectInit:
+ 224              	.LVL17:
+ 225              	.LFB286:
+  87:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  88:lib/chibios/os/hal/lib/streams/memstreams.c **** static const struct MemStreamVMT vmt = {(size_t)0, _writes, _reads, _put, _get};
+  89:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  90:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  91:lib/chibios/os/hal/lib/streams/memstreams.c **** /* Driver exported functions.                                                */
+  92:lib/chibios/os/hal/lib/streams/memstreams.c **** /*===========================================================================*/
+  93:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+  94:lib/chibios/os/hal/lib/streams/memstreams.c **** /**
+  95:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @brief   Memory stream object initialization.
+  96:lib/chibios/os/hal/lib/streams/memstreams.c ****  *
+  97:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @param[out] msp      pointer to the @p MemoryStream object to be initialized
+  98:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @param[in] buffer    pointer to the memory buffer for the memory stream
+  99:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @param[in] size      total size of the memory stream buffer
+ 100:lib/chibios/os/hal/lib/streams/memstreams.c ****  * @param[in] eos       initial End Of Stream offset. Normally you need to
+ 101:lib/chibios/os/hal/lib/streams/memstreams.c ****  *                      put this to zero for RAM buffers or equal to @p size
+ 102:lib/chibios/os/hal/lib/streams/memstreams.c ****  *                      for ROM streams.
+ 103:lib/chibios/os/hal/lib/streams/memstreams.c ****  */
+ 104:lib/chibios/os/hal/lib/streams/memstreams.c **** void msObjectInit(MemoryStream *msp, uint8_t *buffer,
+ 105:lib/chibios/os/hal/lib/streams/memstreams.c ****                   size_t size, size_t eos) {
+ 226              		.loc 1 105 44 is_stmt 1 view -0
+ 227              		.cfi_startproc
+ 228              		@ args = 0, pretend = 0, frame = 0
+ 229              		@ frame_needed = 0, uses_anonymous_args = 0
+ 106:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 107:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->vmt    = &vmt;
+ 230              		.loc 1 107 3 view .LVU56
+ 105:lib/chibios/os/hal/lib/streams/memstreams.c **** 
+ 231              		.loc 1 105 44 is_stmt 0 view .LVU57
+ 232 0000 10B5     		push	{r4, lr}
+ 233              		.cfi_def_cfa_offset 8
+ 234              		.cfi_offset 4, -8
+ 235              		.cfi_offset 14, -4
+ 236              		.loc 1 107 15 view .LVU58
+ 237 0002 044C     		ldr	r4, .L10
+ 108:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->buffer = buffer;
+ 109:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->size   = size;
+ 110:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos    = eos;
+ 238              		.loc 1 110 15 view .LVU59
+ 239 0004 C0E90223 		strd	r2, r3, [r0, #8]
+ 111:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->offset = 0;
+ 240              		.loc 1 111 15 view .LVU60
+ 241 0008 0023     		movs	r3, #0
+ 242              	.LVL18:
+ 108:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->buffer = buffer;
+ 243              		.loc 1 108 15 view .LVU61
+ 244 000a C0E90041 		strd	r4, r1, [r0]
+ 109:lib/chibios/os/hal/lib/streams/memstreams.c ****   msp->eos    = eos;
+ 245              		.loc 1 109 3 is_stmt 1 view .LVU62
+ 246              		.loc 1 111 3 view .LVU63
+ 247              		.loc 1 111 15 is_stmt 0 view .LVU64
+ 248 000e 0361     		str	r3, [r0, #16]
+ 112:lib/chibios/os/hal/lib/streams/memstreams.c **** }
+ 249              		.loc 1 112 1 view .LVU65
+ 250 0010 10BD     		pop	{r4, pc}
+ 251              	.L11:
+ 252 0012 00BF     		.align	2
+ 253              	.L10:
+ 254 0014 00000000 		.word	vmt
+ 255              		.cfi_endproc
+ 256              	.LFE286:
+ 258              		.section	.rodata.vmt,"a"
+ 259              		.align	2
+ 262              	vmt:
+ 263 0000 00000000 		.word	0
+ 264 0004 00000000 		.word	_writes
+ 265 0008 00000000 		.word	_reads
+ 266 000c 00000000 		.word	_put
+ 267 0010 00000000 		.word	_get
+ 268              		.text
+ 269              	.Letext0:
+ 270              		.file 2 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 271              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 272              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 273              		.file 5 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 274              		.file 6 "lib/chibios/os/hal/lib/streams/memstreams.h"
+ 275              		.file 7 "/usr/arm-none-eabi/include/string.h"
+ 276              		.file 8 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 memstreams.c
+     /tmp/ccHnI1Sn.s:21     .text._put:0000000000000000 $t
+     /tmp/ccHnI1Sn.s:26     .text._put:0000000000000000 _put
+     /tmp/ccHnI1Sn.s:62     .text._get:0000000000000000 $t
+     /tmp/ccHnI1Sn.s:67     .text._get:0000000000000000 _get
+     /tmp/ccHnI1Sn.s:107    .text._reads:0000000000000000 $t
+     /tmp/ccHnI1Sn.s:112    .text._reads:0000000000000000 _reads
+     /tmp/ccHnI1Sn.s:164    .text._writes:0000000000000000 $t
+     /tmp/ccHnI1Sn.s:169    .text._writes:0000000000000000 _writes
+     /tmp/ccHnI1Sn.s:217    .text.msObjectInit:0000000000000000 $t
+     /tmp/ccHnI1Sn.s:223    .text.msObjectInit:0000000000000000 msObjectInit
+     /tmp/ccHnI1Sn.s:254    .text.msObjectInit:0000000000000014 $d
+     /tmp/ccHnI1Sn.s:262    .rodata.vmt:0000000000000000 vmt
+     /tmp/ccHnI1Sn.s:259    .rodata.vmt:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+memcpy

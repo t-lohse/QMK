@@ -1,0 +1,2186 @@
+   1               		.file	"action_tapping.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.debug_waiting_buffer,"ax",@progbits
+  12               	debug_waiting_buffer:
+  13               	.LFB15:
+  14               		.file 1 "quantum/action_tapping.c"
+   1:quantum/action_tapping.c **** #include <stdint.h>
+   2:quantum/action_tapping.c **** #include <stdbool.h>
+   3:quantum/action_tapping.c **** #include "action.h"
+   4:quantum/action_tapping.c **** #include "action_layer.h"
+   5:quantum/action_tapping.c **** #include "action_tapping.h"
+   6:quantum/action_tapping.c **** #include "keycode.h"
+   7:quantum/action_tapping.c **** #include "timer.h"
+   8:quantum/action_tapping.c **** 
+   9:quantum/action_tapping.c **** #ifdef DEBUG_ACTION
+  10:quantum/action_tapping.c **** #    include "debug.h"
+  11:quantum/action_tapping.c **** #else
+  12:quantum/action_tapping.c **** #    include "nodebug.h"
+  13:quantum/action_tapping.c **** #endif
+  14:quantum/action_tapping.c **** 
+  15:quantum/action_tapping.c **** #ifndef NO_ACTION_TAPPING
+  16:quantum/action_tapping.c **** 
+  17:quantum/action_tapping.c **** #    define IS_TAPPING() !IS_NOEVENT(tapping_key.event)
+  18:quantum/action_tapping.c **** #    define IS_TAPPING_PRESSED() (IS_TAPPING() && tapping_key.event.pressed)
+  19:quantum/action_tapping.c **** #    define IS_TAPPING_RELEASED() (IS_TAPPING() && !tapping_key.event.pressed)
+  20:quantum/action_tapping.c **** #    define IS_TAPPING_KEY(k) (IS_TAPPING() && KEYEQ(tapping_key.event.key, (k)))
+  21:quantum/action_tapping.c **** #ifndef COMBO_ENABLE
+  22:quantum/action_tapping.c **** #    define IS_TAPPING_RECORD(r) (IS_TAPPING() && KEYEQ(tapping_key.event.key, (r->event.key)))
+  23:quantum/action_tapping.c **** #else
+  24:quantum/action_tapping.c **** #    define IS_TAPPING_RECORD(r) (IS_TAPPING() && KEYEQ(tapping_key.event.key, (r->event.key)) && t
+  25:quantum/action_tapping.c **** #endif
+  26:quantum/action_tapping.c **** 
+  27:quantum/action_tapping.c **** __attribute__((weak)) uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) { return TAP
+  28:quantum/action_tapping.c **** 
+  29:quantum/action_tapping.c **** #    ifdef TAPPING_TERM_PER_KEY
+  30:quantum/action_tapping.c **** #        define WITHIN_TAPPING_TERM(e) (TIMER_DIFF_16(e.time, tapping_key.event.time) < get_tapping
+  31:quantum/action_tapping.c **** #    else
+  32:quantum/action_tapping.c **** #        define WITHIN_TAPPING_TERM(e) (TIMER_DIFF_16(e.time, tapping_key.event.time) < TAPPING_TER
+  33:quantum/action_tapping.c **** #    endif
+  34:quantum/action_tapping.c **** 
+  35:quantum/action_tapping.c **** #    ifdef TAPPING_FORCE_HOLD_PER_KEY
+  36:quantum/action_tapping.c **** __attribute__((weak)) bool get_tapping_force_hold(uint16_t keycode, keyrecord_t *record) { return f
+  37:quantum/action_tapping.c **** #    endif
+  38:quantum/action_tapping.c **** 
+  39:quantum/action_tapping.c **** #    ifdef PERMISSIVE_HOLD_PER_KEY
+  40:quantum/action_tapping.c **** __attribute__((weak)) bool get_permissive_hold(uint16_t keycode, keyrecord_t *record) { return fals
+  41:quantum/action_tapping.c **** #    endif
+  42:quantum/action_tapping.c **** 
+  43:quantum/action_tapping.c **** #    ifdef HOLD_ON_OTHER_KEY_PRESS_PER_KEY
+  44:quantum/action_tapping.c **** __attribute__((weak)) bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) { ret
+  45:quantum/action_tapping.c **** #    endif
+  46:quantum/action_tapping.c **** 
+  47:quantum/action_tapping.c **** static keyrecord_t tapping_key                         = {};
+  48:quantum/action_tapping.c **** static keyrecord_t waiting_buffer[WAITING_BUFFER_SIZE] = {};
+  49:quantum/action_tapping.c **** static uint8_t     waiting_buffer_head                 = 0;
+  50:quantum/action_tapping.c **** static uint8_t     waiting_buffer_tail                 = 0;
+  51:quantum/action_tapping.c **** 
+  52:quantum/action_tapping.c **** static bool process_tapping(keyrecord_t *record);
+  53:quantum/action_tapping.c **** static bool waiting_buffer_enq(keyrecord_t record);
+  54:quantum/action_tapping.c **** static void waiting_buffer_clear(void);
+  55:quantum/action_tapping.c **** static bool waiting_buffer_typed(keyevent_t event);
+  56:quantum/action_tapping.c **** static bool waiting_buffer_has_anykey_pressed(void);
+  57:quantum/action_tapping.c **** static void waiting_buffer_scan_tap(void);
+  58:quantum/action_tapping.c **** static void debug_tapping_key(void);
+  59:quantum/action_tapping.c **** static void debug_waiting_buffer(void);
+  60:quantum/action_tapping.c **** 
+  61:quantum/action_tapping.c **** /** \brief Action Tapping Process
+  62:quantum/action_tapping.c ****  *
+  63:quantum/action_tapping.c ****  * FIXME: Needs doc
+  64:quantum/action_tapping.c ****  */
+  65:quantum/action_tapping.c **** void action_tapping_process(keyrecord_t record) {
+  66:quantum/action_tapping.c ****     if (process_tapping(&record)) {
+  67:quantum/action_tapping.c ****         if (!IS_NOEVENT(record.event)) {
+  68:quantum/action_tapping.c ****             debug("processed: ");
+  69:quantum/action_tapping.c ****             debug_record(record);
+  70:quantum/action_tapping.c ****             debug("\n");
+  71:quantum/action_tapping.c ****         }
+  72:quantum/action_tapping.c ****     } else {
+  73:quantum/action_tapping.c ****         if (!waiting_buffer_enq(record)) {
+  74:quantum/action_tapping.c ****             // clear all in case of overflow.
+  75:quantum/action_tapping.c ****             debug("OVERFLOW: CLEAR ALL STATES\n");
+  76:quantum/action_tapping.c ****             clear_keyboard();
+  77:quantum/action_tapping.c ****             waiting_buffer_clear();
+  78:quantum/action_tapping.c ****             tapping_key = (keyrecord_t){};
+  79:quantum/action_tapping.c ****         }
+  80:quantum/action_tapping.c ****     }
+  81:quantum/action_tapping.c **** 
+  82:quantum/action_tapping.c ****     // process waiting_buffer
+  83:quantum/action_tapping.c ****     if (!IS_NOEVENT(record.event) && waiting_buffer_head != waiting_buffer_tail) {
+  84:quantum/action_tapping.c ****         debug("---- action_exec: process waiting_buffer -----\n");
+  85:quantum/action_tapping.c ****     }
+  86:quantum/action_tapping.c ****     for (; waiting_buffer_tail != waiting_buffer_head; waiting_buffer_tail = (waiting_buffer_tail +
+  87:quantum/action_tapping.c ****         if (process_tapping(&waiting_buffer[waiting_buffer_tail])) {
+  88:quantum/action_tapping.c ****             debug("processed: waiting_buffer[");
+  89:quantum/action_tapping.c ****             debug_dec(waiting_buffer_tail);
+  90:quantum/action_tapping.c ****             debug("] = ");
+  91:quantum/action_tapping.c ****             debug_record(waiting_buffer[waiting_buffer_tail]);
+  92:quantum/action_tapping.c ****             debug("\n\n");
+  93:quantum/action_tapping.c ****         } else {
+  94:quantum/action_tapping.c ****             break;
+  95:quantum/action_tapping.c ****         }
+  96:quantum/action_tapping.c ****     }
+  97:quantum/action_tapping.c ****     if (!IS_NOEVENT(record.event)) {
+  98:quantum/action_tapping.c ****         debug("\n");
+  99:quantum/action_tapping.c ****     }
+ 100:quantum/action_tapping.c **** }
+ 101:quantum/action_tapping.c **** 
+ 102:quantum/action_tapping.c **** /** \brief Tapping
+ 103:quantum/action_tapping.c ****  *
+ 104:quantum/action_tapping.c ****  * Rule: Tap key is typed(pressed and released) within TAPPING_TERM.
+ 105:quantum/action_tapping.c ****  *       (without interfering by typing other key)
+ 106:quantum/action_tapping.c ****  */
+ 107:quantum/action_tapping.c **** /* return true when key event is processed or consumed. */
+ 108:quantum/action_tapping.c **** bool process_tapping(keyrecord_t *keyp) {
+ 109:quantum/action_tapping.c ****     keyevent_t event = keyp->event;
+ 110:quantum/action_tapping.c **** 
+ 111:quantum/action_tapping.c ****     // if tapping
+ 112:quantum/action_tapping.c ****     if (IS_TAPPING_PRESSED()) {
+ 113:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 114:quantum/action_tapping.c ****             if (tapping_key.tap.count == 0) {
+ 115:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp) && !event.pressed) {
+ 116:quantum/action_tapping.c ****                     // first tap!
+ 117:quantum/action_tapping.c ****                     debug("Tapping: First tap(0->1).\n");
+ 118:quantum/action_tapping.c ****                     tapping_key.tap.count = 1;
+ 119:quantum/action_tapping.c ****                     debug_tapping_key();
+ 120:quantum/action_tapping.c ****                     process_record(&tapping_key);
+ 121:quantum/action_tapping.c **** 
+ 122:quantum/action_tapping.c ****                     // copy tapping state
+ 123:quantum/action_tapping.c ****                     keyp->tap = tapping_key.tap;
+ 124:quantum/action_tapping.c ****                     // enqueue
+ 125:quantum/action_tapping.c ****                     return false;
+ 126:quantum/action_tapping.c ****                 }
+ 127:quantum/action_tapping.c ****                 /* Process a key typed within TAPPING_TERM
+ 128:quantum/action_tapping.c ****                  * This can register the key before settlement of tapping,
+ 129:quantum/action_tapping.c ****                  * useful for long TAPPING_TERM but may prevent fast typing.
+ 130:quantum/action_tapping.c ****                  */
+ 131:quantum/action_tapping.c **** #    if defined(TAPPING_TERM_PER_KEY) || (TAPPING_TERM >= 500) || defined(PERMISSIVE_HOLD) || defin
+ 132:quantum/action_tapping.c ****                 else if (((
+ 133:quantum/action_tapping.c **** #        ifdef TAPPING_TERM_PER_KEY
+ 134:quantum/action_tapping.c ****                               get_tapping_term(get_record_keycode(&tapping_key, false), keyp)
+ 135:quantum/action_tapping.c **** #        else
+ 136:quantum/action_tapping.c ****                               TAPPING_TERM
+ 137:quantum/action_tapping.c **** #        endif
+ 138:quantum/action_tapping.c ****                               >= 500)
+ 139:quantum/action_tapping.c **** 
+ 140:quantum/action_tapping.c **** #        ifdef PERMISSIVE_HOLD_PER_KEY
+ 141:quantum/action_tapping.c ****                           || get_permissive_hold(get_record_keycode(&tapping_key, false), keyp)
+ 142:quantum/action_tapping.c **** #        elif defined(PERMISSIVE_HOLD)
+ 143:quantum/action_tapping.c ****                           || true
+ 144:quantum/action_tapping.c **** #        endif
+ 145:quantum/action_tapping.c ****                               ) &&
+ 146:quantum/action_tapping.c ****                          IS_RELEASED(event) && waiting_buffer_typed(event)) {
+ 147:quantum/action_tapping.c ****                     debug("Tapping: End. No tap. Interfered by typing key\n");
+ 148:quantum/action_tapping.c ****                     process_record(&tapping_key);
+ 149:quantum/action_tapping.c ****                     tapping_key = (keyrecord_t){};
+ 150:quantum/action_tapping.c ****                     debug_tapping_key();
+ 151:quantum/action_tapping.c ****                     // enqueue
+ 152:quantum/action_tapping.c ****                     return false;
+ 153:quantum/action_tapping.c ****                 }
+ 154:quantum/action_tapping.c **** #    endif
+ 155:quantum/action_tapping.c ****                 /* Process release event of a key pressed before tapping starts
+ 156:quantum/action_tapping.c ****                  * Without this unexpected repeating will occur with having fast repeating setting
+ 157:quantum/action_tapping.c ****                  * https://github.com/tmk/tmk_keyboard/issues/60
+ 158:quantum/action_tapping.c ****                  */
+ 159:quantum/action_tapping.c ****                 else if (IS_RELEASED(event) && !waiting_buffer_typed(event)) {
+ 160:quantum/action_tapping.c ****                     // Modifier should be retained till end of this tapping.
+ 161:quantum/action_tapping.c ****                     action_t action = layer_switch_get_action(event.key);
+ 162:quantum/action_tapping.c ****                     switch (action.kind.id) {
+ 163:quantum/action_tapping.c ****                         case ACT_LMODS:
+ 164:quantum/action_tapping.c ****                         case ACT_RMODS:
+ 165:quantum/action_tapping.c ****                             if (action.key.mods && !action.key.code) return false;
+ 166:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 167:quantum/action_tapping.c ****                             break;
+ 168:quantum/action_tapping.c ****                         case ACT_LMODS_TAP:
+ 169:quantum/action_tapping.c ****                         case ACT_RMODS_TAP:
+ 170:quantum/action_tapping.c ****                             if (action.key.mods && keyp->tap.count == 0) return false;
+ 171:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 172:quantum/action_tapping.c ****                             break;
+ 173:quantum/action_tapping.c ****                     }
+ 174:quantum/action_tapping.c ****                     // Release of key should be process immediately.
+ 175:quantum/action_tapping.c ****                     debug("Tapping: release event of a key pressed before tapping\n");
+ 176:quantum/action_tapping.c ****                     process_record(keyp);
+ 177:quantum/action_tapping.c ****                     return true;
+ 178:quantum/action_tapping.c ****                 } else {
+ 179:quantum/action_tapping.c ****                     // set interrupted flag when other key preesed during tapping
+ 180:quantum/action_tapping.c ****                     if (event.pressed) {
+ 181:quantum/action_tapping.c ****                         tapping_key.tap.interrupted = true;
+ 182:quantum/action_tapping.c **** #    if defined(HOLD_ON_OTHER_KEY_PRESS) || defined(HOLD_ON_OTHER_KEY_PRESS_PER_KEY)
+ 183:quantum/action_tapping.c **** #        if defined(HOLD_ON_OTHER_KEY_PRESS_PER_KEY)
+ 184:quantum/action_tapping.c ****                         if (get_hold_on_other_key_press(get_record_keycode(&tapping_key, false), ke
+ 185:quantum/action_tapping.c **** #        endif
+ 186:quantum/action_tapping.c ****                         {
+ 187:quantum/action_tapping.c ****                             debug("Tapping: End. No tap. Interfered by pressed key\n");
+ 188:quantum/action_tapping.c ****                             process_record(&tapping_key);
+ 189:quantum/action_tapping.c ****                             tapping_key = (keyrecord_t){};
+ 190:quantum/action_tapping.c ****                             debug_tapping_key();
+ 191:quantum/action_tapping.c ****                             // enqueue
+ 192:quantum/action_tapping.c ****                             return false;
+ 193:quantum/action_tapping.c ****                         }
+ 194:quantum/action_tapping.c **** #    endif
+ 195:quantum/action_tapping.c ****                     }
+ 196:quantum/action_tapping.c ****                     // enqueue
+ 197:quantum/action_tapping.c ****                     return false;
+ 198:quantum/action_tapping.c ****                 }
+ 199:quantum/action_tapping.c ****             }
+ 200:quantum/action_tapping.c ****             // tap_count > 0
+ 201:quantum/action_tapping.c ****             else {
+ 202:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp) && !event.pressed) {
+ 203:quantum/action_tapping.c ****                     debug("Tapping: Tap release(");
+ 204:quantum/action_tapping.c ****                     debug_dec(tapping_key.tap.count);
+ 205:quantum/action_tapping.c ****                     debug(")\n");
+ 206:quantum/action_tapping.c ****                     keyp->tap = tapping_key.tap;
+ 207:quantum/action_tapping.c ****                     process_record(keyp);
+ 208:quantum/action_tapping.c ****                     tapping_key = *keyp;
+ 209:quantum/action_tapping.c ****                     debug_tapping_key();
+ 210:quantum/action_tapping.c ****                     return true;
+ 211:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp) && event.pressed) {
+ 212:quantum/action_tapping.c ****                     if (tapping_key.tap.count > 1) {
+ 213:quantum/action_tapping.c ****                         debug("Tapping: Start new tap with releasing last tap(>1).\n");
+ 214:quantum/action_tapping.c ****                         // unregister key
+ 215:quantum/action_tapping.c ****                         process_record(&(keyrecord_t){.tap = tapping_key.tap, .event.key = tapping_
+ 216:quantum/action_tapping.c **** #ifdef COMBO_ENABLE
+ 217:quantum/action_tapping.c ****                                 .keycode = tapping_key.keycode,
+ 218:quantum/action_tapping.c **** #endif
+ 219:quantum/action_tapping.c ****                                 });
+ 220:quantum/action_tapping.c ****                     } else {
+ 221:quantum/action_tapping.c ****                         debug("Tapping: Start while last tap(1).\n");
+ 222:quantum/action_tapping.c ****                     }
+ 223:quantum/action_tapping.c ****                     tapping_key = *keyp;
+ 224:quantum/action_tapping.c ****                     waiting_buffer_scan_tap();
+ 225:quantum/action_tapping.c ****                     debug_tapping_key();
+ 226:quantum/action_tapping.c ****                     return true;
+ 227:quantum/action_tapping.c ****                 } else {
+ 228:quantum/action_tapping.c ****                     if (!IS_NOEVENT(event)) {
+ 229:quantum/action_tapping.c ****                         debug("Tapping: key event while last tap(>0).\n");
+ 230:quantum/action_tapping.c ****                     }
+ 231:quantum/action_tapping.c ****                     process_record(keyp);
+ 232:quantum/action_tapping.c ****                     return true;
+ 233:quantum/action_tapping.c ****                 }
+ 234:quantum/action_tapping.c ****             }
+ 235:quantum/action_tapping.c ****         }
+ 236:quantum/action_tapping.c ****         // after TAPPING_TERM
+ 237:quantum/action_tapping.c ****         else {
+ 238:quantum/action_tapping.c ****             if (tapping_key.tap.count == 0) {
+ 239:quantum/action_tapping.c ****                 debug("Tapping: End. Timeout. Not tap(0): ");
+ 240:quantum/action_tapping.c ****                 debug_event(event);
+ 241:quantum/action_tapping.c ****                 debug("\n");
+ 242:quantum/action_tapping.c ****                 process_record(&tapping_key);
+ 243:quantum/action_tapping.c ****                 tapping_key = (keyrecord_t){};
+ 244:quantum/action_tapping.c ****                 debug_tapping_key();
+ 245:quantum/action_tapping.c ****                 return false;
+ 246:quantum/action_tapping.c ****             } else {
+ 247:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp) && !event.pressed) {
+ 248:quantum/action_tapping.c ****                     debug("Tapping: End. last timeout tap release(>0).");
+ 249:quantum/action_tapping.c ****                     keyp->tap = tapping_key.tap;
+ 250:quantum/action_tapping.c ****                     process_record(keyp);
+ 251:quantum/action_tapping.c ****                     tapping_key = (keyrecord_t){};
+ 252:quantum/action_tapping.c ****                     return true;
+ 253:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp) && event.pressed) {
+ 254:quantum/action_tapping.c ****                     if (tapping_key.tap.count > 1) {
+ 255:quantum/action_tapping.c ****                         debug("Tapping: Start new tap with releasing last timeout tap(>1).\n");
+ 256:quantum/action_tapping.c ****                         // unregister key
+ 257:quantum/action_tapping.c ****                         process_record(&(keyrecord_t){.tap = tapping_key.tap, .event.key = tapping_
+ 258:quantum/action_tapping.c **** #ifdef COMBO_ENABLE
+ 259:quantum/action_tapping.c ****                                 .keycode = tapping_key.keycode,
+ 260:quantum/action_tapping.c **** #endif
+ 261:quantum/action_tapping.c ****                                 });
+ 262:quantum/action_tapping.c ****                     } else {
+ 263:quantum/action_tapping.c ****                         debug("Tapping: Start while last timeout tap(1).\n");
+ 264:quantum/action_tapping.c ****                     }
+ 265:quantum/action_tapping.c ****                     tapping_key = *keyp;
+ 266:quantum/action_tapping.c ****                     waiting_buffer_scan_tap();
+ 267:quantum/action_tapping.c ****                     debug_tapping_key();
+ 268:quantum/action_tapping.c ****                     return true;
+ 269:quantum/action_tapping.c ****                 } else {
+ 270:quantum/action_tapping.c ****                     if (!IS_NOEVENT(event)) {
+ 271:quantum/action_tapping.c ****                         debug("Tapping: key event while last timeout tap(>0).\n");
+ 272:quantum/action_tapping.c ****                     }
+ 273:quantum/action_tapping.c ****                     process_record(keyp);
+ 274:quantum/action_tapping.c ****                     return true;
+ 275:quantum/action_tapping.c ****                 }
+ 276:quantum/action_tapping.c ****             }
+ 277:quantum/action_tapping.c ****         }
+ 278:quantum/action_tapping.c ****     } else if (IS_TAPPING_RELEASED()) {
+ 279:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 280:quantum/action_tapping.c ****             if (event.pressed) {
+ 281:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp)) {
+ 282:quantum/action_tapping.c **** //#    ifndef TAPPING_FORCE_HOLD
+ 283:quantum/action_tapping.c **** #    if !defined(TAPPING_FORCE_HOLD) || defined(TAPPING_FORCE_HOLD_PER_KEY)
+ 284:quantum/action_tapping.c ****                     if (
+ 285:quantum/action_tapping.c **** #        ifdef TAPPING_FORCE_HOLD_PER_KEY
+ 286:quantum/action_tapping.c ****                         !get_tapping_force_hold(get_record_keycode(&tapping_key, false), keyp) &&
+ 287:quantum/action_tapping.c **** #        endif
+ 288:quantum/action_tapping.c ****                         !tapping_key.tap.interrupted && tapping_key.tap.count > 0) {
+ 289:quantum/action_tapping.c ****                         // sequential tap.
+ 290:quantum/action_tapping.c ****                         keyp->tap = tapping_key.tap;
+ 291:quantum/action_tapping.c ****                         if (keyp->tap.count < 15) keyp->tap.count += 1;
+ 292:quantum/action_tapping.c ****                         debug("Tapping: Tap press(");
+ 293:quantum/action_tapping.c ****                         debug_dec(keyp->tap.count);
+ 294:quantum/action_tapping.c ****                         debug(")\n");
+ 295:quantum/action_tapping.c ****                         process_record(keyp);
+ 296:quantum/action_tapping.c ****                         tapping_key = *keyp;
+ 297:quantum/action_tapping.c ****                         debug_tapping_key();
+ 298:quantum/action_tapping.c ****                         return true;
+ 299:quantum/action_tapping.c ****                     }
+ 300:quantum/action_tapping.c **** #    endif
+ 301:quantum/action_tapping.c ****                     // FIX: start new tap again
+ 302:quantum/action_tapping.c ****                     tapping_key = *keyp;
+ 303:quantum/action_tapping.c ****                     return true;
+ 304:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp)) {
+ 305:quantum/action_tapping.c ****                     // Sequential tap can be interfered with other tap key.
+ 306:quantum/action_tapping.c ****                     debug("Tapping: Start with interfering other tap.\n");
+ 307:quantum/action_tapping.c ****                     tapping_key = *keyp;
+ 308:quantum/action_tapping.c ****                     waiting_buffer_scan_tap();
+ 309:quantum/action_tapping.c ****                     debug_tapping_key();
+ 310:quantum/action_tapping.c ****                     return true;
+ 311:quantum/action_tapping.c ****                 } else {
+ 312:quantum/action_tapping.c ****                     // should none in buffer
+ 313:quantum/action_tapping.c ****                     // FIX: interrupted when other key is pressed
+ 314:quantum/action_tapping.c ****                     tapping_key.tap.interrupted = true;
+ 315:quantum/action_tapping.c ****                     process_record(keyp);
+ 316:quantum/action_tapping.c ****                     return true;
+ 317:quantum/action_tapping.c ****                 }
+ 318:quantum/action_tapping.c ****             } else {
+ 319:quantum/action_tapping.c ****                 if (!IS_NOEVENT(event)) debug("Tapping: other key just after tap.\n");
+ 320:quantum/action_tapping.c ****                 process_record(keyp);
+ 321:quantum/action_tapping.c ****                 return true;
+ 322:quantum/action_tapping.c ****             }
+ 323:quantum/action_tapping.c ****         } else {
+ 324:quantum/action_tapping.c ****             // FIX: process_action here?
+ 325:quantum/action_tapping.c ****             // timeout. no sequential tap.
+ 326:quantum/action_tapping.c ****             debug("Tapping: End(Timeout after releasing last tap): ");
+ 327:quantum/action_tapping.c ****             debug_event(event);
+ 328:quantum/action_tapping.c ****             debug("\n");
+ 329:quantum/action_tapping.c ****             tapping_key = (keyrecord_t){};
+ 330:quantum/action_tapping.c ****             debug_tapping_key();
+ 331:quantum/action_tapping.c ****             return false;
+ 332:quantum/action_tapping.c ****         }
+ 333:quantum/action_tapping.c ****     }
+ 334:quantum/action_tapping.c ****     // not tapping state
+ 335:quantum/action_tapping.c ****     else {
+ 336:quantum/action_tapping.c ****         if (event.pressed && is_tap_record(keyp)) {
+ 337:quantum/action_tapping.c ****             debug("Tapping: Start(Press tap key).\n");
+ 338:quantum/action_tapping.c ****             tapping_key = *keyp;
+ 339:quantum/action_tapping.c ****             process_record_tap_hint(&tapping_key);
+ 340:quantum/action_tapping.c ****             waiting_buffer_scan_tap();
+ 341:quantum/action_tapping.c ****             debug_tapping_key();
+ 342:quantum/action_tapping.c ****             return true;
+ 343:quantum/action_tapping.c ****         } else {
+ 344:quantum/action_tapping.c ****             process_record(keyp);
+ 345:quantum/action_tapping.c ****             return true;
+ 346:quantum/action_tapping.c ****         }
+ 347:quantum/action_tapping.c ****     }
+ 348:quantum/action_tapping.c **** }
+ 349:quantum/action_tapping.c **** 
+ 350:quantum/action_tapping.c **** /** \brief Waiting buffer enq
+ 351:quantum/action_tapping.c ****  *
+ 352:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 353:quantum/action_tapping.c ****  */
+ 354:quantum/action_tapping.c **** bool waiting_buffer_enq(keyrecord_t record) {
+ 355:quantum/action_tapping.c ****     if (IS_NOEVENT(record.event)) {
+ 356:quantum/action_tapping.c ****         return true;
+ 357:quantum/action_tapping.c ****     }
+ 358:quantum/action_tapping.c **** 
+ 359:quantum/action_tapping.c ****     if ((waiting_buffer_head + 1) % WAITING_BUFFER_SIZE == waiting_buffer_tail) {
+ 360:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 361:quantum/action_tapping.c ****         return false;
+ 362:quantum/action_tapping.c ****     }
+ 363:quantum/action_tapping.c **** 
+ 364:quantum/action_tapping.c ****     waiting_buffer[waiting_buffer_head] = record;
+ 365:quantum/action_tapping.c ****     waiting_buffer_head                 = (waiting_buffer_head + 1) % WAITING_BUFFER_SIZE;
+ 366:quantum/action_tapping.c **** 
+ 367:quantum/action_tapping.c ****     debug("waiting_buffer_enq: ");
+ 368:quantum/action_tapping.c ****     debug_waiting_buffer();
+ 369:quantum/action_tapping.c ****     return true;
+ 370:quantum/action_tapping.c **** }
+ 371:quantum/action_tapping.c **** 
+ 372:quantum/action_tapping.c **** /** \brief Waiting buffer clear
+ 373:quantum/action_tapping.c ****  *
+ 374:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 375:quantum/action_tapping.c ****  */
+ 376:quantum/action_tapping.c **** void waiting_buffer_clear(void) {
+ 377:quantum/action_tapping.c ****     waiting_buffer_head = 0;
+ 378:quantum/action_tapping.c ****     waiting_buffer_tail = 0;
+ 379:quantum/action_tapping.c **** }
+ 380:quantum/action_tapping.c **** 
+ 381:quantum/action_tapping.c **** /** \brief Waiting buffer typed
+ 382:quantum/action_tapping.c ****  *
+ 383:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 384:quantum/action_tapping.c ****  */
+ 385:quantum/action_tapping.c **** bool waiting_buffer_typed(keyevent_t event) {
+ 386:quantum/action_tapping.c ****     for (uint8_t i = waiting_buffer_tail; i != waiting_buffer_head; i = (i + 1) % WAITING_BUFFER_SI
+ 387:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 388:quantum/action_tapping.c ****             return true;
+ 389:quantum/action_tapping.c ****         }
+ 390:quantum/action_tapping.c ****     }
+ 391:quantum/action_tapping.c ****     return false;
+ 392:quantum/action_tapping.c **** }
+ 393:quantum/action_tapping.c **** 
+ 394:quantum/action_tapping.c **** /** \brief Waiting buffer has anykey pressed
+ 395:quantum/action_tapping.c ****  *
+ 396:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 397:quantum/action_tapping.c ****  */
+ 398:quantum/action_tapping.c **** __attribute__((unused)) bool waiting_buffer_has_anykey_pressed(void) {
+ 399:quantum/action_tapping.c ****     for (uint8_t i = waiting_buffer_tail; i != waiting_buffer_head; i = (i + 1) % WAITING_BUFFER_SI
+ 400:quantum/action_tapping.c ****         if (waiting_buffer[i].event.pressed) return true;
+ 401:quantum/action_tapping.c ****     }
+ 402:quantum/action_tapping.c ****     return false;
+ 403:quantum/action_tapping.c **** }
+ 404:quantum/action_tapping.c **** 
+ 405:quantum/action_tapping.c **** /** \brief Scan buffer for tapping
+ 406:quantum/action_tapping.c ****  *
+ 407:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 408:quantum/action_tapping.c ****  */
+ 409:quantum/action_tapping.c **** void waiting_buffer_scan_tap(void) {
+ 410:quantum/action_tapping.c ****     // tapping already is settled
+ 411:quantum/action_tapping.c ****     if (tapping_key.tap.count > 0) return;
+ 412:quantum/action_tapping.c ****     // invalid state: tapping_key released && tap.count == 0
+ 413:quantum/action_tapping.c ****     if (!tapping_key.event.pressed) return;
+ 414:quantum/action_tapping.c **** 
+ 415:quantum/action_tapping.c ****     for (uint8_t i = waiting_buffer_tail; i != waiting_buffer_head; i = (i + 1) % WAITING_BUFFER_SI
+ 416:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 417:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 418:quantum/action_tapping.c ****             waiting_buffer[i].tap.count = 1;
+ 419:quantum/action_tapping.c ****             process_record(&tapping_key);
+ 420:quantum/action_tapping.c **** 
+ 421:quantum/action_tapping.c ****             debug("waiting_buffer_scan_tap: found at [");
+ 422:quantum/action_tapping.c ****             debug_dec(i);
+ 423:quantum/action_tapping.c ****             debug("]\n");
+ 424:quantum/action_tapping.c ****             debug_waiting_buffer();
+ 425:quantum/action_tapping.c ****             return;
+ 426:quantum/action_tapping.c ****         }
+ 427:quantum/action_tapping.c ****     }
+ 428:quantum/action_tapping.c **** }
+ 429:quantum/action_tapping.c **** 
+ 430:quantum/action_tapping.c **** /** \brief Tapping key debug print
+ 431:quantum/action_tapping.c ****  *
+ 432:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 433:quantum/action_tapping.c ****  */
+ 434:quantum/action_tapping.c **** static void debug_tapping_key(void) {
+ 435:quantum/action_tapping.c ****     debug("TAPPING_KEY=");
+ 436:quantum/action_tapping.c ****     debug_record(tapping_key);
+ 437:quantum/action_tapping.c ****     debug("\n");
+ 438:quantum/action_tapping.c **** }
+ 439:quantum/action_tapping.c **** 
+ 440:quantum/action_tapping.c **** /** \brief Waiting buffer debug print
+ 441:quantum/action_tapping.c ****  *
+ 442:quantum/action_tapping.c ****  * FIXME: Needs docs
+ 443:quantum/action_tapping.c ****  */
+ 444:quantum/action_tapping.c **** static void debug_waiting_buffer(void) {
+  15               		.loc 1 444 40 view -0
+  16               		.cfi_startproc
+  17 0000 1F93      		push r17
+  18               	.LCFI0:
+  19               		.cfi_def_cfa_offset 3
+  20               		.cfi_offset 17, -2
+  21 0002 CF93      		push r28
+  22               	.LCFI1:
+  23               		.cfi_def_cfa_offset 4
+  24               		.cfi_offset 28, -3
+  25 0004 DF93      		push r29
+  26               	.LCFI2:
+  27               		.cfi_def_cfa_offset 5
+  28               		.cfi_offset 29, -4
+  29               	/* prologue: function */
+  30               	/* frame size = 0 */
+  31               	/* stack size = 3 */
+  32               	.L__stack_usage = 3
+ 445:quantum/action_tapping.c ****     debug("{ ");
+  33               		.loc 1 445 16 view .LVU1
+ 446:quantum/action_tapping.c ****     for (uint8_t i = waiting_buffer_tail; i != waiting_buffer_head; i = (i + 1) % WAITING_BUFFER_SI
+  34               		.loc 1 446 5 view .LVU2
+  35               	.LBB40:
+  36               		.loc 1 446 10 view .LVU3
+  37               		.loc 1 446 18 is_stmt 0 view .LVU4
+  38 0006 E091 0000 		lds r30,waiting_buffer_tail
+  39               	.LVL0:
+ 447:quantum/action_tapping.c ****         debug("[");
+ 448:quantum/action_tapping.c ****         debug_dec(i);
+ 449:quantum/action_tapping.c ****         debug("]=");
+ 450:quantum/action_tapping.c ****         debug_record(waiting_buffer[i]);
+  40               		.loc 1 450 9 view .LVU5
+  41 000a 16E0      		ldi r17,lo8(6)
+  42               	.LVL1:
+  43               	.L2:
+ 446:quantum/action_tapping.c ****     for (uint8_t i = waiting_buffer_tail; i != waiting_buffer_head; i = (i + 1) % WAITING_BUFFER_SI
+  44               		.loc 1 446 45 is_stmt 1 discriminator 1 view .LVU6
+  45 000c 8091 0000 		lds r24,waiting_buffer_head
+  46 0010 8E13      		cpse r24,r30
+  47 0012 00C0      		rjmp .L3
+  48               	/* epilogue start */
+  49               	.LBE40:
+ 451:quantum/action_tapping.c ****         debug(" ");
+ 452:quantum/action_tapping.c ****     }
+ 453:quantum/action_tapping.c ****     debug("}\n");
+ 454:quantum/action_tapping.c **** }
+  50               		.loc 1 454 1 is_stmt 0 view .LVU7
+  51 0014 DF91      		pop r29
+  52 0016 CF91      		pop r28
+  53 0018 1F91      		pop r17
+  54 001a 0895      		ret
+  55               	.L3:
+  56               	.LBB41:
+ 447:quantum/action_tapping.c ****         debug("[");
+  57               		.loc 1 447 19 is_stmt 1 discriminator 3 view .LVU8
+ 448:quantum/action_tapping.c ****         debug("]=");
+  58               		.loc 1 448 21 discriminator 3 view .LVU9
+ 449:quantum/action_tapping.c ****         debug_record(waiting_buffer[i]);
+  59               		.loc 1 449 20 discriminator 3 view .LVU10
+ 450:quantum/action_tapping.c ****         debug(" ");
+  60               		.loc 1 450 9 discriminator 3 view .LVU11
+  61 001c CE2F      		mov r28,r30
+  62 001e D0E0      		ldi r29,0
+  63 0020 1E9F      		mul r17,r30
+  64 0022 F001      		movw r30,r0
+  65 0024 1124      		clr __zero_reg__
+  66               	.LVL2:
+ 450:quantum/action_tapping.c ****         debug(" ");
+  67               		.loc 1 450 9 is_stmt 0 discriminator 3 view .LVU12
+  68 0026 E050      		subi r30,lo8(-(waiting_buffer))
+  69 0028 F040      		sbci r31,hi8(-(waiting_buffer))
+  70 002a 4081      		ld r20,Z
+  71 002c 5181      		ldd r21,Z+1
+  72 002e 6281      		ldd r22,Z+2
+  73 0030 7381      		ldd r23,Z+3
+  74 0032 8481      		ldd r24,Z+4
+  75 0034 9581      		ldd r25,Z+5
+  76 0036 0E94 0000 		call debug_record
+  77               	.LVL3:
+ 451:quantum/action_tapping.c ****     }
+  78               		.loc 1 451 19 is_stmt 1 discriminator 3 view .LVU13
+ 446:quantum/action_tapping.c ****         debug("[");
+  79               		.loc 1 446 71 discriminator 3 view .LVU14
+ 446:quantum/action_tapping.c ****         debug("[");
+  80               		.loc 1 446 76 is_stmt 0 discriminator 3 view .LVU15
+  81 003a 2196      		adiw r28,1
+  82               	.LVL4:
+ 446:quantum/action_tapping.c ****         debug("[");
+  83               		.loc 1 446 71 discriminator 3 view .LVU16
+  84 003c EC2F      		mov r30,r28
+  85 003e E770      		andi r30,lo8(7)
+ 446:quantum/action_tapping.c ****         debug("[");
+  86               		.loc 1 446 71 discriminator 3 view .LVU17
+  87 0040 00C0      		rjmp .L2
+  88               	.LBE41:
+  89               		.cfi_endproc
+  90               	.LFE15:
+  92               		.section	.text.debug_tapping_key,"ax",@progbits
+  94               	debug_tapping_key:
+  95               	.LFB14:
+ 434:quantum/action_tapping.c ****     debug("TAPPING_KEY=");
+  96               		.loc 1 434 37 is_stmt 1 view -0
+  97               		.cfi_startproc
+  98               	/* prologue: function */
+  99               	/* frame size = 0 */
+ 100               	/* stack size = 0 */
+ 101               	.L__stack_usage = 0
+ 435:quantum/action_tapping.c ****     debug_record(tapping_key);
+ 102               		.loc 1 435 26 view .LVU19
+ 436:quantum/action_tapping.c ****     debug("\n");
+ 103               		.loc 1 436 5 view .LVU20
+ 104 0000 4091 0000 		lds r20,tapping_key
+ 105 0004 5091 0000 		lds r21,tapping_key+1
+ 106 0008 6091 0000 		lds r22,tapping_key+2
+ 107 000c 7091 0000 		lds r23,tapping_key+3
+ 108 0010 8091 0000 		lds r24,tapping_key+4
+ 109 0014 9091 0000 		lds r25,tapping_key+5
+ 110 0018 0C94 0000 		jmp debug_record
+ 111               	.LVL5:
+ 112               		.cfi_endproc
+ 113               	.LFE14:
+ 115               		.section	.text.waiting_buffer_scan_tap,"ax",@progbits
+ 117               	waiting_buffer_scan_tap:
+ 118               	.LFB13:
+ 409:quantum/action_tapping.c ****     // tapping already is settled
+ 119               		.loc 1 409 36 view -0
+ 120               		.cfi_startproc
+ 121 0000 1F93      		push r17
+ 122               	.LCFI3:
+ 123               		.cfi_def_cfa_offset 3
+ 124               		.cfi_offset 17, -2
+ 125 0002 CF93      		push r28
+ 126               	.LCFI4:
+ 127               		.cfi_def_cfa_offset 4
+ 128               		.cfi_offset 28, -3
+ 129 0004 DF93      		push r29
+ 130               	.LCFI5:
+ 131               		.cfi_def_cfa_offset 5
+ 132               		.cfi_offset 29, -4
+ 133               	/* prologue: function */
+ 134               	/* frame size = 0 */
+ 135               	/* stack size = 3 */
+ 136               	.L__stack_usage = 3
+ 411:quantum/action_tapping.c ****     // invalid state: tapping_key released && tap.count == 0
+ 137               		.loc 1 411 5 view .LVU22
+ 411:quantum/action_tapping.c ****     // invalid state: tapping_key released && tap.count == 0
+ 138               		.loc 1 411 31 is_stmt 0 view .LVU23
+ 139 0006 8091 0000 		lds r24,tapping_key+5
+ 140 000a 807F      		andi r24,lo8(-16)
+ 411:quantum/action_tapping.c ****     // invalid state: tapping_key released && tap.count == 0
+ 141               		.loc 1 411 8 view .LVU24
+ 142 000c 01F4      		brne .L5
+ 413:quantum/action_tapping.c **** 
+ 143               		.loc 1 413 5 is_stmt 1 view .LVU25
+ 413:quantum/action_tapping.c **** 
+ 144               		.loc 1 413 8 is_stmt 0 view .LVU26
+ 145 000e 8091 0000 		lds r24,tapping_key+2
+ 146 0012 8823      		tst r24
+ 147 0014 01F0      		breq .L5
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 148               		.loc 1 415 5 is_stmt 1 view .LVU27
+ 149               	.LBB42:
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 150               		.loc 1 415 10 view .LVU28
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 151               		.loc 1 415 18 is_stmt 0 view .LVU29
+ 152 0016 8091 0000 		lds r24,waiting_buffer_tail
+ 153               	.LVL6:
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 154               		.loc 1 415 45 view .LVU30
+ 155 001a C091 0000 		lds r28,waiting_buffer_head
+ 156 001e 7091 0000 		lds r23,tapping_key
+ 157 0022 6091 0000 		lds r22,tapping_key+1
+ 158 0026 A091 0000 		lds r26,tapping_key+3
+ 159 002a B091 0000 		lds r27,tapping_key+3+1
+ 160 002e D62F      		mov r29,r22
+ 161 0030 D723      		and r29,r23
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 162               		.loc 1 416 13 view .LVU31
+ 163 0032 16E0      		ldi r17,lo8(6)
+ 164               	.LVL7:
+ 165               	.L7:
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 166               		.loc 1 415 45 is_stmt 1 discriminator 1 view .LVU32
+ 167 0034 C813      		cpse r28,r24
+ 168 0036 00C0      		rjmp .L10
+ 169               	.LVL8:
+ 170               	.L5:
+ 171               	/* epilogue start */
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 172               		.loc 1 415 45 is_stmt 0 discriminator 1 view .LVU33
+ 173               	.LBE42:
+ 428:quantum/action_tapping.c **** 
+ 174               		.loc 1 428 1 view .LVU34
+ 175 0038 DF91      		pop r29
+ 176 003a CF91      		pop r28
+ 177 003c 1F91      		pop r17
+ 178 003e 0895      		ret
+ 179               	.LVL9:
+ 180               	.L10:
+ 181               	.LBB47:
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 182               		.loc 1 416 9 is_stmt 1 view .LVU35
+ 183               	.LBB43:
+ 184               	.LBI43:
+ 185               		.file 2 "quantum/keyboard.h"
+   1:quantum/keyboard.h **** /*
+   2:quantum/keyboard.h **** Copyright 2011,2012,2013 Jun Wako <wakojun@gmail.com>
+   3:quantum/keyboard.h **** 
+   4:quantum/keyboard.h **** This program is free software: you can redistribute it and/or modify
+   5:quantum/keyboard.h **** it under the terms of the GNU General Public License as published by
+   6:quantum/keyboard.h **** the Free Software Foundation, either version 2 of the License, or
+   7:quantum/keyboard.h **** (at your option) any later version.
+   8:quantum/keyboard.h **** 
+   9:quantum/keyboard.h **** This program is distributed in the hope that it will be useful,
+  10:quantum/keyboard.h **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/keyboard.h **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/keyboard.h **** GNU General Public License for more details.
+  13:quantum/keyboard.h **** 
+  14:quantum/keyboard.h **** You should have received a copy of the GNU General Public License
+  15:quantum/keyboard.h **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/keyboard.h **** */
+  17:quantum/keyboard.h **** 
+  18:quantum/keyboard.h **** #pragma once
+  19:quantum/keyboard.h **** 
+  20:quantum/keyboard.h **** #include <stdbool.h>
+  21:quantum/keyboard.h **** #include <stdint.h>
+  22:quantum/keyboard.h **** 
+  23:quantum/keyboard.h **** #ifdef __cplusplus
+  24:quantum/keyboard.h **** extern "C" {
+  25:quantum/keyboard.h **** #endif
+  26:quantum/keyboard.h **** 
+  27:quantum/keyboard.h **** /* key matrix position */
+  28:quantum/keyboard.h **** typedef struct {
+  29:quantum/keyboard.h ****     uint8_t col;
+  30:quantum/keyboard.h ****     uint8_t row;
+  31:quantum/keyboard.h **** } keypos_t;
+  32:quantum/keyboard.h **** 
+  33:quantum/keyboard.h **** /* key event */
+  34:quantum/keyboard.h **** typedef struct {
+  35:quantum/keyboard.h ****     keypos_t key;
+  36:quantum/keyboard.h ****     bool     pressed;
+  37:quantum/keyboard.h ****     uint16_t time;
+  38:quantum/keyboard.h **** } keyevent_t;
+  39:quantum/keyboard.h **** 
+  40:quantum/keyboard.h **** /* equivalent test of keypos_t */
+  41:quantum/keyboard.h **** #define KEYEQ(keya, keyb) ((keya).row == (keyb).row && (keya).col == (keyb).col)
+  42:quantum/keyboard.h **** 
+  43:quantum/keyboard.h **** /* Rules for No Event:
+  44:quantum/keyboard.h ****  * 1) (time == 0) to handle (keyevent_t){} as empty event
+  45:quantum/keyboard.h ****  * 2) Matrix(255, 255) to make TICK event available
+  46:quantum/keyboard.h ****  */
+  47:quantum/keyboard.h **** static inline bool IS_NOEVENT(keyevent_t event) { return event.time == 0 || (event.key.row == 255 &
+ 186               		.loc 2 47 20 view .LVU36
+ 187               	.LBB44:
+ 188               		.loc 2 47 51 view .LVU37
+ 189               	.LBE44:
+ 190               	.LBE43:
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 191               		.loc 1 416 13 is_stmt 0 view .LVU38
+ 192 0040 90E0      		ldi r25,0
+ 193               	.LBB46:
+ 194               	.LBB45:
+ 195               		.loc 2 47 74 view .LVU39
+ 196 0042 1097      		sbiw r26,0
+ 197 0044 01F0      		breq .L8
+ 198 0046 DF3F      		cpi r29,lo8(-1)
+ 199 0048 01F4      		brne .L21
+ 200               	.LVL10:
+ 201               	.L8:
+ 202               		.loc 2 47 74 view .LVU40
+ 203               	.LBE45:
+ 204               	.LBE46:
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 205               		.loc 1 415 71 is_stmt 1 discriminator 2 view .LVU41
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 206               		.loc 1 415 76 is_stmt 0 discriminator 2 view .LVU42
+ 207 004a 0196      		adiw r24,1
+ 208               	.LVL11:
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 209               		.loc 1 415 71 discriminator 2 view .LVU43
+ 210 004c 8770      		andi r24,lo8(7)
+ 415:quantum/action_tapping.c ****         if (IS_TAPPING_KEY(waiting_buffer[i].event.key) && !waiting_buffer[i].event.pressed && WITH
+ 211               		.loc 1 415 71 discriminator 2 view .LVU44
+ 212 004e 00C0      		rjmp .L7
+ 213               	.LVL12:
+ 214               	.L21:
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 215               		.loc 1 416 13 view .LVU45
+ 216 0050 189F      		mul r17,r24
+ 217 0052 9001      		movw r18,r0
+ 218 0054 199F      		mul r17,r25
+ 219 0056 300D      		add r19,r0
+ 220 0058 1124      		clr __zero_reg__
+ 221 005a F901      		movw r30,r18
+ 222 005c E050      		subi r30,lo8(-(waiting_buffer))
+ 223 005e F040      		sbci r31,hi8(-(waiting_buffer))
+ 224 0060 4181      		ldd r20,Z+1
+ 225 0062 6413      		cpse r22,r20
+ 226 0064 00C0      		rjmp .L8
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 227               		.loc 1 416 13 discriminator 2 view .LVU46
+ 228 0066 4081      		ld r20,Z
+ 229 0068 4713      		cpse r20,r23
+ 230 006a 00C0      		rjmp .L8
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 231               		.loc 1 416 57 discriminator 3 view .LVU47
+ 232 006c 4281      		ldd r20,Z+2
+ 233 006e 4111      		cpse r20,__zero_reg__
+ 234 0070 00C0      		rjmp .L8
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 235               		.loc 1 416 96 discriminator 4 view .LVU48
+ 236 0072 4381      		ldd r20,Z+3
+ 237 0074 5481      		ldd r21,Z+4
+ 238 0076 4A1B      		sub r20,r26
+ 239 0078 5B0B      		sbc r21,r27
+ 416:quantum/action_tapping.c ****             tapping_key.tap.count       = 1;
+ 240               		.loc 1 416 93 discriminator 4 view .LVU49
+ 241 007a 483C      		cpi r20,-56
+ 242 007c 5105      		cpc r21,__zero_reg__
+ 243 007e 00F4      		brsh .L8
+ 417:quantum/action_tapping.c ****             waiting_buffer[i].tap.count = 1;
+ 244               		.loc 1 417 13 is_stmt 1 view .LVU50
+ 417:quantum/action_tapping.c ****             waiting_buffer[i].tap.count = 1;
+ 245               		.loc 1 417 41 is_stmt 0 view .LVU51
+ 246 0080 8091 0000 		lds r24,tapping_key+5
+ 247               	.LVL13:
+ 417:quantum/action_tapping.c ****             waiting_buffer[i].tap.count = 1;
+ 248               		.loc 1 417 41 view .LVU52
+ 249 0084 8F70      		andi r24,lo8(15)
+ 250 0086 8061      		ori r24,lo8(16)
+ 251 0088 8093 0000 		sts tapping_key+5,r24
+ 418:quantum/action_tapping.c ****             process_record(&tapping_key);
+ 252               		.loc 1 418 13 is_stmt 1 view .LVU53
+ 418:quantum/action_tapping.c ****             process_record(&tapping_key);
+ 253               		.loc 1 418 41 is_stmt 0 view .LVU54
+ 254 008c F901      		movw r30,r18
+ 255 008e E050      		subi r30,lo8(-(waiting_buffer+5))
+ 256 0090 F040      		sbci r31,hi8(-(waiting_buffer+5))
+ 257 0092 8081      		ld r24,Z
+ 258 0094 8F70      		andi r24,lo8(15)
+ 259 0096 8061      		ori r24,lo8(16)
+ 260 0098 8083      		st Z,r24
+ 419:quantum/action_tapping.c **** 
+ 261               		.loc 1 419 13 is_stmt 1 view .LVU55
+ 262 009a 80E0      		ldi r24,lo8(tapping_key)
+ 263 009c 90E0      		ldi r25,hi8(tapping_key)
+ 264 009e 0E94 0000 		call process_record
+ 265               	.LVL14:
+ 421:quantum/action_tapping.c ****             debug_dec(i);
+ 266               		.loc 1 421 57 view .LVU56
+ 422:quantum/action_tapping.c ****             debug("]\n");
+ 267               		.loc 1 422 25 view .LVU57
+ 423:quantum/action_tapping.c ****             debug_waiting_buffer();
+ 268               		.loc 1 423 25 view .LVU58
+ 424:quantum/action_tapping.c ****             return;
+ 269               		.loc 1 424 13 view .LVU59
+ 270               	/* epilogue start */
+ 271               	.LBE47:
+ 428:quantum/action_tapping.c **** 
+ 272               		.loc 1 428 1 is_stmt 0 view .LVU60
+ 273 00a2 DF91      		pop r29
+ 274 00a4 CF91      		pop r28
+ 275 00a6 1F91      		pop r17
+ 276               	.LBB48:
+ 424:quantum/action_tapping.c ****             return;
+ 277               		.loc 1 424 13 view .LVU61
+ 278 00a8 0C94 0000 		jmp debug_waiting_buffer
+ 279               	.LVL15:
+ 280               	.LBE48:
+ 281               		.cfi_endproc
+ 282               	.LFE13:
+ 284               		.section	.text.process_tapping,"ax",@progbits
+ 286               	process_tapping:
+ 287               	.LVL16:
+ 288               	.LFB8:
+ 108:quantum/action_tapping.c ****     keyevent_t event = keyp->event;
+ 289               		.loc 1 108 41 is_stmt 1 view -0
+ 290               		.cfi_startproc
+ 108:quantum/action_tapping.c ****     keyevent_t event = keyp->event;
+ 291               		.loc 1 108 41 is_stmt 0 view .LVU63
+ 292 0000 AF92      		push r10
+ 293               	.LCFI6:
+ 294               		.cfi_def_cfa_offset 3
+ 295               		.cfi_offset 10, -2
+ 296 0002 BF92      		push r11
+ 297               	.LCFI7:
+ 298               		.cfi_def_cfa_offset 4
+ 299               		.cfi_offset 11, -3
+ 300 0004 CF92      		push r12
+ 301               	.LCFI8:
+ 302               		.cfi_def_cfa_offset 5
+ 303               		.cfi_offset 12, -4
+ 304 0006 DF92      		push r13
+ 305               	.LCFI9:
+ 306               		.cfi_def_cfa_offset 6
+ 307               		.cfi_offset 13, -5
+ 308 0008 EF92      		push r14
+ 309               	.LCFI10:
+ 310               		.cfi_def_cfa_offset 7
+ 311               		.cfi_offset 14, -6
+ 312 000a FF92      		push r15
+ 313               	.LCFI11:
+ 314               		.cfi_def_cfa_offset 8
+ 315               		.cfi_offset 15, -7
+ 316 000c 0F93      		push r16
+ 317               	.LCFI12:
+ 318               		.cfi_def_cfa_offset 9
+ 319               		.cfi_offset 16, -8
+ 320 000e 1F93      		push r17
+ 321               	.LCFI13:
+ 322               		.cfi_def_cfa_offset 10
+ 323               		.cfi_offset 17, -9
+ 324 0010 CF93      		push r28
+ 325               	.LCFI14:
+ 326               		.cfi_def_cfa_offset 11
+ 327               		.cfi_offset 28, -10
+ 328 0012 DF93      		push r29
+ 329               	.LCFI15:
+ 330               		.cfi_def_cfa_offset 12
+ 331               		.cfi_offset 29, -11
+ 332 0014 CDB7      		in r28,__SP_L__
+ 333 0016 DEB7      		in r29,__SP_H__
+ 334               	.LCFI16:
+ 335               		.cfi_def_cfa_register 28
+ 336 0018 2B97      		sbiw r28,11
+ 337               	.LCFI17:
+ 338               		.cfi_def_cfa_offset 23
+ 339 001a 0FB6      		in __tmp_reg__,__SREG__
+ 340 001c F894      		cli
+ 341 001e DEBF      		out __SP_H__,r29
+ 342 0020 0FBE      		out __SREG__,__tmp_reg__
+ 343 0022 CDBF      		out __SP_L__,r28
+ 344               	/* prologue: function */
+ 345               	/* frame size = 11 */
+ 346               	/* stack size = 21 */
+ 347               	.L__stack_usage = 21
+ 348 0024 8C01      		movw r16,r24
+ 109:quantum/action_tapping.c **** 
+ 349               		.loc 1 109 5 is_stmt 1 view .LVU64
+ 109:quantum/action_tapping.c **** 
+ 350               		.loc 1 109 16 is_stmt 0 view .LVU65
+ 351 0026 85E0      		ldi r24,lo8(5)
+ 352               	.LVL17:
+ 109:quantum/action_tapping.c **** 
+ 353               		.loc 1 109 16 view .LVU66
+ 354 0028 F801      		movw r30,r16
+ 355 002a DE01      		movw r26,r28
+ 356 002c 1796      		adiw r26,7
+ 357               		0:
+ 358 002e 0190      		ld r0,Z+
+ 359 0030 0D92      		st X+,r0
+ 360 0032 8A95      		dec r24
+ 361 0034 01F4      		brne 0b
+ 362 0036 F801      		movw r30,r16
+ 363 0038 E280      		ldd r14,Z+2
+ 364               	.LVL18:
+ 109:quantum/action_tapping.c **** 
+ 365               		.loc 1 109 16 view .LVU67
+ 366 003a C380      		ldd r12,Z+3
+ 367 003c D480      		ldd r13,Z+4
+ 368               	.LVL19:
+ 112:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 369               		.loc 1 112 5 is_stmt 1 view .LVU68
+ 370 003e 80E0      		ldi r24,lo8(tapping_key)
+ 371 0040 A82E      		mov r10,r24
+ 372 0042 80E0      		ldi r24,hi8(tapping_key)
+ 373 0044 B82E      		mov r11,r24
+ 374 0046 2091 0000 		lds r18,tapping_key
+ 375               	.LVL20:
+ 112:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 376               		.loc 1 112 5 is_stmt 0 view .LVU69
+ 377 004a 9091 0000 		lds r25,tapping_key+1
+ 378               	.LVL21:
+ 112:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 379               		.loc 1 112 5 view .LVU70
+ 380 004e 4091 0000 		lds r20,tapping_key+3
+ 381 0052 5091 0000 		lds r21,tapping_key+3+1
+ 382               	.LVL22:
+ 383               	.LBB75:
+ 384               	.LBI75:
+ 385               		.loc 2 47 20 is_stmt 1 view .LVU71
+ 386               	.LBB76:
+ 387               		.loc 2 47 51 view .LVU72
+ 388               		.loc 2 47 74 is_stmt 0 view .LVU73
+ 389 0056 4115      		cp r20,__zero_reg__
+ 390 0058 5105      		cpc r21,__zero_reg__
+ 391 005a 01F0      		breq .L23
+ 392 005c 892F      		mov r24,r25
+ 393 005e 8223      		and r24,r18
+ 394 0060 8F3F      		cpi r24,lo8(-1)
+ 395 0062 01F0      		breq .+2
+ 396 0064 00C0      		rjmp .L107
+ 397               	.L23:
+ 398               	.LVL23:
+ 399               		.loc 2 47 74 view .LVU74
+ 400               	.LBE76:
+ 401               	.LBE75:
+ 336:quantum/action_tapping.c ****             debug("Tapping: Start(Press tap key).\n");
+ 402               		.loc 1 336 9 is_stmt 1 view .LVU75
+ 336:quantum/action_tapping.c ****             debug("Tapping: Start(Press tap key).\n");
+ 403               		.loc 1 336 12 is_stmt 0 view .LVU76
+ 404 0066 EE20      		tst r14
+ 405 0068 01F4      		brne .+2
+ 406 006a 00C0      		rjmp .L49
+ 336:quantum/action_tapping.c ****             debug("Tapping: Start(Press tap key).\n");
+ 407               		.loc 1 336 30 discriminator 1 view .LVU77
+ 408 006c C801      		movw r24,r16
+ 409 006e 0E94 0000 		call is_tap_record
+ 410               	.LVL24:
+ 411 0072 F82E      		mov r15,r24
+ 336:quantum/action_tapping.c ****             debug("Tapping: Start(Press tap key).\n");
+ 412               		.loc 1 336 27 discriminator 1 view .LVU78
+ 413 0074 8823      		tst r24
+ 414 0076 01F4      		brne .+2
+ 415 0078 00C0      		rjmp .L49
+ 337:quantum/action_tapping.c ****             tapping_key = *keyp;
+ 416               		.loc 1 337 54 is_stmt 1 view .LVU79
+ 338:quantum/action_tapping.c ****             process_record_tap_hint(&tapping_key);
+ 417               		.loc 1 338 13 view .LVU80
+ 338:quantum/action_tapping.c ****             process_record_tap_hint(&tapping_key);
+ 418               		.loc 1 338 25 is_stmt 0 view .LVU81
+ 419 007a 86E0      		ldi r24,lo8(6)
+ 420 007c F801      		movw r30,r16
+ 421 007e A0E0      		ldi r26,lo8(tapping_key)
+ 422 0080 B0E0      		ldi r27,hi8(tapping_key)
+ 423               		0:
+ 424 0082 0190      		ld r0,Z+
+ 425 0084 0D92      		st X+,r0
+ 426 0086 8A95      		dec r24
+ 427 0088 01F4      		brne 0b
+ 339:quantum/action_tapping.c ****             waiting_buffer_scan_tap();
+ 428               		.loc 1 339 13 is_stmt 1 view .LVU82
+ 429 008a 80E0      		ldi r24,lo8(tapping_key)
+ 430 008c 90E0      		ldi r25,hi8(tapping_key)
+ 431 008e 0E94 0000 		call process_record_tap_hint
+ 432               	.LVL25:
+ 340:quantum/action_tapping.c ****             debug_tapping_key();
+ 433               		.loc 1 340 13 view .LVU83
+ 434 0092 0E94 0000 		call waiting_buffer_scan_tap
+ 435               	.LVL26:
+ 436 0096 00C0      		rjmp .L112
+ 437               	.L58:
+ 113:quantum/action_tapping.c ****             if (tapping_key.tap.count == 0) {
+ 438               		.loc 1 113 9 view .LVU84
+ 114:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp) && !event.pressed) {
+ 439               		.loc 1 114 39 is_stmt 0 view .LVU85
+ 440 0098 8091 0000 		lds r24,tapping_key+5
+ 441 009c 682F      		mov r22,r24
+ 442 009e 607F      		andi r22,lo8(-16)
+ 113:quantum/action_tapping.c ****             if (tapping_key.tap.count == 0) {
+ 443               		.loc 1 113 12 view .LVU86
+ 444 00a0 483C      		cpi r20,-56
+ 445 00a2 5105      		cpc r21,__zero_reg__
+ 446 00a4 00F0      		brlo .+2
+ 447 00a6 00C0      		rjmp .L25
+ 114:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp) && !event.pressed) {
+ 448               		.loc 1 114 13 is_stmt 1 view .LVU87
+ 449 00a8 F801      		movw r30,r16
+ 450 00aa 3181      		ldd r19,Z+1
+ 114:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp) && !event.pressed) {
+ 451               		.loc 1 114 16 is_stmt 0 view .LVU88
+ 452 00ac 6111      		cpse r22,__zero_reg__
+ 453 00ae 00C0      		rjmp .L26
+ 115:quantum/action_tapping.c ****                     // first tap!
+ 454               		.loc 1 115 17 is_stmt 1 view .LVU89
+ 455               	.LVL27:
+ 456               	.LBB77:
+ 457               	.LBB78:
+  48:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+  49:quantum/keyboard.h **** static inline bool IS_RELEASED(keyevent_t event) { return (!IS_NOEVENT(event) && !event.pressed); }
+ 458               		.loc 2 49 88 is_stmt 0 view .LVU90
+ 459 00b0 FE2C      		mov r15,r14
+ 460               	.LVL28:
+ 461               		.loc 2 49 88 view .LVU91
+ 462               	.LBE78:
+ 463               	.LBE77:
+ 115:quantum/action_tapping.c ****                     // first tap!
+ 464               		.loc 1 115 21 view .LVU92
+ 465 00b2 3913      		cpse r19,r25
+ 466 00b4 00C0      		rjmp .L27
+ 115:quantum/action_tapping.c ****                     // first tap!
+ 467               		.loc 1 115 21 discriminator 2 view .LVU93
+ 468 00b6 9081      		ld r25,Z
+ 469 00b8 9213      		cpse r25,r18
+ 470 00ba 00C0      		rjmp .L27
+ 115:quantum/action_tapping.c ****                     // first tap!
+ 471               		.loc 1 115 45 discriminator 3 view .LVU94
+ 472 00bc E110      		cpse r14,__zero_reg__
+ 473 00be 00C0      		rjmp .L27
+ 117:quantum/action_tapping.c ****                     tapping_key.tap.count = 1;
+ 474               		.loc 1 117 57 is_stmt 1 view .LVU95
+ 118:quantum/action_tapping.c ****                     debug_tapping_key();
+ 475               		.loc 1 118 21 view .LVU96
+ 118:quantum/action_tapping.c ****                     debug_tapping_key();
+ 476               		.loc 1 118 43 is_stmt 0 view .LVU97
+ 477 00c0 8F70      		andi r24,lo8(15)
+ 478 00c2 8061      		ori r24,lo8(16)
+ 479 00c4 8093 0000 		sts tapping_key+5,r24
+ 119:quantum/action_tapping.c ****                     process_record(&tapping_key);
+ 480               		.loc 1 119 21 is_stmt 1 view .LVU98
+ 481 00c8 0E94 0000 		call debug_tapping_key
+ 482               	.LVL29:
+ 120:quantum/action_tapping.c **** 
+ 483               		.loc 1 120 21 view .LVU99
+ 484 00cc 80E0      		ldi r24,lo8(tapping_key)
+ 485 00ce 90E0      		ldi r25,hi8(tapping_key)
+ 486 00d0 0E94 0000 		call process_record
+ 487               	.LVL30:
+ 123:quantum/action_tapping.c ****                     // enqueue
+ 488               		.loc 1 123 21 view .LVU100
+ 123:quantum/action_tapping.c ****                     // enqueue
+ 489               		.loc 1 123 31 is_stmt 0 view .LVU101
+ 490 00d4 8091 0000 		lds r24,tapping_key+5
+ 491 00d8 F801      		movw r30,r16
+ 492 00da 8583      		std Z+5,r24
+ 125:quantum/action_tapping.c ****                 }
+ 493               		.loc 1 125 21 is_stmt 1 view .LVU102
+ 494               	.LVL31:
+ 495               	.L22:
+ 348:quantum/action_tapping.c **** 
+ 496               		.loc 1 348 1 is_stmt 0 view .LVU103
+ 497 00dc 8F2D      		mov r24,r15
+ 498               	/* epilogue start */
+ 348:quantum/action_tapping.c **** 
+ 499               		.loc 1 348 1 view .LVU104
+ 500 00de 2B96      		adiw r28,11
+ 501 00e0 0FB6      		in __tmp_reg__,__SREG__
+ 502 00e2 F894      		cli
+ 503 00e4 DEBF      		out __SP_H__,r29
+ 504 00e6 0FBE      		out __SREG__,__tmp_reg__
+ 505 00e8 CDBF      		out __SP_L__,r28
+ 506 00ea DF91      		pop r29
+ 507 00ec CF91      		pop r28
+ 508 00ee 1F91      		pop r17
+ 509 00f0 0F91      		pop r16
+ 510               	.LVL32:
+ 348:quantum/action_tapping.c **** 
+ 511               		.loc 1 348 1 view .LVU105
+ 512 00f2 FF90      		pop r15
+ 513 00f4 EF90      		pop r14
+ 514 00f6 DF90      		pop r13
+ 515 00f8 CF90      		pop r12
+ 516 00fa BF90      		pop r11
+ 517 00fc AF90      		pop r10
+ 518 00fe 0895      		ret
+ 519               	.LVL33:
+ 520               	.L27:
+ 159:quantum/action_tapping.c ****                     // Modifier should be retained till end of this tapping.
+ 521               		.loc 1 159 22 is_stmt 1 view .LVU106
+ 522 0100 2F81      		ldd r18,Y+7
+ 523               	.LVL34:
+ 524               	.LBB83:
+ 525               	.LBI77:
+ 526               		.loc 2 49 20 view .LVU107
+ 527               	.LBB81:
+ 528               		.loc 2 49 52 view .LVU108
+ 529               	.LBB79:
+ 530               	.LBI79:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 531               		.loc 2 47 20 view .LVU109
+ 532               	.LBB80:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 533               		.loc 2 47 51 view .LVU110
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 534               		.loc 2 47 74 is_stmt 0 view .LVU111
+ 535 0102 CD28      		or r12,r13
+ 536 0104 01F0      		breq .L60
+ 537 0106 832F      		mov r24,r19
+ 538 0108 8223      		and r24,r18
+ 539 010a 8F3F      		cpi r24,lo8(-1)
+ 540 010c 01F0      		breq .+2
+ 541 010e 00C0      		rjmp .L30
+ 542               	.L60:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 543               		.loc 2 47 74 view .LVU112
+ 544               	.LBE80:
+ 545               	.LBE79:
+ 546               		.loc 2 49 79 view .LVU113
+ 547 0110 80E0      		ldi r24,0
+ 548               	.LVL35:
+ 549               	.L29:
+ 550               		.loc 2 49 79 view .LVU114
+ 551               	.LBE81:
+ 552               	.LBE83:
+ 159:quantum/action_tapping.c ****                     // Modifier should be retained till end of this tapping.
+ 553               		.loc 1 159 25 view .LVU115
+ 554 0112 F82F      		mov r31,r24
+ 555 0114 F170      		andi r31,lo8(1)
+ 556 0116 DF2E      		mov r13,r31
+ 557               	.LBB84:
+ 558               	.LBB85:
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 559               		.loc 1 386 18 view .LVU116
+ 560 0118 E091 0000 		lds r30,waiting_buffer_tail
+ 561               	.LVL36:
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 562               		.loc 1 386 45 view .LVU117
+ 563 011c 4091 0000 		lds r20,waiting_buffer_head
+ 387:quantum/action_tapping.c ****             return true;
+ 564               		.loc 1 387 13 view .LVU118
+ 565 0120 56E0      		ldi r21,lo8(6)
+ 566               	.LBE85:
+ 567               	.LBE84:
+ 159:quantum/action_tapping.c ****                     // Modifier should be retained till end of this tapping.
+ 568               		.loc 1 159 25 view .LVU119
+ 569 0122 80FD      		sbrc r24,0
+ 570 0124 00C0      		rjmp .L32
+ 571               	.LVL37:
+ 572               	.L31:
+ 180:quantum/action_tapping.c ****                         tapping_key.tap.interrupted = true;
+ 573               		.loc 1 180 21 is_stmt 1 view .LVU120
+ 180:quantum/action_tapping.c ****                         tapping_key.tap.interrupted = true;
+ 574               		.loc 1 180 24 is_stmt 0 view .LVU121
+ 575 0126 EE20      		tst r14
+ 576 0128 01F0      		breq .L22
+ 181:quantum/action_tapping.c **** #    if defined(HOLD_ON_OTHER_KEY_PRESS) || defined(HOLD_ON_OTHER_KEY_PRESS_PER_KEY)
+ 577               		.loc 1 181 25 is_stmt 1 view .LVU122
+ 181:quantum/action_tapping.c **** #    if defined(HOLD_ON_OTHER_KEY_PRESS) || defined(HOLD_ON_OTHER_KEY_PRESS_PER_KEY)
+ 578               		.loc 1 181 53 is_stmt 0 view .LVU123
+ 579 012a 8091 0000 		lds r24,tapping_key+5
+ 580 012e 8160      		ori r24,lo8(1<<0)
+ 581 0130 8093 0000 		sts tapping_key+5,r24
+ 582               	.L113:
+ 583               	.LBB87:
+ 245:quantum/action_tapping.c ****             } else {
+ 584               		.loc 1 245 17 is_stmt 1 view .LVU124
+ 245:quantum/action_tapping.c ****             } else {
+ 585               		.loc 1 245 24 is_stmt 0 view .LVU125
+ 586 0134 F12C      		mov r15,__zero_reg__
+ 587 0136 00C0      		rjmp .L22
+ 588               	.LVL38:
+ 589               	.L34:
+ 245:quantum/action_tapping.c ****             } else {
+ 590               		.loc 1 245 24 view .LVU126
+ 591               	.LBE87:
+ 592               	.LBB88:
+ 593               	.LBB86:
+ 387:quantum/action_tapping.c ****             return true;
+ 594               		.loc 1 387 9 is_stmt 1 view .LVU127
+ 387:quantum/action_tapping.c ****             return true;
+ 595               		.loc 1 387 13 is_stmt 0 view .LVU128
+ 596 0138 8E2F      		mov r24,r30
+ 597 013a 90E0      		ldi r25,0
+ 598 013c 5E9F      		mul r21,r30
+ 599 013e F001      		movw r30,r0
+ 600 0140 1124      		clr __zero_reg__
+ 601               	.LVL39:
+ 387:quantum/action_tapping.c ****             return true;
+ 602               		.loc 1 387 13 view .LVU129
+ 603 0142 E050      		subi r30,lo8(-(waiting_buffer))
+ 604 0144 F040      		sbci r31,hi8(-(waiting_buffer))
+ 387:quantum/action_tapping.c ****             return true;
+ 605               		.loc 1 387 12 view .LVU130
+ 606 0146 6181      		ldd r22,Z+1
+ 607 0148 3613      		cpse r19,r22
+ 608 014a 00C0      		rjmp .L33
+ 387:quantum/action_tapping.c ****             return true;
+ 609               		.loc 1 387 13 view .LVU131
+ 610 014c 6081      		ld r22,Z
+ 611 014e 6213      		cpse r22,r18
+ 612 0150 00C0      		rjmp .L33
+ 387:quantum/action_tapping.c ****             return true;
+ 613               		.loc 1 387 59 view .LVU132
+ 614 0152 6281      		ldd r22,Z+2
+ 615 0154 E612      		cpse r14,r22
+ 616 0156 00C0      		rjmp .L31
+ 617               	.L33:
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 618               		.loc 1 386 71 is_stmt 1 view .LVU133
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 619               		.loc 1 386 76 is_stmt 0 view .LVU134
+ 620 0158 0196      		adiw r24,1
+ 621               	.LVL40:
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 622               		.loc 1 386 71 view .LVU135
+ 623 015a E82F      		mov r30,r24
+ 624 015c E770      		andi r30,lo8(7)
+ 625               	.L32:
+ 626               	.LVL41:
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 627               		.loc 1 386 45 is_stmt 1 view .LVU136
+ 628 015e E413      		cpse r30,r20
+ 629 0160 00C0      		rjmp .L34
+ 630               	.LVL42:
+ 386:quantum/action_tapping.c ****         if (KEYEQ(event.key, waiting_buffer[i].event.key) && event.pressed != waiting_buffer[i].eve
+ 631               		.loc 1 386 45 is_stmt 0 view .LVU137
+ 632               	.LBE86:
+ 633               	.LBE88:
+ 634               	.LBB89:
+ 161:quantum/action_tapping.c ****                     switch (action.kind.id) {
+ 635               		.loc 1 161 21 is_stmt 1 view .LVU138
+ 161:quantum/action_tapping.c ****                     switch (action.kind.id) {
+ 636               		.loc 1 161 39 is_stmt 0 view .LVU139
+ 637 0162 8F81      		ldd r24,Y+7
+ 638 0164 9885      		ldd r25,Y+8
+ 639 0166 0E94 0000 		call layer_switch_get_action
+ 640               	.LVL43:
+ 162:quantum/action_tapping.c ****                         case ACT_LMODS:
+ 641               		.loc 1 162 21 is_stmt 1 view .LVU140
+ 162:quantum/action_tapping.c ****                         case ACT_LMODS:
+ 642               		.loc 1 162 40 is_stmt 0 view .LVU141
+ 643 016a 292F      		mov r18,r25
+ 644 016c 2295      		swap r18
+ 645 016e 2F70      		andi r18,lo8(15)
+ 162:quantum/action_tapping.c ****                         case ACT_LMODS:
+ 646               		.loc 1 162 21 view .LVU142
+ 647 0170 9032      		cpi r25,lo8(32)
+ 648 0172 00F0      		brlo .L53
+ 649 0174 225F      		subi r18,lo8(-(14))
+ 650 0176 2F70      		andi r18,lo8(15)
+ 651 0178 2230      		cpi r18,lo8(2)
+ 652 017a 00F4      		brsh .L38
+ 170:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 653               		.loc 1 170 29 is_stmt 1 view .LVU143
+ 170:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 654               		.loc 1 170 33 is_stmt 0 view .LVU144
+ 655 017c 9F70      		andi r25,lo8(15)
+ 656               	.LVL44:
+ 170:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 657               		.loc 1 170 32 view .LVU145
+ 658 017e 01F0      		breq .L39
+ 170:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 659               		.loc 1 170 68 discriminator 1 view .LVU146
+ 660 0180 F801      		movw r30,r16
+ 661 0182 9581      		ldd r25,Z+5
+ 662 0184 907F      		andi r25,lo8(-16)
+ 170:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 663               		.loc 1 170 49 discriminator 1 view .LVU147
+ 664 0186 01F4      		brne .L39
+ 665               	.LVL45:
+ 666               	.L64:
+ 165:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 667               		.loc 1 165 77 view .LVU148
+ 668 0188 D12C      		mov r13,__zero_reg__
+ 669 018a 00C0      		rjmp .L37
+ 670               	.LVL46:
+ 671               	.L53:
+ 165:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 672               		.loc 1 165 29 is_stmt 1 view .LVU149
+ 165:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 673               		.loc 1 165 33 is_stmt 0 view .LVU150
+ 674 018c 9F70      		andi r25,lo8(15)
+ 675               	.LVL47:
+ 165:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 676               		.loc 1 165 32 view .LVU151
+ 677 018e 01F0      		breq .L39
+ 165:quantum/action_tapping.c ****                             if (IS_MOD(action.key.code)) return false;
+ 678               		.loc 1 165 49 discriminator 1 view .LVU152
+ 679 0190 8823      		tst r24
+ 680 0192 01F0      		breq .L64
+ 681               	.L39:
+ 171:quantum/action_tapping.c ****                             break;
+ 682               		.loc 1 171 29 is_stmt 1 view .LVU153
+ 171:quantum/action_tapping.c ****                             break;
+ 683               		.loc 1 171 33 is_stmt 0 view .LVU154
+ 684 0194 805E      		subi r24,lo8(-(32))
+ 685               	.LVL48:
+ 171:quantum/action_tapping.c ****                             break;
+ 686               		.loc 1 171 32 view .LVU155
+ 687 0196 8830      		cpi r24,lo8(8)
+ 688 0198 00F0      		brlo .L64
+ 689               	.LVL49:
+ 690               	.L38:
+ 175:quantum/action_tapping.c ****                     process_record(keyp);
+ 691               		.loc 1 175 86 is_stmt 1 view .LVU156
+ 176:quantum/action_tapping.c ****                     return true;
+ 692               		.loc 1 176 21 view .LVU157
+ 693 019a C801      		movw r24,r16
+ 694               	.LVL50:
+ 176:quantum/action_tapping.c ****                     return true;
+ 695               		.loc 1 176 21 is_stmt 0 view .LVU158
+ 696 019c 0E94 0000 		call process_record
+ 697               	.LVL51:
+ 177:quantum/action_tapping.c ****                 } else {
+ 698               		.loc 1 177 21 is_stmt 1 view .LVU159
+ 699               	.L37:
+ 177:quantum/action_tapping.c ****                 } else {
+ 700               		.loc 1 177 21 is_stmt 0 view .LVU160
+ 701 01a0 FD2C      		mov r15,r13
+ 702 01a2 00C0      		rjmp .L22
+ 703               	.LVL52:
+ 704               	.L40:
+ 177:quantum/action_tapping.c ****                 } else {
+ 705               		.loc 1 177 21 view .LVU161
+ 706               	.LBE89:
+ 211:quantum/action_tapping.c ****                     if (tapping_key.tap.count > 1) {
+ 707               		.loc 1 211 24 is_stmt 1 view .LVU162
+ 211:quantum/action_tapping.c ****                     if (tapping_key.tap.count > 1) {
+ 708               		.loc 1 211 28 is_stmt 0 view .LVU163
+ 709 01a4 C801      		movw r24,r16
+ 710 01a6 0E94 0000 		call is_tap_record
+ 711               	.LVL53:
+ 211:quantum/action_tapping.c ****                     if (tapping_key.tap.count > 1) {
+ 712               		.loc 1 211 27 view .LVU164
+ 713 01aa 8823      		tst r24
+ 714 01ac 01F4      		brne .+2
+ 715 01ae 00C0      		rjmp .L49
+ 211:quantum/action_tapping.c ****                     if (tapping_key.tap.count > 1) {
+ 716               		.loc 1 211 48 discriminator 1 view .LVU165
+ 717 01b0 EE20      		tst r14
+ 718 01b2 01F4      		brne .+2
+ 719 01b4 00C0      		rjmp .L49
+ 212:quantum/action_tapping.c ****                         debug("Tapping: Start new tap with releasing last tap(>1).\n");
+ 720               		.loc 1 212 21 is_stmt 1 view .LVU166
+ 212:quantum/action_tapping.c ****                         debug("Tapping: Start new tap with releasing last tap(>1).\n");
+ 721               		.loc 1 212 40 is_stmt 0 view .LVU167
+ 722 01b6 8091 0000 		lds r24,tapping_key+5
+ 212:quantum/action_tapping.c ****                         debug("Tapping: Start new tap with releasing last tap(>1).\n");
+ 723               		.loc 1 212 24 view .LVU168
+ 724 01ba 8032      		cpi r24,lo8(32)
+ 725 01bc 00F0      		brlo .L43
+ 726               	.LBB90:
+ 213:quantum/action_tapping.c ****                         // unregister key
+ 727               		.loc 1 213 87 is_stmt 1 view .LVU169
+ 215:quantum/action_tapping.c **** #ifdef COMBO_ENABLE
+ 728               		.loc 1 215 25 view .LVU170
+ 215:quantum/action_tapping.c **** #ifdef COMBO_ENABLE
+ 729               		.loc 1 215 54 is_stmt 0 view .LVU171
+ 730 01be 2091 0000 		lds r18,tapping_key
+ 731 01c2 3091 0000 		lds r19,tapping_key+1
+ 732 01c6 3A83      		std Y+2,r19
+ 733 01c8 2983      		std Y+1,r18
+ 734 01ca 1B82      		std Y+3,__zero_reg__
+ 735 01cc DD82      		std Y+5,r13
+ 736 01ce CC82      		std Y+4,r12
+ 737 01d0 8E83      		std Y+6,r24
+ 215:quantum/action_tapping.c **** #ifdef COMBO_ENABLE
+ 738               		.loc 1 215 25 view .LVU172
+ 739 01d2 CE01      		movw r24,r28
+ 740 01d4 0196      		adiw r24,1
+ 741 01d6 0E94 0000 		call process_record
+ 742               	.LVL54:
+ 743               	.L43:
+ 215:quantum/action_tapping.c **** #ifdef COMBO_ENABLE
+ 744               		.loc 1 215 25 view .LVU173
+ 745               	.LBE90:
+ 221:quantum/action_tapping.c ****                     }
+ 746               		.loc 1 221 69 is_stmt 1 view .LVU174
+ 223:quantum/action_tapping.c ****                     waiting_buffer_scan_tap();
+ 747               		.loc 1 223 21 view .LVU175
+ 223:quantum/action_tapping.c ****                     waiting_buffer_scan_tap();
+ 748               		.loc 1 223 33 is_stmt 0 view .LVU176
+ 749 01da 86E0      		ldi r24,lo8(6)
+ 750 01dc F801      		movw r30,r16
+ 751 01de A0E0      		ldi r26,lo8(tapping_key)
+ 752 01e0 B0E0      		ldi r27,hi8(tapping_key)
+ 753               		0:
+ 754 01e2 0190      		ld r0,Z+
+ 755 01e4 0D92      		st X+,r0
+ 756 01e6 8A95      		dec r24
+ 757 01e8 01F4      		brne 0b
+ 224:quantum/action_tapping.c ****                     debug_tapping_key();
+ 758               		.loc 1 224 21 is_stmt 1 view .LVU177
+ 759 01ea 0E94 0000 		call waiting_buffer_scan_tap
+ 760               	.LVL55:
+ 225:quantum/action_tapping.c ****                     return true;
+ 761               		.loc 1 225 21 view .LVU178
+ 762 01ee 0E94 0000 		call debug_tapping_key
+ 763               	.LVL56:
+ 226:quantum/action_tapping.c ****                 } else {
+ 764               		.loc 1 226 21 view .LVU179
+ 765               	.L114:
+ 232:quantum/action_tapping.c ****                 }
+ 766               		.loc 1 232 21 view .LVU180
+ 232:quantum/action_tapping.c ****                 }
+ 767               		.loc 1 232 28 is_stmt 0 view .LVU181
+ 768 01f2 FF24      		clr r15
+ 769 01f4 F394      		inc r15
+ 770 01f6 00C0      		rjmp .L22
+ 771               	.L25:
+ 238:quantum/action_tapping.c ****                 debug("Tapping: End. Timeout. Not tap(0): ");
+ 772               		.loc 1 238 13 is_stmt 1 view .LVU182
+ 238:quantum/action_tapping.c ****                 debug("Tapping: End. Timeout. Not tap(0): ");
+ 773               		.loc 1 238 16 is_stmt 0 view .LVU183
+ 774 01f8 6111      		cpse r22,__zero_reg__
+ 775 01fa 00C0      		rjmp .L44
+ 776               	.LBB91:
+ 239:quantum/action_tapping.c ****                 debug_event(event);
+ 777               		.loc 1 239 61 is_stmt 1 view .LVU184
+ 240:quantum/action_tapping.c ****                 debug("\n");
+ 778               		.loc 1 240 17 view .LVU185
+ 779 01fc 4F81      		ldd r20,Y+7
+ 780 01fe 5885      		ldd r21,Y+8
+ 781 0200 6985      		ldd r22,Y+9
+ 782 0202 7A85      		ldd r23,Y+10
+ 783 0204 8B85      		ldd r24,Y+11
+ 784 0206 0E94 0000 		call debug_event
+ 785               	.LVL57:
+ 241:quantum/action_tapping.c ****                 process_record(&tapping_key);
+ 786               		.loc 1 241 28 view .LVU186
+ 242:quantum/action_tapping.c ****                 tapping_key = (keyrecord_t){};
+ 787               		.loc 1 242 17 view .LVU187
+ 788 020a 80E0      		ldi r24,lo8(tapping_key)
+ 789 020c 90E0      		ldi r25,hi8(tapping_key)
+ 790 020e 0E94 0000 		call process_record
+ 791               	.LVL58:
+ 243:quantum/action_tapping.c ****                 debug_tapping_key();
+ 792               		.loc 1 243 17 view .LVU188
+ 243:quantum/action_tapping.c ****                 debug_tapping_key();
+ 793               		.loc 1 243 29 is_stmt 0 view .LVU189
+ 794 0212 86E0      		ldi r24,lo8(6)
+ 795 0214 F501      		movw r30,r10
+ 796               		0:
+ 797 0216 1192      		st Z+,__zero_reg__
+ 798 0218 8A95      		dec r24
+ 799 021a 01F4      		brne 0b
+ 244:quantum/action_tapping.c ****                 return false;
+ 800               		.loc 1 244 17 is_stmt 1 view .LVU190
+ 801 021c 0E94 0000 		call debug_tapping_key
+ 802               	.LVL59:
+ 803 0220 00C0      		rjmp .L113
+ 804               	.L51:
+ 244:quantum/action_tapping.c ****                 return false;
+ 805               		.loc 1 244 17 is_stmt 0 view .LVU191
+ 806               	.LBE91:
+ 302:quantum/action_tapping.c ****                     return true;
+ 807               		.loc 1 302 21 is_stmt 1 view .LVU192
+ 302:quantum/action_tapping.c ****                     return true;
+ 808               		.loc 1 302 33 is_stmt 0 view .LVU193
+ 809 0222 86E0      		ldi r24,lo8(6)
+ 810 0224 F801      		movw r30,r16
+ 811 0226 A0E0      		ldi r26,lo8(tapping_key)
+ 812 0228 B0E0      		ldi r27,hi8(tapping_key)
+ 813               		0:
+ 814 022a 0190      		ld r0,Z+
+ 815 022c 0D92      		st X+,r0
+ 816 022e 8A95      		dec r24
+ 817 0230 01F4      		brne 0b
+ 303:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp)) {
+ 818               		.loc 1 303 21 is_stmt 1 view .LVU194
+ 303:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp)) {
+ 819               		.loc 1 303 28 is_stmt 0 view .LVU195
+ 820 0232 00C0      		rjmp .L22
+ 821               	.L50:
+ 304:quantum/action_tapping.c ****                     // Sequential tap can be interfered with other tap key.
+ 822               		.loc 1 304 24 is_stmt 1 view .LVU196
+ 304:quantum/action_tapping.c ****                     // Sequential tap can be interfered with other tap key.
+ 823               		.loc 1 304 28 is_stmt 0 view .LVU197
+ 824 0234 C801      		movw r24,r16
+ 825 0236 0E94 0000 		call is_tap_record
+ 826               	.LVL60:
+ 304:quantum/action_tapping.c ****                     // Sequential tap can be interfered with other tap key.
+ 827               		.loc 1 304 27 view .LVU198
+ 828 023a 8111      		cpse r24,__zero_reg__
+ 829 023c 00C0      		rjmp .L43
+ 314:quantum/action_tapping.c ****                     process_record(keyp);
+ 830               		.loc 1 314 21 is_stmt 1 view .LVU199
+ 314:quantum/action_tapping.c ****                     process_record(keyp);
+ 831               		.loc 1 314 49 is_stmt 0 view .LVU200
+ 832 023e 8091 0000 		lds r24,tapping_key+5
+ 833 0242 8160      		ori r24,lo8(1<<0)
+ 834 0244 8093 0000 		sts tapping_key+5,r24
+ 315:quantum/action_tapping.c ****                     return true;
+ 835               		.loc 1 315 21 is_stmt 1 view .LVU201
+ 836 0248 C801      		movw r24,r16
+ 837 024a 0E94 0000 		call process_record
+ 838               	.LVL61:
+ 316:quantum/action_tapping.c ****                 }
+ 839               		.loc 1 316 21 view .LVU202
+ 316:quantum/action_tapping.c ****                 }
+ 840               		.loc 1 316 28 is_stmt 0 view .LVU203
+ 841 024e 00C0      		rjmp .L22
+ 842               	.L47:
+ 843               	.LBB92:
+ 326:quantum/action_tapping.c ****             debug_event(event);
+ 844               		.loc 1 326 70 is_stmt 1 view .LVU204
+ 327:quantum/action_tapping.c ****             debug("\n");
+ 845               		.loc 1 327 13 view .LVU205
+ 846 0250 4F81      		ldd r20,Y+7
+ 847 0252 5885      		ldd r21,Y+8
+ 848 0254 6985      		ldd r22,Y+9
+ 849 0256 7A85      		ldd r23,Y+10
+ 850 0258 8B85      		ldd r24,Y+11
+ 851 025a 0E94 0000 		call debug_event
+ 852               	.LVL62:
+ 328:quantum/action_tapping.c ****             tapping_key = (keyrecord_t){};
+ 853               		.loc 1 328 24 view .LVU206
+ 329:quantum/action_tapping.c ****             debug_tapping_key();
+ 854               		.loc 1 329 13 view .LVU207
+ 329:quantum/action_tapping.c ****             debug_tapping_key();
+ 855               		.loc 1 329 25 is_stmt 0 view .LVU208
+ 856 025e 86E0      		ldi r24,lo8(6)
+ 857 0260 F501      		movw r30,r10
+ 858               		0:
+ 859 0262 1192      		st Z+,__zero_reg__
+ 860 0264 8A95      		dec r24
+ 861 0266 01F4      		brne 0b
+ 330:quantum/action_tapping.c ****             return false;
+ 862               		.loc 1 330 13 is_stmt 1 view .LVU209
+ 863 0268 00C0      		rjmp .L112
+ 864               	.LVL63:
+ 865               	.L30:
+ 330:quantum/action_tapping.c ****             return false;
+ 866               		.loc 1 330 13 is_stmt 0 view .LVU210
+ 867               	.LBE92:
+ 868               	.LBB93:
+ 869               	.LBB82:
+ 870               		.loc 2 49 79 view .LVU211
+ 871 026a 81E0      		ldi r24,lo8(1)
+ 872 026c 8E25      		eor r24,r14
+ 873 026e 00C0      		rjmp .L29
+ 874               	.LVL64:
+ 875               	.L26:
+ 876               		.loc 2 49 79 view .LVU212
+ 877               	.LBE82:
+ 878               	.LBE93:
+ 202:quantum/action_tapping.c ****                     debug("Tapping: Tap release(");
+ 879               		.loc 1 202 17 is_stmt 1 view .LVU213
+ 202:quantum/action_tapping.c ****                     debug("Tapping: Tap release(");
+ 880               		.loc 1 202 21 is_stmt 0 view .LVU214
+ 881 0270 3913      		cpse r19,r25
+ 882 0272 00C0      		rjmp .L40
+ 202:quantum/action_tapping.c ****                     debug("Tapping: Tap release(");
+ 883               		.loc 1 202 21 discriminator 2 view .LVU215
+ 884 0274 F801      		movw r30,r16
+ 885 0276 9081      		ld r25,Z
+ 886 0278 9213      		cpse r25,r18
+ 887 027a 00C0      		rjmp .L40
+ 202:quantum/action_tapping.c ****                     debug("Tapping: Tap release(");
+ 888               		.loc 1 202 45 discriminator 3 view .LVU216
+ 889 027c E110      		cpse r14,__zero_reg__
+ 890 027e 00C0      		rjmp .L40
+ 891               	.L117:
+ 291:quantum/action_tapping.c ****                         debug("Tapping: Tap press(");
+ 892               		.loc 1 291 67 discriminator 1 view .LVU217
+ 893 0280 8583      		std Z+5,r24
+ 894               	.L52:
+ 292:quantum/action_tapping.c ****                         debug_dec(keyp->tap.count);
+ 895               		.loc 1 292 53 is_stmt 1 view .LVU218
+ 293:quantum/action_tapping.c ****                         debug(")\n");
+ 896               		.loc 1 293 51 view .LVU219
+ 294:quantum/action_tapping.c ****                         process_record(keyp);
+ 897               		.loc 1 294 37 view .LVU220
+ 295:quantum/action_tapping.c ****                         tapping_key = *keyp;
+ 898               		.loc 1 295 25 view .LVU221
+ 899 0282 C801      		movw r24,r16
+ 900 0284 0E94 0000 		call process_record
+ 901               	.LVL65:
+ 296:quantum/action_tapping.c ****                         debug_tapping_key();
+ 902               		.loc 1 296 25 view .LVU222
+ 296:quantum/action_tapping.c ****                         debug_tapping_key();
+ 903               		.loc 1 296 37 is_stmt 0 view .LVU223
+ 904 0288 86E0      		ldi r24,lo8(6)
+ 905 028a F801      		movw r30,r16
+ 906 028c A0E0      		ldi r26,lo8(tapping_key)
+ 907 028e B0E0      		ldi r27,hi8(tapping_key)
+ 908               		0:
+ 909 0290 0190      		ld r0,Z+
+ 910 0292 0D92      		st X+,r0
+ 911 0294 8A95      		dec r24
+ 912 0296 01F4      		brne 0b
+ 297:quantum/action_tapping.c ****                         return true;
+ 913               		.loc 1 297 25 is_stmt 1 view .LVU224
+ 914               	.L112:
+ 341:quantum/action_tapping.c ****             return true;
+ 915               		.loc 1 341 13 view .LVU225
+ 916 0298 0E94 0000 		call debug_tapping_key
+ 917               	.LVL66:
+ 342:quantum/action_tapping.c ****         } else {
+ 918               		.loc 1 342 13 view .LVU226
+ 342:quantum/action_tapping.c ****         } else {
+ 919               		.loc 1 342 20 is_stmt 0 view .LVU227
+ 920 029c 00C0      		rjmp .L22
+ 921               	.LVL67:
+ 922               	.L44:
+ 247:quantum/action_tapping.c ****                     debug("Tapping: End. last timeout tap release(>0).");
+ 923               		.loc 1 247 17 is_stmt 1 view .LVU228
+ 247:quantum/action_tapping.c ****                     debug("Tapping: End. last timeout tap release(>0).");
+ 924               		.loc 1 247 21 is_stmt 0 view .LVU229
+ 925 029e F801      		movw r30,r16
+ 926 02a0 3181      		ldd r19,Z+1
+ 927 02a2 9313      		cpse r25,r19
+ 928 02a4 00C0      		rjmp .L40
+ 247:quantum/action_tapping.c ****                     debug("Tapping: End. last timeout tap release(>0).");
+ 929               		.loc 1 247 21 discriminator 2 view .LVU230
+ 930 02a6 F801      		movw r30,r16
+ 931 02a8 9081      		ld r25,Z
+ 932 02aa 9213      		cpse r25,r18
+ 933 02ac 00C0      		rjmp .L40
+ 247:quantum/action_tapping.c ****                     debug("Tapping: End. last timeout tap release(>0).");
+ 934               		.loc 1 247 45 discriminator 3 view .LVU231
+ 935 02ae E110      		cpse r14,__zero_reg__
+ 936 02b0 00C0      		rjmp .L40
+ 937               	.LBB94:
+ 248:quantum/action_tapping.c ****                     keyp->tap = tapping_key.tap;
+ 938               		.loc 1 248 73 is_stmt 1 view .LVU232
+ 249:quantum/action_tapping.c ****                     process_record(keyp);
+ 939               		.loc 1 249 21 view .LVU233
+ 249:quantum/action_tapping.c ****                     process_record(keyp);
+ 940               		.loc 1 249 31 is_stmt 0 view .LVU234
+ 941 02b2 8583      		std Z+5,r24
+ 250:quantum/action_tapping.c ****                     tapping_key = (keyrecord_t){};
+ 942               		.loc 1 250 21 is_stmt 1 view .LVU235
+ 943 02b4 C801      		movw r24,r16
+ 944 02b6 0E94 0000 		call process_record
+ 945               	.LVL68:
+ 251:quantum/action_tapping.c ****                     return true;
+ 946               		.loc 1 251 21 view .LVU236
+ 251:quantum/action_tapping.c ****                     return true;
+ 947               		.loc 1 251 33 is_stmt 0 view .LVU237
+ 948 02ba 86E0      		ldi r24,lo8(6)
+ 949 02bc F501      		movw r30,r10
+ 950               		0:
+ 951 02be 1192      		st Z+,__zero_reg__
+ 952 02c0 8A95      		dec r24
+ 953 02c2 01F4      		brne 0b
+ 252:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp) && event.pressed) {
+ 954               		.loc 1 252 21 is_stmt 1 view .LVU238
+ 955 02c4 00C0      		rjmp .L22
+ 956               	.L48:
+ 252:quantum/action_tapping.c ****                 } else if (is_tap_record(keyp) && event.pressed) {
+ 957               		.loc 1 252 21 is_stmt 0 view .LVU239
+ 958               	.LBE94:
+ 281:quantum/action_tapping.c **** //#    ifndef TAPPING_FORCE_HOLD
+ 959               		.loc 1 281 17 is_stmt 1 view .LVU240
+ 281:quantum/action_tapping.c **** //#    ifndef TAPPING_FORCE_HOLD
+ 960               		.loc 1 281 21 is_stmt 0 view .LVU241
+ 961 02c6 F801      		movw r30,r16
+ 962 02c8 8181      		ldd r24,Z+1
+ 963 02ca 9813      		cpse r25,r24
+ 964 02cc 00C0      		rjmp .L50
+ 281:quantum/action_tapping.c **** //#    ifndef TAPPING_FORCE_HOLD
+ 965               		.loc 1 281 21 discriminator 2 view .LVU242
+ 966 02ce F801      		movw r30,r16
+ 967 02d0 8081      		ld r24,Z
+ 968 02d2 8213      		cpse r24,r18
+ 969 02d4 00C0      		rjmp .L50
+ 284:quantum/action_tapping.c **** #        ifdef TAPPING_FORCE_HOLD_PER_KEY
+ 970               		.loc 1 284 21 is_stmt 1 view .LVU243
+ 288:quantum/action_tapping.c ****                         // sequential tap.
+ 971               		.loc 1 288 41 is_stmt 0 view .LVU244
+ 972 02d6 8091 0000 		lds r24,tapping_key+5
+ 284:quantum/action_tapping.c **** #        ifdef TAPPING_FORCE_HOLD_PER_KEY
+ 973               		.loc 1 284 24 view .LVU245
+ 974 02da 80FD      		sbrc r24,0
+ 975 02dc 00C0      		rjmp .L51
+ 288:quantum/action_tapping.c ****                         // sequential tap.
+ 976               		.loc 1 288 79 view .LVU246
+ 977 02de 982F      		mov r25,r24
+ 978 02e0 907F      		andi r25,lo8(-16)
+ 288:quantum/action_tapping.c ****                         // sequential tap.
+ 979               		.loc 1 288 54 view .LVU247
+ 980 02e2 01F4      		brne .+2
+ 981 02e4 00C0      		rjmp .L51
+ 290:quantum/action_tapping.c ****                         if (keyp->tap.count < 15) keyp->tap.count += 1;
+ 982               		.loc 1 290 25 is_stmt 1 view .LVU248
+ 290:quantum/action_tapping.c ****                         if (keyp->tap.count < 15) keyp->tap.count += 1;
+ 983               		.loc 1 290 35 is_stmt 0 view .LVU249
+ 984 02e6 8583      		std Z+5,r24
+ 291:quantum/action_tapping.c ****                         debug("Tapping: Tap press(");
+ 985               		.loc 1 291 25 is_stmt 1 view .LVU250
+ 291:quantum/action_tapping.c ****                         debug("Tapping: Tap press(");
+ 986               		.loc 1 291 28 is_stmt 0 view .LVU251
+ 987 02e8 903F      		cpi r25,lo8(-16)
+ 988 02ea 01F0      		breq .L52
+ 291:quantum/action_tapping.c ****                         debug("Tapping: Tap press(");
+ 989               		.loc 1 291 51 is_stmt 1 discriminator 1 view .LVU252
+ 291:quantum/action_tapping.c ****                         debug("Tapping: Tap press(");
+ 990               		.loc 1 291 67 is_stmt 0 discriminator 1 view .LVU253
+ 991 02ec 982F      		mov r25,r24
+ 992 02ee 907F      		andi r25,lo8(-16)
+ 993 02f0 905F      		subi r25,lo8(-(16))
+ 994 02f2 8F70      		andi r24,lo8(15)
+ 995 02f4 892B      		or r24,r25
+ 996 02f6 00C0      		rjmp .L117
+ 997               	.LVL69:
+ 998               	.L107:
+ 112:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 999               		.loc 1 112 9 view .LVU254
+ 1000 02f8 F090 0000 		lds r15,tapping_key+2
+ 1001 02fc B601      		movw r22,r12
+ 1002 02fe 641B      		sub r22,r20
+ 1003 0300 750B      		sbc r23,r21
+ 1004 0302 AB01      		movw r20,r22
+ 1005 0304 F110      		cpse r15,__zero_reg__
+ 1006 0306 00C0      		rjmp .L58
+ 278:quantum/action_tapping.c ****         if (WITHIN_TAPPING_TERM(event)) {
+ 1007               		.loc 1 278 12 is_stmt 1 view .LVU255
+ 279:quantum/action_tapping.c ****             if (event.pressed) {
+ 1008               		.loc 1 279 9 view .LVU256
+ 279:quantum/action_tapping.c ****             if (event.pressed) {
+ 1009               		.loc 1 279 12 is_stmt 0 view .LVU257
+ 1010 0308 483C      		cpi r20,-56
+ 1011 030a 5105      		cpc r21,__zero_reg__
+ 1012 030c 00F0      		brlo .+2
+ 1013 030e 00C0      		rjmp .L47
+ 280:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp)) {
+ 1014               		.loc 1 280 13 is_stmt 1 view .LVU258
+ 280:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp)) {
+ 1015               		.loc 1 280 22 is_stmt 0 view .LVU259
+ 1016 0310 FE2C      		mov r15,r14
+ 280:quantum/action_tapping.c ****                 if (IS_TAPPING_RECORD(keyp)) {
+ 1017               		.loc 1 280 16 view .LVU260
+ 1018 0312 E110      		cpse r14,__zero_reg__
+ 1019 0314 00C0      		rjmp .L48
+ 1020               	.L49:
+ 228:quantum/action_tapping.c ****                         debug("Tapping: key event while last tap(>0).\n");
+ 1021               		.loc 1 228 21 is_stmt 1 view .LVU261
+ 1022               	.LVL70:
+ 229:quantum/action_tapping.c ****                     }
+ 1023               		.loc 1 229 74 view .LVU262
+ 231:quantum/action_tapping.c ****                     return true;
+ 1024               		.loc 1 231 21 view .LVU263
+ 1025 0316 C801      		movw r24,r16
+ 1026 0318 0E94 0000 		call process_record
+ 1027               	.LVL71:
+ 1028 031c 00C0      		rjmp .L114
+ 1029               		.cfi_endproc
+ 1030               	.LFE8:
+ 1032               		.section	.text.get_tapping_term,"ax",@progbits
+ 1033               		.weak	get_tapping_term
+ 1035               	get_tapping_term:
+ 1036               	.LVL72:
+ 1037               	.LFB6:
+  27:quantum/action_tapping.c **** 
+ 1038               		.loc 1 27 88 view -0
+ 1039               		.cfi_startproc
+ 1040               	/* prologue: function */
+ 1041               	/* frame size = 0 */
+ 1042               	/* stack size = 0 */
+ 1043               	.L__stack_usage = 0
+  27:quantum/action_tapping.c **** 
+ 1044               		.loc 1 27 90 view .LVU265
+  27:quantum/action_tapping.c **** 
+ 1045               		.loc 1 27 111 is_stmt 0 view .LVU266
+ 1046 0000 88EC      		ldi r24,lo8(-56)
+ 1047 0002 90E0      		ldi r25,0
+ 1048               	.LVL73:
+ 1049               	/* epilogue start */
+  27:quantum/action_tapping.c **** 
+ 1050               		.loc 1 27 111 view .LVU267
+ 1051 0004 0895      		ret
+ 1052               		.cfi_endproc
+ 1053               	.LFE6:
+ 1055               		.section	.text.action_tapping_process,"ax",@progbits
+ 1056               	.global	action_tapping_process
+ 1058               	action_tapping_process:
+ 1059               	.LFB7:
+  65:quantum/action_tapping.c ****     if (process_tapping(&record)) {
+ 1060               		.loc 1 65 49 is_stmt 1 view -0
+ 1061               		.cfi_startproc
+ 1062 0000 1F93      		push r17
+ 1063               	.LCFI18:
+ 1064               		.cfi_def_cfa_offset 3
+ 1065               		.cfi_offset 17, -2
+ 1066 0002 CF93      		push r28
+ 1067               	.LCFI19:
+ 1068               		.cfi_def_cfa_offset 4
+ 1069               		.cfi_offset 28, -3
+ 1070 0004 DF93      		push r29
+ 1071               	.LCFI20:
+ 1072               		.cfi_def_cfa_offset 5
+ 1073               		.cfi_offset 29, -4
+ 1074 0006 CDB7      		in r28,__SP_L__
+ 1075 0008 DEB7      		in r29,__SP_H__
+ 1076               	.LCFI21:
+ 1077               		.cfi_def_cfa_register 28
+ 1078 000a 2C97      		sbiw r28,12
+ 1079               	.LCFI22:
+ 1080               		.cfi_def_cfa_offset 17
+ 1081 000c 0FB6      		in __tmp_reg__,__SREG__
+ 1082 000e F894      		cli
+ 1083 0010 DEBF      		out __SP_H__,r29
+ 1084 0012 0FBE      		out __SREG__,__tmp_reg__
+ 1085 0014 CDBF      		out __SP_L__,r28
+ 1086               	/* prologue: function */
+ 1087               	/* frame size = 12 */
+ 1088               	/* stack size = 15 */
+ 1089               	.L__stack_usage = 15
+ 1090 0016 4F83      		std Y+7,r20
+ 1091 0018 5887      		std Y+8,r21
+ 1092 001a 6987      		std Y+9,r22
+ 1093 001c 7A87      		std Y+10,r23
+ 1094 001e 8B87      		std Y+11,r24
+ 1095 0020 9C87      		std Y+12,r25
+  66:quantum/action_tapping.c ****         if (!IS_NOEVENT(record.event)) {
+ 1096               		.loc 1 66 5 view .LVU269
+  66:quantum/action_tapping.c ****         if (!IS_NOEVENT(record.event)) {
+ 1097               		.loc 1 66 9 is_stmt 0 view .LVU270
+ 1098 0022 CE01      		movw r24,r28
+ 1099 0024 0796      		adiw r24,7
+ 1100 0026 0E94 0000 		call process_tapping
+ 1101               	.LVL74:
+  66:quantum/action_tapping.c ****         if (!IS_NOEVENT(record.event)) {
+ 1102               		.loc 1 66 8 view .LVU271
+ 1103 002a 8823      		tst r24
+ 1104 002c 01F0      		breq .L123
+  67:quantum/action_tapping.c ****             debug("processed: ");
+ 1105               		.loc 1 67 9 is_stmt 1 view .LVU272
+ 1106               	.LVL75:
+ 1107               	.LBB104:
+ 1108               	.LBI104:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1109               		.loc 2 47 20 view .LVU273
+ 1110               	.LBB105:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1111               		.loc 2 47 51 view .LVU274
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1112               		.loc 2 47 74 is_stmt 0 view .LVU275
+ 1113 002e 8A85      		ldd r24,Y+10
+ 1114 0030 9B85      		ldd r25,Y+11
+ 1115 0032 892B      		or r24,r25
+ 1116 0034 01F0      		breq .L124
+ 1117 0036 5885      		ldd r21,Y+8
+ 1118 0038 4F81      		ldd r20,Y+7
+ 1119 003a 852F      		mov r24,r21
+ 1120 003c 8423      		and r24,r20
+ 1121 003e 8F3F      		cpi r24,lo8(-1)
+ 1122 0040 01F0      		breq .+2
+ 1123 0042 00C0      		rjmp .L146
+ 1124               	.LVL76:
+ 1125               	.L124:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1126               		.loc 2 47 74 view .LVU276
+ 1127               	.LBE105:
+ 1128               	.LBE104:
+  87:quantum/action_tapping.c ****             debug("processed: waiting_buffer[");
+ 1129               		.loc 1 87 13 discriminator 1 view .LVU277
+ 1130 0044 16E0      		ldi r17,lo8(6)
+ 1131 0046 00C0      		rjmp .L131
+ 1132               	.L123:
+  73:quantum/action_tapping.c ****             // clear all in case of overflow.
+ 1133               		.loc 1 73 9 is_stmt 1 view .LVU278
+ 1134 0048 86E0      		ldi r24,lo8(6)
+ 1135 004a FE01      		movw r30,r28
+ 1136 004c 3796      		adiw r30,7
+ 1137 004e DE01      		movw r26,r28
+ 1138 0050 1196      		adiw r26,1
+ 1139               		0:
+ 1140 0052 0190      		ld r0,Z+
+ 1141 0054 0D92      		st X+,r0
+ 1142 0056 8A95      		dec r24
+ 1143 0058 01F4      		brne 0b
+ 1144 005a 8F81      		ldd r24,Y+7
+ 1145               	.LVL77:
+  73:quantum/action_tapping.c ****             // clear all in case of overflow.
+ 1146               		.loc 1 73 9 is_stmt 0 view .LVU279
+ 1147 005c 9885      		ldd r25,Y+8
+ 1148               	.LVL78:
+ 1149               	.LBB106:
+ 1150               	.LBI106:
+ 354:quantum/action_tapping.c ****     if (IS_NOEVENT(record.event)) {
+ 1151               		.loc 1 354 6 is_stmt 1 view .LVU280
+ 1152               	.LBB107:
+ 355:quantum/action_tapping.c ****         return true;
+ 1153               		.loc 1 355 5 view .LVU281
+ 1154               	.LBB108:
+ 1155               	.LBI108:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1156               		.loc 2 47 20 view .LVU282
+ 1157               	.LBB109:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1158               		.loc 2 47 51 view .LVU283
+ 1159               	.LBE109:
+ 1160               	.LBE108:
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1161               		.loc 1 359 30 is_stmt 0 view .LVU284
+ 1162 005e 2091 0000 		lds r18,waiting_buffer_head
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1163               		.loc 1 359 57 view .LVU285
+ 1164 0062 4091 0000 		lds r20,waiting_buffer_tail
+ 1165               	.LBB111:
+ 1166               	.LBB110:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1167               		.loc 2 47 74 view .LVU286
+ 1168 0066 6A85      		ldd r22,Y+10
+ 1169 0068 7B85      		ldd r23,Y+11
+ 1170 006a 672B      		or r22,r23
+ 1171 006c 01F0      		breq .L124
+ 1172 006e 8923      		and r24,r25
+ 1173               	.LVL79:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1174               		.loc 2 47 74 view .LVU287
+ 1175 0070 8F3F      		cpi r24,lo8(-1)
+ 1176 0072 01F0      		breq .L124
+ 1177               	.LVL80:
+  47:quantum/keyboard.h **** static inline bool IS_PRESSED(keyevent_t event) { return (!IS_NOEVENT(event) && event.pressed); }
+ 1178               		.loc 2 47 74 view .LVU288
+ 1179               	.LBE110:
+ 1180               	.LBE111:
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1181               		.loc 1 359 5 is_stmt 1 view .LVU289
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1182               		.loc 1 359 30 is_stmt 0 view .LVU290
+ 1183 0074 30E0      		ldi r19,0
+ 1184 0076 C901      		movw r24,r18
+ 1185 0078 0196      		adiw r24,1
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1186               		.loc 1 359 35 view .LVU291
+ 1187 007a 8770      		andi r24,7
+ 1188 007c 9927      		clr r25
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1189               		.loc 1 359 8 view .LVU292
+ 1190 007e 4817      		cp r20,r24
+ 1191 0080 1906      		cpc __zero_reg__,r25
+ 1192 0082 01F4      		brne .L148
+ 1193               	.LVL81:
+ 359:quantum/action_tapping.c ****         debug("waiting_buffer_enq: Over flow.\n");
+ 1194               		.loc 1 359 8 view .LVU293
+ 1195               	.LBE107:
+ 1196               	.LBE106:
+ 1197               	.LBB113:
+  75:quantum/action_tapping.c ****             clear_keyboard();
+ 1198               		.loc 1 75 50 is_stmt 1 view .LVU294
+  76:quantum/action_tapping.c ****             waiting_buffer_clear();
+ 1199               		.loc 1 76 13 view .LVU295
+ 1200 0084 0E94 0000 		call clear_keyboard
+ 1201               	.LVL82:
+  77:quantum/action_tapping.c ****             tapping_key = (keyrecord_t){};
+ 1202               		.loc 1 77 13 view .LVU296
+ 1203               	.LBB114:
+ 1204               	.LBI114:
+ 376:quantum/action_tapping.c ****     waiting_buffer_head = 0;
+ 1205               		.loc 1 376 6 view .LVU297
+ 1206               	.LBB115:
+ 377:quantum/action_tapping.c ****     waiting_buffer_tail = 0;
+ 1207               		.loc 1 377 5 view .LVU298
+ 377:quantum/action_tapping.c ****     waiting_buffer_tail = 0;
+ 1208               		.loc 1 377 25 is_stmt 0 view .LVU299
+ 1209 0088 1092 0000 		sts waiting_buffer_head,__zero_reg__
+ 378:quantum/action_tapping.c **** }
+ 1210               		.loc 1 378 5 is_stmt 1 view .LVU300
+ 378:quantum/action_tapping.c **** }
+ 1211               		.loc 1 378 25 is_stmt 0 view .LVU301
+ 1212 008c 1092 0000 		sts waiting_buffer_tail,__zero_reg__
+ 1213               	.LBE115:
+ 1214               	.LBE114:
+  78:quantum/action_tapping.c ****         }
+ 1215               		.loc 1 78 13 is_stmt 1 view .LVU302
+  78:quantum/action_tapping.c ****         }
+ 1216               		.loc 1 78 25 is_stmt 0 view .LVU303
+ 1217 0090 86E0      		ldi r24,lo8(6)
+ 1218 0092 E0E0      		ldi r30,lo8(tapping_key)
+ 1219 0094 F0E0      		ldi r31,hi8(tapping_key)
+ 1220 0096 DF01      		movw r26,r30
+ 1221               		0:
+ 1222 0098 1D92      		st X+,__zero_reg__
+ 1223 009a 8A95      		dec r24
+ 1224 009c 01F4      		brne 0b
+ 1225 009e 00C0      		rjmp .L124
+ 1226               	.LVL83:
+ 1227               	.L148:
+  78:quantum/action_tapping.c ****         }
+ 1228               		.loc 1 78 25 view .LVU304
+ 1229               	.LBE113:
+ 1230               	.LBB116:
+ 1231               	.LBB112:
+ 364:quantum/action_tapping.c ****     waiting_buffer_head                 = (waiting_buffer_head + 1) % WAITING_BUFFER_SIZE;
+ 1232               		.loc 1 364 5 is_stmt 1 view .LVU305
+ 364:quantum/action_tapping.c ****     waiting_buffer_head                 = (waiting_buffer_head + 1) % WAITING_BUFFER_SIZE;
+ 1233               		.loc 1 364 41 is_stmt 0 view .LVU306
+ 1234 00a0 96E0      		ldi r25,lo8(6)
+ 1235               	.LVL84:
+ 364:quantum/action_tapping.c ****     waiting_buffer_head                 = (waiting_buffer_head + 1) % WAITING_BUFFER_SIZE;
+ 1236               		.loc 1 364 41 view .LVU307
+ 1237 00a2 929F      		mul r25,r18
+ 1238 00a4 D001      		movw r26,r0
+ 1239 00a6 939F      		mul r25,r19
+ 1240 00a8 B00D      		add r27,r0
+ 1241 00aa 1124      		clr __zero_reg__
+ 1242 00ac A050      		subi r26,lo8(-(waiting_buffer))
+ 1243 00ae B040      		sbci r27,hi8(-(waiting_buffer))
+ 1244 00b0 FE01      		movw r30,r28
+ 1245 00b2 3196      		adiw r30,1
+ 1246               		0:
+ 1247 00b4 0190      		ld r0,Z+
+ 1248 00b6 0D92      		st X+,r0
+ 1249 00b8 9A95      		dec r25
+ 1250 00ba 01F4      		brne 0b
+ 365:quantum/action_tapping.c **** 
+ 1251               		.loc 1 365 5 is_stmt 1 view .LVU308
+ 365:quantum/action_tapping.c **** 
+ 1252               		.loc 1 365 41 is_stmt 0 view .LVU309
+ 1253 00bc 8093 0000 		sts waiting_buffer_head,r24
+ 367:quantum/action_tapping.c ****     debug_waiting_buffer();
+ 1254               		.loc 1 367 34 is_stmt 1 view .LVU310
+ 368:quantum/action_tapping.c ****     return true;
+ 1255               		.loc 1 368 5 view .LVU311
+ 1256 00c0 0E94 0000 		call debug_waiting_buffer
+ 1257               	.LVL85:
+ 369:quantum/action_tapping.c **** }
+ 1258               		.loc 1 369 5 view .LVU312
+ 369:quantum/action_tapping.c **** }
+ 1259               		.loc 1 369 5 is_stmt 0 view .LVU313
+ 1260 00c4 00C0      		rjmp .L124
+ 1261               	.L129:
+ 1262               	.LBE112:
+ 1263               	.LBE116:
+  87:quantum/action_tapping.c ****             debug("processed: waiting_buffer[");
+ 1264               		.loc 1 87 9 is_stmt 1 view .LVU314
+  87:quantum/action_tapping.c ****             debug("processed: waiting_buffer[");
+ 1265               		.loc 1 87 13 is_stmt 0 view .LVU315
+ 1266 00c6 819F      		mul r24,r17
+ 1267 00c8 C001      		movw r24,r0
+ 1268 00ca 1124      		clr __zero_reg__
+ 1269 00cc 8050      		subi r24,lo8(-(waiting_buffer))
+ 1270 00ce 9040      		sbci r25,hi8(-(waiting_buffer))
+ 1271 00d0 0E94 0000 		call process_tapping
+ 1272               	.LVL86:
+  87:quantum/action_tapping.c ****             debug("processed: waiting_buffer[");
+ 1273               		.loc 1 87 12 view .LVU316
+ 1274 00d4 8823      		tst r24
+ 1275 00d6 01F0      		breq .L122
+  88:quantum/action_tapping.c ****             debug_dec(waiting_buffer_tail);
+ 1276               		.loc 1 88 48 is_stmt 1 view .LVU317
+  89:quantum/action_tapping.c ****             debug("] = ");
+ 1277               		.loc 1 89 43 view .LVU318
+  90:quantum/action_tapping.c ****             debug_record(waiting_buffer[waiting_buffer_tail]);
+ 1278               		.loc 1 90 26 view .LVU319
+  91:quantum/action_tapping.c ****             debug("\n\n");
+ 1279               		.loc 1 91 13 view .LVU320
+ 1280 00d8 E091 0000 		lds r30,waiting_buffer_tail
+ 1281 00dc 1E9F      		mul r17,r30
+ 1282 00de F001      		movw r30,r0
+ 1283 00e0 1124      		clr __zero_reg__
+ 1284 00e2 E050      		subi r30,lo8(-(waiting_buffer))
+ 1285 00e4 F040      		sbci r31,hi8(-(waiting_buffer))
+ 1286 00e6 4081      		ld r20,Z
+ 1287 00e8 5181      		ldd r21,Z+1
+ 1288 00ea 6281      		ldd r22,Z+2
+ 1289 00ec 7381      		ldd r23,Z+3
+ 1290 00ee 8481      		ldd r24,Z+4
+ 1291 00f0 9581      		ldd r25,Z+5
+ 1292 00f2 0E94 0000 		call debug_record
+ 1293               	.LVL87:
+  92:quantum/action_tapping.c ****         } else {
+ 1294               		.loc 1 92 26 view .LVU321
+  86:quantum/action_tapping.c ****         if (process_tapping(&waiting_buffer[waiting_buffer_tail])) {
+ 1295               		.loc 1 86 76 view .LVU322
+  86:quantum/action_tapping.c ****         if (process_tapping(&waiting_buffer[waiting_buffer_tail])) {
+ 1296               		.loc 1 86 99 is_stmt 0 view .LVU323
+ 1297 00f6 8091 0000 		lds r24,waiting_buffer_tail
+ 1298 00fa 90E0      		ldi r25,0
+ 1299 00fc 0196      		adiw r24,1
+  86:quantum/action_tapping.c ****         if (process_tapping(&waiting_buffer[waiting_buffer_tail])) {
+ 1300               		.loc 1 86 104 view .LVU324
+ 1301 00fe 8770      		andi r24,7
+ 1302 0100 9927      		clr r25
+  86:quantum/action_tapping.c ****         if (process_tapping(&waiting_buffer[waiting_buffer_tail])) {
+ 1303               		.loc 1 86 76 view .LVU325
+ 1304 0102 8093 0000 		sts waiting_buffer_tail,r24
+ 1305               	.L131:
+  86:quantum/action_tapping.c ****         if (process_tapping(&waiting_buffer[waiting_buffer_tail])) {
+ 1306               		.loc 1 86 32 is_stmt 1 discriminator 1 view .LVU326
+ 1307 0106 8091 0000 		lds r24,waiting_buffer_tail
+ 1308 010a 9091 0000 		lds r25,waiting_buffer_head
+ 1309 010e 8913      		cpse r24,r25
+ 1310 0110 00C0      		rjmp .L129
+ 1311               	.L122:
+ 1312               	/* epilogue start */
+ 100:quantum/action_tapping.c **** 
+ 1313               		.loc 1 100 1 is_stmt 0 view .LVU327
+ 1314 0112 2C96      		adiw r28,12
+ 1315 0114 0FB6      		in __tmp_reg__,__SREG__
+ 1316 0116 F894      		cli
+ 1317 0118 DEBF      		out __SP_H__,r29
+ 1318 011a 0FBE      		out __SREG__,__tmp_reg__
+ 1319 011c CDBF      		out __SP_L__,r28
+ 1320 011e DF91      		pop r29
+ 1321 0120 CF91      		pop r28
+ 1322 0122 1F91      		pop r17
+ 1323 0124 0895      		ret
+ 1324               	.LVL88:
+ 1325               	.L146:
+  68:quantum/action_tapping.c ****             debug_record(record);
+ 1326               		.loc 1 68 33 is_stmt 1 view .LVU328
+  69:quantum/action_tapping.c ****             debug("\n");
+ 1327               		.loc 1 69 13 view .LVU329
+ 1328 0126 6985      		ldd r22,Y+9
+ 1329 0128 7A85      		ldd r23,Y+10
+ 1330 012a 8B85      		ldd r24,Y+11
+ 1331 012c 9C85      		ldd r25,Y+12
+ 1332 012e 0E94 0000 		call debug_record
+ 1333               	.LVL89:
+ 1334 0132 00C0      		rjmp .L124
+ 1335               		.cfi_endproc
+ 1336               	.LFE7:
+ 1338               		.section	.bss.waiting_buffer_tail,"aw",@nobits
+ 1341               	waiting_buffer_tail:
+ 1342 0000 00        		.zero	1
+ 1343               		.section	.bss.waiting_buffer_head,"aw",@nobits
+ 1346               	waiting_buffer_head:
+ 1347 0000 00        		.zero	1
+ 1348               		.section	.bss.waiting_buffer,"aw",@nobits
+ 1351               	waiting_buffer:
+ 1352 0000 0000 0000 		.zero	48
+ 1352      0000 0000 
+ 1352      0000 0000 
+ 1352      0000 0000 
+ 1352      0000 0000 
+ 1353               		.section	.bss.tapping_key,"aw",@nobits
+ 1356               	tapping_key:
+ 1357 0000 0000 0000 		.zero	6
+ 1357      0000 
+ 1358               		.text
+ 1359               	.Letext0:
+ 1360               		.file 3 "/usr/avr/include/stdint.h"
+ 1361               		.file 4 "quantum/keycode.h"
+ 1362               		.file 5 "quantum/action_code.h"
+ 1363               		.file 6 "quantum/action.h"
+ 1364               		.file 7 "quantum/action_layer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 action_tapping.c
+     /tmp/cc0FusRw.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc0FusRw.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc0FusRw.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc0FusRw.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc0FusRw.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc0FusRw.s:12     .text.debug_waiting_buffer:0000000000000000 debug_waiting_buffer
+     /tmp/cc0FusRw.s:1341   .bss.waiting_buffer_tail:0000000000000000 waiting_buffer_tail
+     /tmp/cc0FusRw.s:1346   .bss.waiting_buffer_head:0000000000000000 waiting_buffer_head
+     /tmp/cc0FusRw.s:1351   .bss.waiting_buffer:0000000000000000 waiting_buffer
+     /tmp/cc0FusRw.s:94     .text.debug_tapping_key:0000000000000000 debug_tapping_key
+     /tmp/cc0FusRw.s:1356   .bss.tapping_key:0000000000000000 tapping_key
+     /tmp/cc0FusRw.s:117    .text.waiting_buffer_scan_tap:0000000000000000 waiting_buffer_scan_tap
+     /tmp/cc0FusRw.s:286    .text.process_tapping:0000000000000000 process_tapping
+     /tmp/cc0FusRw.s:1035   .text.get_tapping_term:0000000000000000 get_tapping_term
+     /tmp/cc0FusRw.s:1058   .text.action_tapping_process:0000000000000000 action_tapping_process
+
+UNDEFINED SYMBOLS
+debug_record
+process_record
+is_tap_record
+process_record_tap_hint
+layer_switch_get_action
+debug_event
+clear_keyboard
+__do_clear_bss

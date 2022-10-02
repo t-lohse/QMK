@@ -1,0 +1,711 @@
+   1               		.file	"wpm.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.set_current_wpm,"ax",@progbits
+  11               	.global	set_current_wpm
+  13               	set_current_wpm:
+  14               	.LVL0:
+  15               	.LFB30:
+  16               		.file 1 "quantum/wpm.c"
+   1:quantum/wpm.c **** /*
+   2:quantum/wpm.c ****  * Copyright 2020 Richard Sutherland (rich@brickbots.com)
+   3:quantum/wpm.c ****  *
+   4:quantum/wpm.c ****  * This program is free software: you can redistribute it and/or modify
+   5:quantum/wpm.c ****  * it under the terms of the GNU General Public License as published by
+   6:quantum/wpm.c ****  * the Free Software Foundation, either version 2 of the License, or
+   7:quantum/wpm.c ****  * (at your option) any later version.
+   8:quantum/wpm.c ****  *
+   9:quantum/wpm.c ****  * This program is distributed in the hope that it will be useful,
+  10:quantum/wpm.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/wpm.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/wpm.c ****  * GNU General Public License for more details.
+  13:quantum/wpm.c ****  *
+  14:quantum/wpm.c ****  * You should have received a copy of the GNU General Public License
+  15:quantum/wpm.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/wpm.c ****  */
+  17:quantum/wpm.c **** 
+  18:quantum/wpm.c **** #include "wpm.h"
+  19:quantum/wpm.c **** 
+  20:quantum/wpm.c **** #include <math.h>
+  21:quantum/wpm.c **** 
+  22:quantum/wpm.c **** // WPM Stuff
+  23:quantum/wpm.c **** static uint8_t  current_wpm = 0;
+  24:quantum/wpm.c **** static uint16_t wpm_timer   = 0;
+  25:quantum/wpm.c **** 
+  26:quantum/wpm.c **** // This smoothing is 40 keystrokes
+  27:quantum/wpm.c **** static const float wpm_smoothing = WPM_SMOOTHING;
+  28:quantum/wpm.c **** 
+  29:quantum/wpm.c **** void set_current_wpm(uint8_t new_wpm) { current_wpm = new_wpm; }
+  17               		.loc 1 29 39 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  23               		.loc 1 29 41 view .LVU1
+  24               		.loc 1 29 53 is_stmt 0 view .LVU2
+  25 0000 8093 0000 		sts current_wpm,r24
+  26               	/* epilogue start */
+  27               		.loc 1 29 64 view .LVU3
+  28 0004 0895      		ret
+  29               		.cfi_endproc
+  30               	.LFE30:
+  32               		.section	.text.get_current_wpm,"ax",@progbits
+  33               	.global	get_current_wpm
+  35               	get_current_wpm:
+  36               	.LFB31:
+  30:quantum/wpm.c **** 
+  31:quantum/wpm.c **** uint8_t get_current_wpm(void) { return current_wpm; }
+  37               		.loc 1 31 31 is_stmt 1 view -0
+  38               		.cfi_startproc
+  39               	/* prologue: function */
+  40               	/* frame size = 0 */
+  41               	/* stack size = 0 */
+  42               	.L__stack_usage = 0
+  43               		.loc 1 31 33 view .LVU5
+  44               		.loc 1 31 53 is_stmt 0 view .LVU6
+  45 0000 8091 0000 		lds r24,current_wpm
+  46               	/* epilogue start */
+  47 0004 0895      		ret
+  48               		.cfi_endproc
+  49               	.LFE31:
+  51               		.section	.text.wpm_keycode_user,"ax",@progbits
+  52               		.weak	wpm_keycode_user
+  54               	wpm_keycode_user:
+  55               	.LVL1:
+  56               	.LFB34:
+  32:quantum/wpm.c **** 
+  33:quantum/wpm.c **** bool wpm_keycode(uint16_t keycode) { return wpm_keycode_kb(keycode); }
+  34:quantum/wpm.c **** 
+  35:quantum/wpm.c **** __attribute__((weak)) bool wpm_keycode_kb(uint16_t keycode) { return wpm_keycode_user(keycode); }
+  36:quantum/wpm.c **** 
+  37:quantum/wpm.c **** __attribute__((weak)) bool wpm_keycode_user(uint16_t keycode) {
+  57               		.loc 1 37 63 is_stmt 1 view -0
+  58               		.cfi_startproc
+  59               	/* prologue: function */
+  60               	/* frame size = 0 */
+  61               	/* stack size = 0 */
+  62               	.L__stack_usage = 0
+  63               		.loc 1 37 63 is_stmt 0 view .LVU8
+  64 0000 9C01      		movw r18,r24
+  38:quantum/wpm.c ****     if ((keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX) || (keycode >= QK_LAYER_TAP && keycode
+  65               		.loc 1 38 5 is_stmt 1 view .LVU9
+  66               		.loc 1 38 32 is_stmt 0 view .LVU10
+  67 0002 9056      		subi r25,96
+  68               	.LVL2:
+  69               		.loc 1 38 8 view .LVU11
+  70 0004 8115      		cp r24,__zero_reg__
+  71 0006 40E2      		ldi r20,32
+  72 0008 9407      		cpc r25,r20
+  73 000a 00F0      		brlo .L4
+  74               		.loc 1 38 90 discriminator 1 view .LVU12
+  75 000c 905E      		subi r25,-32
+  76               		.loc 1 38 62 discriminator 1 view .LVU13
+  77 000e 8115      		cp r24,__zero_reg__
+  78 0010 40E1      		ldi r20,16
+  79 0012 9407      		cpc r25,r20
+  80 0014 00F0      		brlo .L4
+  81               		.loc 1 38 145 discriminator 2 view .LVU14
+  82 0016 915C      		subi r25,-63
+  83               		.loc 1 38 122 discriminator 2 view .LVU15
+  84 0018 8115      		cp r24,__zero_reg__
+  85 001a 9F41      		sbci r25,31
+  86 001c 00F4      		brsh .L5
+  87               	.L4:
+  39:quantum/wpm.c ****         keycode = keycode & 0xFF;
+  88               		.loc 1 39 9 is_stmt 1 view .LVU16
+  89               		.loc 1 39 17 is_stmt 0 view .LVU17
+  90 001e 3327      		clr r19
+  91               	.LVL3:
+  92               	.L6:
+  40:quantum/wpm.c ****     } else if (keycode > 0xFF) {
+  41:quantum/wpm.c ****         keycode = 0;
+  42:quantum/wpm.c ****     }
+  43:quantum/wpm.c ****     if ((keycode >= KC_A && keycode <= KC_0) || (keycode >= KC_TAB && keycode <= KC_SLASH)) {
+  93               		.loc 1 43 5 is_stmt 1 view .LVU18
+  94               		.loc 1 43 26 is_stmt 0 view .LVU19
+  95 0020 C901      		movw r24,r18
+  96 0022 0497      		sbiw r24,4
+  97               		.loc 1 43 8 view .LVU20
+  98 0024 8497      		sbiw r24,36
+  99 0026 00F0      		brlo .L9
+ 100               		.loc 1 43 68 discriminator 1 view .LVU21
+ 101 0028 2B52      		subi r18,43
+ 102 002a 3109      		sbc r19,__zero_reg__
+ 103               	.LVL4:
+ 104               		.loc 1 43 46 discriminator 1 view .LVU22
+ 105 002c 81E0      		ldi r24,lo8(1)
+ 106 002e 2E30      		cpi r18,14
+ 107 0030 3105      		cpc r19,__zero_reg__
+ 108 0032 00F0      		brlo .L3
+ 109 0034 80E0      		ldi r24,0
+ 110 0036 0895      		ret
+ 111               	.LVL5:
+ 112               	.L5:
+  40:quantum/wpm.c ****     } else if (keycode > 0xFF) {
+ 113               		.loc 1 40 12 is_stmt 1 view .LVU23
+  40:quantum/wpm.c ****     } else if (keycode > 0xFF) {
+ 114               		.loc 1 40 15 is_stmt 0 view .LVU24
+ 115 0038 2F3F      		cpi r18,-1
+ 116 003a 3105      		cpc r19,__zero_reg__
+ 117 003c 01F0      		breq .L6
+ 118 003e 00F0      		brlo .L6
+  41:quantum/wpm.c ****     }
+ 119               		.loc 1 41 17 view .LVU25
+ 120 0040 30E0      		ldi r19,0
+ 121 0042 20E0      		ldi r18,0
+ 122               	.LVL6:
+  41:quantum/wpm.c ****     }
+ 123               		.loc 1 41 17 view .LVU26
+ 124 0044 00C0      		rjmp .L6
+ 125               	.LVL7:
+ 126               	.L9:
+  44:quantum/wpm.c ****         return true;
+ 127               		.loc 1 44 16 view .LVU27
+ 128 0046 81E0      		ldi r24,lo8(1)
+ 129               	.LVL8:
+ 130               	.L3:
+ 131               	/* epilogue start */
+  45:quantum/wpm.c ****     }
+  46:quantum/wpm.c **** 
+  47:quantum/wpm.c ****     return false;
+  48:quantum/wpm.c **** }
+ 132               		.loc 1 48 1 view .LVU28
+ 133 0048 0895      		ret
+ 134               		.cfi_endproc
+ 135               	.LFE34:
+ 137               		.section	.text.wpm_keycode_kb,"ax",@progbits
+ 138               		.weak	wpm_keycode_kb
+ 140               	wpm_keycode_kb:
+ 141               	.LVL9:
+ 142               	.LFB33:
+  35:quantum/wpm.c **** 
+ 143               		.loc 1 35 61 is_stmt 1 view -0
+ 144               		.cfi_startproc
+ 145               	/* prologue: function */
+ 146               	/* frame size = 0 */
+ 147               	/* stack size = 0 */
+ 148               	.L__stack_usage = 0
+  35:quantum/wpm.c **** 
+ 149               		.loc 1 35 63 view .LVU30
+  35:quantum/wpm.c **** 
+ 150               		.loc 1 35 70 is_stmt 0 view .LVU31
+ 151 0000 0C94 0000 		jmp wpm_keycode_user
+ 152               	.LVL10:
+  35:quantum/wpm.c **** 
+ 153               		.loc 1 35 70 view .LVU32
+ 154               		.cfi_endproc
+ 155               	.LFE33:
+ 157               		.section	.text.wpm_keycode,"ax",@progbits
+ 158               	.global	wpm_keycode
+ 160               	wpm_keycode:
+ 161               	.LVL11:
+ 162               	.LFB32:
+  33:quantum/wpm.c **** 
+ 163               		.loc 1 33 36 is_stmt 1 view -0
+ 164               		.cfi_startproc
+ 165               	/* prologue: function */
+ 166               	/* frame size = 0 */
+ 167               	/* stack size = 0 */
+ 168               	.L__stack_usage = 0
+  33:quantum/wpm.c **** 
+ 169               		.loc 1 33 38 view .LVU34
+  33:quantum/wpm.c **** 
+ 170               		.loc 1 33 45 is_stmt 0 view .LVU35
+ 171 0000 0C94 0000 		jmp wpm_keycode_kb
+ 172               	.LVL12:
+  33:quantum/wpm.c **** 
+ 173               		.loc 1 33 45 view .LVU36
+ 174               		.cfi_endproc
+ 175               	.LFE32:
+ 177               	.global	__floatunsisf
+ 178               	.global	__mulsf3
+ 179               	.global	__floatsisf
+ 180               	.global	__addsf3
+ 181               	.global	__fixunssfsi
+ 182               		.section	.text.update_wpm,"ax",@progbits
+ 183               	.global	update_wpm
+ 185               	update_wpm:
+ 186               	.LVL13:
+ 187               	.LFB35:
+  49:quantum/wpm.c **** 
+  50:quantum/wpm.c **** #ifdef WPM_ALLOW_COUNT_REGRESSION
+  51:quantum/wpm.c **** __attribute__((weak)) uint8_t wpm_regress_count(uint16_t keycode) {
+  52:quantum/wpm.c ****     bool weak_modded = (keycode >= QK_LCTL && keycode < QK_LSFT) || (keycode >= QK_RCTL && keycode 
+  53:quantum/wpm.c **** 
+  54:quantum/wpm.c ****     if ((keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX) || (keycode >= QK_LAYER_TAP && keycode
+  55:quantum/wpm.c ****         keycode = keycode & 0xFF;
+  56:quantum/wpm.c ****     } else if (keycode > 0xFF) {
+  57:quantum/wpm.c ****         keycode = 0;
+  58:quantum/wpm.c ****     }
+  59:quantum/wpm.c ****     if (keycode == KC_DEL || keycode == KC_BSPC) {
+  60:quantum/wpm.c ****         if (((get_mods() | get_oneshot_mods()) & MOD_MASK_CTRL) || weak_modded) {
+  61:quantum/wpm.c ****             return WPM_ESTIMATED_WORD_SIZE;
+  62:quantum/wpm.c ****         } else {
+  63:quantum/wpm.c ****             return 1;
+  64:quantum/wpm.c ****         }
+  65:quantum/wpm.c ****     } else {
+  66:quantum/wpm.c ****         return 0;
+  67:quantum/wpm.c ****     }
+  68:quantum/wpm.c **** }
+  69:quantum/wpm.c **** #endif
+  70:quantum/wpm.c **** 
+  71:quantum/wpm.c **** void update_wpm(uint16_t keycode) {
+ 188               		.loc 1 71 35 is_stmt 1 view -0
+ 189               		.cfi_startproc
+ 190               		.loc 1 71 35 is_stmt 0 view .LVU38
+ 191 0000 EF92      		push r14
+ 192               	.LCFI0:
+ 193               		.cfi_def_cfa_offset 3
+ 194               		.cfi_offset 14, -2
+ 195 0002 FF92      		push r15
+ 196               	.LCFI1:
+ 197               		.cfi_def_cfa_offset 4
+ 198               		.cfi_offset 15, -3
+ 199 0004 0F93      		push r16
+ 200               	.LCFI2:
+ 201               		.cfi_def_cfa_offset 5
+ 202               		.cfi_offset 16, -4
+ 203 0006 1F93      		push r17
+ 204               	.LCFI3:
+ 205               		.cfi_def_cfa_offset 6
+ 206               		.cfi_offset 17, -5
+ 207 0008 CF93      		push r28
+ 208               	.LCFI4:
+ 209               		.cfi_def_cfa_offset 7
+ 210               		.cfi_offset 28, -6
+ 211 000a DF93      		push r29
+ 212               	.LCFI5:
+ 213               		.cfi_def_cfa_offset 8
+ 214               		.cfi_offset 29, -7
+ 215 000c 00D0      		rcall .
+ 216 000e 00D0      		rcall .
+ 217 0010 00D0      		rcall .
+ 218 0012 0F92      		push __tmp_reg__
+ 219               	.LCFI6:
+ 220               		.cfi_def_cfa_offset 15
+ 221 0014 CDB7      		in r28,__SP_L__
+ 222 0016 DEB7      		in r29,__SP_H__
+ 223               	.LCFI7:
+ 224               		.cfi_def_cfa_register 28
+ 225               	/* prologue: function */
+ 226               	/* frame size = 7 */
+ 227               	/* stack size = 13 */
+ 228               	.L__stack_usage = 13
+  72:quantum/wpm.c ****     if (wpm_keycode(keycode)) {
+ 229               		.loc 1 72 5 is_stmt 1 view .LVU39
+ 230               	.LVL14:
+ 231               	.LBB5:
+ 232               	.LBI5:
+  33:quantum/wpm.c **** 
+ 233               		.loc 1 33 6 view .LVU40
+ 234               	.LBB6:
+  33:quantum/wpm.c **** 
+ 235               		.loc 1 33 38 view .LVU41
+  33:quantum/wpm.c **** 
+ 236               		.loc 1 33 45 is_stmt 0 view .LVU42
+ 237 0018 0E94 0000 		call wpm_keycode_kb
+ 238               	.LVL15:
+  33:quantum/wpm.c **** 
+ 239               		.loc 1 33 45 view .LVU43
+ 240               	.LBE6:
+ 241               	.LBE5:
+ 242               		.loc 1 72 8 view .LVU44
+ 243 001c 8823      		tst r24
+ 244 001e 01F4      		brne .+2
+ 245 0020 00C0      		rjmp .L12
+  73:quantum/wpm.c ****         if (wpm_timer > 0) {
+ 246               		.loc 1 73 9 is_stmt 1 view .LVU45
+ 247               		.loc 1 73 23 is_stmt 0 view .LVU46
+ 248 0022 8091 0000 		lds r24,wpm_timer
+ 249 0026 9091 0000 		lds r25,wpm_timer+1
+ 250               		.loc 1 73 12 view .LVU47
+ 251 002a 0097      		sbiw r24,0
+ 252 002c 01F4      		brne .+2
+ 253 002e 00C0      		rjmp .L14
+ 254               	.LBB7:
+  74:quantum/wpm.c ****             uint16_t latest_wpm = 60000 / timer_elapsed(wpm_timer) / WPM_ESTIMATED_WORD_SIZE;
+ 255               		.loc 1 74 13 is_stmt 1 view .LVU48
+ 256               		.loc 1 74 43 is_stmt 0 view .LVU49
+ 257 0030 0E94 0000 		call timer_elapsed
+ 258               	.LVL16:
+  75:quantum/wpm.c ****             if (latest_wpm > UINT8_MAX) {
+ 259               		.loc 1 75 13 is_stmt 1 view .LVU50
+  76:quantum/wpm.c ****                 latest_wpm = UINT8_MAX;
+  77:quantum/wpm.c ****             }
+  78:quantum/wpm.c ****             current_wpm += ceilf((latest_wpm - current_wpm) * wpm_smoothing);
+ 260               		.loc 1 78 13 view .LVU51
+ 261               		.loc 1 78 25 is_stmt 0 view .LVU52
+ 262 0034 2091 0000 		lds r18,current_wpm
+ 263 0038 2D83      		std Y+5,r18
+  74:quantum/wpm.c ****             if (latest_wpm > UINT8_MAX) {
+ 264               		.loc 1 74 43 view .LVU53
+ 265 003a 9C01      		movw r18,r24
+ 266 003c 50E0      		ldi r21,0
+ 267 003e 40E0      		ldi r20,0
+  74:quantum/wpm.c ****             if (latest_wpm > UINT8_MAX) {
+ 268               		.loc 1 74 41 view .LVU54
+ 269 0040 60E6      		ldi r22,lo8(96)
+ 270 0042 7AEE      		ldi r23,lo8(-22)
+ 271 0044 80E0      		ldi r24,0
+ 272 0046 90E0      		ldi r25,0
+ 273 0048 0E94 0000 		call __divmodsi4
+  74:quantum/wpm.c ****             if (latest_wpm > UINT8_MAX) {
+ 274               		.loc 1 74 68 view .LVU55
+ 275 004c CA01      		movw r24,r20
+ 276               	.LVL17:
+  74:quantum/wpm.c ****             if (latest_wpm > UINT8_MAX) {
+ 277               		.loc 1 74 68 view .LVU56
+ 278 004e B901      		movw r22,r18
+ 279 0050 27E0      		ldi r18,lo8(7)
+ 280 0052 30E0      		ldi r19,0
+ 281 0054 40E0      		ldi r20,0
+ 282 0056 50E0      		ldi r21,0
+ 283 0058 0E94 0000 		call __divmodsi4
+ 284               		.loc 1 78 46 view .LVU57
+ 285 005c 2F3F      		cpi r18,-1
+ 286 005e 3105      		cpc r19,__zero_reg__
+ 287 0060 01F0      		breq .L15
+ 288 0062 00F0      		brlo .L15
+ 289 0064 2FEF      		ldi r18,lo8(-1)
+ 290 0066 30E0      		ldi r19,0
+ 291               	.L15:
+ 292 0068 9D81      		ldd r25,Y+5
+ 293 006a 892F      		mov r24,r25
+ 294 006c 90E0      		ldi r25,0
+ 295 006e 9F83      		std Y+7,r25
+ 296 0070 8E83      		std Y+6,r24
+ 297 0072 281B      		sub r18,r24
+ 298 0074 390B      		sbc r19,r25
+ 299               		.loc 1 78 28 view .LVU58
+ 300 0076 C901      		movw r24,r18
+ 301 0078 B0E0      		ldi r27,0
+ 302 007a A0E0      		ldi r26,0
+ 303 007c 8983      		std Y+1,r24
+ 304 007e 9A83      		std Y+2,r25
+ 305 0080 AB83      		std Y+3,r26
+ 306 0082 BC83      		std Y+4,r27
+ 307 0084 B901      		movw r22,r18
+ 308 0086 CD01      		movw r24,r26
+ 309 0088 0E94 0000 		call __floatunsisf
+ 310               	.LVL18:
+ 311 008c 27EA      		ldi r18,lo8(-89)
+ 312 008e 39E7      		ldi r19,lo8(121)
+ 313 0090 47E4      		ldi r20,lo8(71)
+ 314 0092 5DE3      		ldi r21,lo8(61)
+ 315 0094 6983      		std Y+1,r22
+ 316 0096 7A83      		std Y+2,r23
+ 317 0098 8B83      		std Y+3,r24
+ 318 009a 9C83      		std Y+4,r25
+ 319 009c 6981      		ldd r22,Y+1
+ 320 009e 7A81      		ldd r23,Y+2
+ 321 00a0 8B81      		ldd r24,Y+3
+ 322 00a2 9C81      		ldd r25,Y+4
+ 323 00a4 0E94 0000 		call __mulsf3
+ 324               	.LVL19:
+ 325 00a8 6983      		std Y+1,r22
+ 326 00aa 7A83      		std Y+2,r23
+ 327 00ac 8B83      		std Y+3,r24
+ 328 00ae 9C83      		std Y+4,r25
+ 329 00b0 6981      		ldd r22,Y+1
+ 330 00b2 7A81      		ldd r23,Y+2
+ 331 00b4 8B81      		ldd r24,Y+3
+ 332 00b6 9C81      		ldd r25,Y+4
+ 333 00b8 0E94 0000 		call ceilf
+ 334               	.LVL20:
+ 335 00bc 7B01      		movw r14,r22
+ 336 00be 8C01      		movw r16,r24
+ 337               		.loc 1 78 25 view .LVU59
+ 338 00c0 8E81      		ldd r24,Y+6
+ 339 00c2 9F81      		ldd r25,Y+7
+ 340 00c4 092E      		mov __tmp_reg__,r25
+ 341 00c6 000C      		lsl r0
+ 342 00c8 AA0B      		sbc r26,r26
+ 343 00ca BB0B      		sbc r27,r27
+ 344 00cc 8983      		std Y+1,r24
+ 345 00ce 9A83      		std Y+2,r25
+ 346 00d0 AB83      		std Y+3,r26
+ 347 00d2 BC83      		std Y+4,r27
+ 348 00d4 BC01      		movw r22,r24
+ 349 00d6 CD01      		movw r24,r26
+ 350 00d8 0E94 0000 		call __floatsisf
+ 351               	.LVL21:
+ 352 00dc 9701      		movw r18,r14
+ 353 00de A801      		movw r20,r16
+ 354 00e0 6983      		std Y+1,r22
+ 355 00e2 7A83      		std Y+2,r23
+ 356 00e4 8B83      		std Y+3,r24
+ 357 00e6 9C83      		std Y+4,r25
+ 358 00e8 6981      		ldd r22,Y+1
+ 359 00ea 7A81      		ldd r23,Y+2
+ 360 00ec 8B81      		ldd r24,Y+3
+ 361 00ee 9C81      		ldd r25,Y+4
+ 362 00f0 0E94 0000 		call __addsf3
+ 363               	.LVL22:
+ 364 00f4 6983      		std Y+1,r22
+ 365 00f6 7A83      		std Y+2,r23
+ 366 00f8 8B83      		std Y+3,r24
+ 367 00fa 9C83      		std Y+4,r25
+ 368 00fc 6981      		ldd r22,Y+1
+ 369 00fe 7A81      		ldd r23,Y+2
+ 370 0100 8B81      		ldd r24,Y+3
+ 371 0102 9C81      		ldd r25,Y+4
+ 372 0104 0E94 0000 		call __fixunssfsi
+ 373               	.LVL23:
+ 374 0108 6093 0000 		sts current_wpm,r22
+ 375               	.L14:
+ 376               		.loc 1 78 25 view .LVU60
+ 377               	.LBE7:
+  79:quantum/wpm.c ****         }
+  80:quantum/wpm.c ****         wpm_timer = timer_read();
+ 378               		.loc 1 80 9 is_stmt 1 view .LVU61
+ 379               		.loc 1 80 21 is_stmt 0 view .LVU62
+ 380 010c 0E94 0000 		call timer_read
+ 381               	.LVL24:
+ 382               		.loc 1 80 19 view .LVU63
+ 383 0110 9093 0000 		sts wpm_timer+1,r25
+ 384 0114 8093 0000 		sts wpm_timer,r24
+ 385               	.L12:
+ 386               	/* epilogue start */
+  81:quantum/wpm.c ****     }
+  82:quantum/wpm.c **** #ifdef WPM_ALLOW_COUNT_REGRESSION
+  83:quantum/wpm.c ****     uint8_t regress = wpm_regress_count(keycode);
+  84:quantum/wpm.c ****     if (regress) {
+  85:quantum/wpm.c ****         if (current_wpm < regress) {
+  86:quantum/wpm.c ****             current_wpm = 0;
+  87:quantum/wpm.c ****         } else {
+  88:quantum/wpm.c ****             current_wpm -= regress;
+  89:quantum/wpm.c ****         }
+  90:quantum/wpm.c ****         wpm_timer = timer_read();
+  91:quantum/wpm.c ****     }
+  92:quantum/wpm.c **** #endif
+  93:quantum/wpm.c **** }
+ 387               		.loc 1 93 1 view .LVU64
+ 388 0118 2796      		adiw r28,7
+ 389 011a 0FB6      		in __tmp_reg__,__SREG__
+ 390 011c F894      		cli
+ 391 011e DEBF      		out __SP_H__,r29
+ 392 0120 0FBE      		out __SREG__,__tmp_reg__
+ 393 0122 CDBF      		out __SP_L__,r28
+ 394 0124 DF91      		pop r29
+ 395 0126 CF91      		pop r28
+ 396 0128 1F91      		pop r17
+ 397 012a 0F91      		pop r16
+ 398 012c FF90      		pop r15
+ 399 012e EF90      		pop r14
+ 400 0130 0895      		ret
+ 401               		.cfi_endproc
+ 402               	.LFE35:
+ 404               		.section	.text.decay_wpm,"ax",@progbits
+ 405               	.global	decay_wpm
+ 407               	decay_wpm:
+ 408               	.LFB36:
+  94:quantum/wpm.c **** 
+  95:quantum/wpm.c **** void decay_wpm(void) {
+ 409               		.loc 1 95 22 is_stmt 1 view -0
+ 410               		.cfi_startproc
+ 411 0000 EF92      		push r14
+ 412               	.LCFI8:
+ 413               		.cfi_def_cfa_offset 3
+ 414               		.cfi_offset 14, -2
+ 415 0002 FF92      		push r15
+ 416               	.LCFI9:
+ 417               		.cfi_def_cfa_offset 4
+ 418               		.cfi_offset 15, -3
+ 419 0004 0F93      		push r16
+ 420               	.LCFI10:
+ 421               		.cfi_def_cfa_offset 5
+ 422               		.cfi_offset 16, -4
+ 423 0006 1F93      		push r17
+ 424               	.LCFI11:
+ 425               		.cfi_def_cfa_offset 6
+ 426               		.cfi_offset 17, -5
+ 427 0008 CF93      		push r28
+ 428               	.LCFI12:
+ 429               		.cfi_def_cfa_offset 7
+ 430               		.cfi_offset 28, -6
+ 431 000a DF93      		push r29
+ 432               	.LCFI13:
+ 433               		.cfi_def_cfa_offset 8
+ 434               		.cfi_offset 29, -7
+ 435 000c 00D0      		rcall .
+ 436 000e 00D0      		rcall .
+ 437 0010 00D0      		rcall .
+ 438               	.LCFI14:
+ 439               		.cfi_def_cfa_offset 14
+ 440 0012 CDB7      		in r28,__SP_L__
+ 441 0014 DEB7      		in r29,__SP_H__
+ 442               	.LCFI15:
+ 443               		.cfi_def_cfa_register 28
+ 444               	/* prologue: function */
+ 445               	/* frame size = 6 */
+ 446               	/* stack size = 12 */
+ 447               	.L__stack_usage = 12
+  96:quantum/wpm.c ****     if (timer_elapsed(wpm_timer) > 1000) {
+ 448               		.loc 1 96 5 view .LVU66
+ 449               		.loc 1 96 9 is_stmt 0 view .LVU67
+ 450 0016 8091 0000 		lds r24,wpm_timer
+ 451 001a 9091 0000 		lds r25,wpm_timer+1
+ 452 001e 0E94 0000 		call timer_elapsed
+ 453               	.LVL25:
+ 454               		.loc 1 96 8 view .LVU68
+ 455 0022 893E      		cpi r24,-23
+ 456 0024 9340      		sbci r25,3
+ 457 0026 00F4      		brsh .+2
+ 458 0028 00C0      		rjmp .L22
+  97:quantum/wpm.c ****         current_wpm += (-current_wpm) * wpm_smoothing;
+ 459               		.loc 1 97 9 is_stmt 1 view .LVU69
+ 460               		.loc 1 97 21 is_stmt 0 view .LVU70
+ 461 002a 3091 0000 		lds r19,current_wpm
+ 462 002e 432F      		mov r20,r19
+ 463 0030 50E0      		ldi r21,0
+ 464 0032 5E83      		std Y+6,r21
+ 465 0034 4D83      		std Y+5,r20
+ 466               		.loc 1 97 25 view .LVU71
+ 467 0036 CA01      		movw r24,r20
+ 468 0038 9195      		neg r25
+ 469 003a 8195      		neg r24
+ 470 003c 9109      		sbc r25,__zero_reg__
+ 471               		.loc 1 97 39 view .LVU72
+ 472 003e 9C01      		movw r18,r24
+ 473 0040 990F      		lsl r25
+ 474 0042 440B      		sbc r20,r20
+ 475 0044 550B      		sbc r21,r21
+ 476 0046 2983      		std Y+1,r18
+ 477 0048 3A83      		std Y+2,r19
+ 478 004a 4B83      		std Y+3,r20
+ 479 004c 5C83      		std Y+4,r21
+ 480 004e CA01      		movw r24,r20
+ 481 0050 B901      		movw r22,r18
+ 482 0052 0E94 0000 		call __floatsisf
+ 483               	.LVL26:
+ 484 0056 27EA      		ldi r18,lo8(-89)
+ 485 0058 39E7      		ldi r19,lo8(121)
+ 486 005a 47E4      		ldi r20,lo8(71)
+ 487 005c 5DE3      		ldi r21,lo8(61)
+ 488 005e 6983      		std Y+1,r22
+ 489 0060 7A83      		std Y+2,r23
+ 490 0062 8B83      		std Y+3,r24
+ 491 0064 9C83      		std Y+4,r25
+ 492 0066 6981      		ldd r22,Y+1
+ 493 0068 7A81      		ldd r23,Y+2
+ 494 006a 8B81      		ldd r24,Y+3
+ 495 006c 9C81      		ldd r25,Y+4
+ 496 006e 0E94 0000 		call __mulsf3
+ 497               	.LVL27:
+ 498 0072 7B01      		movw r14,r22
+ 499 0074 8C01      		movw r16,r24
+ 500               		.loc 1 97 21 view .LVU73
+ 501 0076 8D81      		ldd r24,Y+5
+ 502 0078 9E81      		ldd r25,Y+6
+ 503 007a 092E      		mov __tmp_reg__,r25
+ 504 007c 000C      		lsl r0
+ 505 007e AA0B      		sbc r26,r26
+ 506 0080 BB0B      		sbc r27,r27
+ 507 0082 8983      		std Y+1,r24
+ 508 0084 9A83      		std Y+2,r25
+ 509 0086 AB83      		std Y+3,r26
+ 510 0088 BC83      		std Y+4,r27
+ 511 008a BC01      		movw r22,r24
+ 512 008c CD01      		movw r24,r26
+ 513 008e 0E94 0000 		call __floatsisf
+ 514               	.LVL28:
+ 515 0092 9B01      		movw r18,r22
+ 516 0094 AC01      		movw r20,r24
+ 517 0096 E982      		std Y+1,r14
+ 518 0098 FA82      		std Y+2,r15
+ 519 009a 0B83      		std Y+3,r16
+ 520 009c 1C83      		std Y+4,r17
+ 521 009e 6981      		ldd r22,Y+1
+ 522 00a0 7A81      		ldd r23,Y+2
+ 523 00a2 8B81      		ldd r24,Y+3
+ 524 00a4 9C81      		ldd r25,Y+4
+ 525 00a6 0E94 0000 		call __addsf3
+ 526               	.LVL29:
+ 527 00aa 6983      		std Y+1,r22
+ 528 00ac 7A83      		std Y+2,r23
+ 529 00ae 8B83      		std Y+3,r24
+ 530 00b0 9C83      		std Y+4,r25
+ 531 00b2 6981      		ldd r22,Y+1
+ 532 00b4 7A81      		ldd r23,Y+2
+ 533 00b6 8B81      		ldd r24,Y+3
+ 534 00b8 9C81      		ldd r25,Y+4
+ 535 00ba 0E94 0000 		call __fixunssfsi
+ 536               	.LVL30:
+ 537 00be 6093 0000 		sts current_wpm,r22
+  98:quantum/wpm.c ****         wpm_timer = timer_read();
+ 538               		.loc 1 98 9 is_stmt 1 view .LVU74
+ 539               		.loc 1 98 21 is_stmt 0 view .LVU75
+ 540 00c2 0E94 0000 		call timer_read
+ 541               	.LVL31:
+ 542               		.loc 1 98 19 view .LVU76
+ 543 00c6 9093 0000 		sts wpm_timer+1,r25
+ 544 00ca 8093 0000 		sts wpm_timer,r24
+ 545               	.L22:
+ 546               	/* epilogue start */
+  99:quantum/wpm.c ****     }
+ 100:quantum/wpm.c **** }
+ 547               		.loc 1 100 1 view .LVU77
+ 548 00ce 2696      		adiw r28,6
+ 549 00d0 0FB6      		in __tmp_reg__,__SREG__
+ 550 00d2 F894      		cli
+ 551 00d4 DEBF      		out __SP_H__,r29
+ 552 00d6 0FBE      		out __SREG__,__tmp_reg__
+ 553 00d8 CDBF      		out __SP_L__,r28
+ 554 00da DF91      		pop r29
+ 555 00dc CF91      		pop r28
+ 556 00de 1F91      		pop r17
+ 557 00e0 0F91      		pop r16
+ 558 00e2 FF90      		pop r15
+ 559 00e4 EF90      		pop r14
+ 560 00e6 0895      		ret
+ 561               		.cfi_endproc
+ 562               	.LFE36:
+ 564               		.section	.bss.wpm_timer,"aw",@nobits
+ 567               	wpm_timer:
+ 568 0000 0000      		.zero	2
+ 569               		.section	.bss.current_wpm,"aw",@nobits
+ 572               	current_wpm:
+ 573 0000 00        		.zero	1
+ 574               		.text
+ 575               	.Letext0:
+ 576               		.file 2 "/usr/avr/include/stdint.h"
+ 577               		.file 3 "quantum/keycode.h"
+ 578               		.file 4 "quantum/quantum_keycodes.h"
+ 579               		.file 5 "/usr/avr/include/math.h"
+ 580               		.file 6 "tmk_core/common/timer.h"
+ 581               		.file 7 "quantum/sequencer/sequencer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 wpm.c
+     /tmp/ccC4a78Y.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccC4a78Y.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccC4a78Y.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccC4a78Y.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccC4a78Y.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccC4a78Y.s:13     .text.set_current_wpm:0000000000000000 set_current_wpm
+     /tmp/ccC4a78Y.s:572    .bss.current_wpm:0000000000000000 current_wpm
+     /tmp/ccC4a78Y.s:35     .text.get_current_wpm:0000000000000000 get_current_wpm
+     /tmp/ccC4a78Y.s:54     .text.wpm_keycode_user:0000000000000000 wpm_keycode_user
+     /tmp/ccC4a78Y.s:140    .text.wpm_keycode_kb:0000000000000000 wpm_keycode_kb
+     /tmp/ccC4a78Y.s:160    .text.wpm_keycode:0000000000000000 wpm_keycode
+     /tmp/ccC4a78Y.s:185    .text.update_wpm:0000000000000000 update_wpm
+     /tmp/ccC4a78Y.s:567    .bss.wpm_timer:0000000000000000 wpm_timer
+     /tmp/ccC4a78Y.s:407    .text.decay_wpm:0000000000000000 decay_wpm
+
+UNDEFINED SYMBOLS
+__floatunsisf
+__mulsf3
+__floatsisf
+__addsf3
+__fixunssfsi
+timer_elapsed
+__divmodsi4
+ceilf
+timer_read
+__do_clear_bss

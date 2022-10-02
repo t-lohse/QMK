@@ -1,0 +1,1761 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"keyboard.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/keyboard.c"
+  20              		.section	.text.last_input_activity_time,"ax",%progbits
+  21              		.align	1
+  22              		.global	last_input_activity_time
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	last_input_activity_time:
+  28              	.LFB341:
+   1:quantum/keyboard.c **** /*
+   2:quantum/keyboard.c **** Copyright 2011, 2012, 2013 Jun Wako <wakojun@gmail.com>
+   3:quantum/keyboard.c **** 
+   4:quantum/keyboard.c **** This program is free software: you can redistribute it and/or modify
+   5:quantum/keyboard.c **** it under the terms of the GNU General Public License as published by
+   6:quantum/keyboard.c **** the Free Software Foundation, either version 2 of the License, or
+   7:quantum/keyboard.c **** (at your option) any later version.
+   8:quantum/keyboard.c **** 
+   9:quantum/keyboard.c **** This program is distributed in the hope that it will be useful,
+  10:quantum/keyboard.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/keyboard.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/keyboard.c **** GNU General Public License for more details.
+  13:quantum/keyboard.c **** 
+  14:quantum/keyboard.c **** You should have received a copy of the GNU General Public License
+  15:quantum/keyboard.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/keyboard.c **** */
+  17:quantum/keyboard.c **** 
+  18:quantum/keyboard.c **** #include <stdint.h>
+  19:quantum/keyboard.c **** #include "keyboard.h"
+  20:quantum/keyboard.c **** #include "matrix.h"
+  21:quantum/keyboard.c **** #include "keymap.h"
+  22:quantum/keyboard.c **** #include "host.h"
+  23:quantum/keyboard.c **** #include "led.h"
+  24:quantum/keyboard.c **** #include "keycode.h"
+  25:quantum/keyboard.c **** #include "timer.h"
+  26:quantum/keyboard.c **** #include "sync_timer.h"
+  27:quantum/keyboard.c **** #include "print.h"
+  28:quantum/keyboard.c **** #include "debug.h"
+  29:quantum/keyboard.c **** #include "command.h"
+  30:quantum/keyboard.c **** #include "util.h"
+  31:quantum/keyboard.c **** #include "sendchar.h"
+  32:quantum/keyboard.c **** #include "eeconfig.h"
+  33:quantum/keyboard.c **** #include "action_layer.h"
+  34:quantum/keyboard.c **** #ifdef BACKLIGHT_ENABLE
+  35:quantum/keyboard.c **** #    include "backlight.h"
+  36:quantum/keyboard.c **** #endif
+  37:quantum/keyboard.c **** #ifdef MOUSEKEY_ENABLE
+  38:quantum/keyboard.c **** #    include "mousekey.h"
+  39:quantum/keyboard.c **** #endif
+  40:quantum/keyboard.c **** #ifdef PS2_MOUSE_ENABLE
+  41:quantum/keyboard.c **** #    include "ps2_mouse.h"
+  42:quantum/keyboard.c **** #endif
+  43:quantum/keyboard.c **** #ifdef SERIAL_MOUSE_ENABLE
+  44:quantum/keyboard.c **** #    include "serial_mouse.h"
+  45:quantum/keyboard.c **** #endif
+  46:quantum/keyboard.c **** #ifdef ADB_MOUSE_ENABLE
+  47:quantum/keyboard.c **** #    include "adb.h"
+  48:quantum/keyboard.c **** #endif
+  49:quantum/keyboard.c **** #ifdef RGBLIGHT_ENABLE
+  50:quantum/keyboard.c **** #    include "rgblight.h"
+  51:quantum/keyboard.c **** #endif
+  52:quantum/keyboard.c **** #ifdef LED_MATRIX_ENABLE
+  53:quantum/keyboard.c **** #    include "led_matrix.h"
+  54:quantum/keyboard.c **** #endif
+  55:quantum/keyboard.c **** #ifdef RGB_MATRIX_ENABLE
+  56:quantum/keyboard.c **** #    include "rgb_matrix.h"
+  57:quantum/keyboard.c **** #endif
+  58:quantum/keyboard.c **** #ifdef ENCODER_ENABLE
+  59:quantum/keyboard.c **** #    include "encoder.h"
+  60:quantum/keyboard.c **** #endif
+  61:quantum/keyboard.c **** #ifdef STENO_ENABLE
+  62:quantum/keyboard.c **** #    include "process_steno.h"
+  63:quantum/keyboard.c **** #endif
+  64:quantum/keyboard.c **** #ifdef SERIAL_LINK_ENABLE
+  65:quantum/keyboard.c **** #    include "serial_link/system/serial_link.h"
+  66:quantum/keyboard.c **** #endif
+  67:quantum/keyboard.c **** #ifdef VISUALIZER_ENABLE
+  68:quantum/keyboard.c **** #    include "visualizer/visualizer.h"
+  69:quantum/keyboard.c **** #endif
+  70:quantum/keyboard.c **** #ifdef POINTING_DEVICE_ENABLE
+  71:quantum/keyboard.c **** #    include "pointing_device.h"
+  72:quantum/keyboard.c **** #endif
+  73:quantum/keyboard.c **** #ifdef MIDI_ENABLE
+  74:quantum/keyboard.c **** #    include "process_midi.h"
+  75:quantum/keyboard.c **** #endif
+  76:quantum/keyboard.c **** #ifdef JOYSTICK_ENABLE
+  77:quantum/keyboard.c **** #    include "process_joystick.h"
+  78:quantum/keyboard.c **** #endif
+  79:quantum/keyboard.c **** #ifdef HD44780_ENABLE
+  80:quantum/keyboard.c **** #    include "hd44780.h"
+  81:quantum/keyboard.c **** #endif
+  82:quantum/keyboard.c **** #ifdef QWIIC_ENABLE
+  83:quantum/keyboard.c **** #    include "qwiic.h"
+  84:quantum/keyboard.c **** #endif
+  85:quantum/keyboard.c **** #ifdef OLED_ENABLE
+  86:quantum/keyboard.c **** #    include "oled_driver.h"
+  87:quantum/keyboard.c **** #endif
+  88:quantum/keyboard.c **** #ifdef ST7565_ENABLE
+  89:quantum/keyboard.c **** #    include "st7565.h"
+  90:quantum/keyboard.c **** #endif
+  91:quantum/keyboard.c **** #ifdef VELOCIKEY_ENABLE
+  92:quantum/keyboard.c **** #    include "velocikey.h"
+  93:quantum/keyboard.c **** #endif
+  94:quantum/keyboard.c **** #ifdef VIA_ENABLE
+  95:quantum/keyboard.c **** #    include "via.h"
+  96:quantum/keyboard.c **** #endif
+  97:quantum/keyboard.c **** #ifdef DIP_SWITCH_ENABLE
+  98:quantum/keyboard.c **** #    include "dip_switch.h"
+  99:quantum/keyboard.c **** #endif
+ 100:quantum/keyboard.c **** #ifdef STM32_EEPROM_ENABLE
+ 101:quantum/keyboard.c **** #    include "eeprom_stm32.h"
+ 102:quantum/keyboard.c **** #endif
+ 103:quantum/keyboard.c **** #ifdef EEPROM_DRIVER
+ 104:quantum/keyboard.c **** #    include "eeprom_driver.h"
+ 105:quantum/keyboard.c **** #endif
+ 106:quantum/keyboard.c **** #if defined(CRC_ENABLE)
+ 107:quantum/keyboard.c **** #    include "crc.h"
+ 108:quantum/keyboard.c **** #endif
+ 109:quantum/keyboard.c **** #ifdef DIGITIZER_ENABLE
+ 110:quantum/keyboard.c **** #    include "digitizer.h"
+ 111:quantum/keyboard.c **** #endif
+ 112:quantum/keyboard.c **** 
+ 113:quantum/keyboard.c **** static uint32_t last_input_modification_time = 0;
+ 114:quantum/keyboard.c **** uint32_t        last_input_activity_time(void) { return last_input_modification_time; }
+  29              		.loc 1 114 48 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34              		.loc 1 114 50 view .LVU1
+  35              		.loc 1 114 87 is_stmt 0 view .LVU2
+  36 0000 014B     		ldr	r3, .L2
+  37 0002 1868     		ldr	r0, [r3]
+  38 0004 7047     		bx	lr
+  39              	.L3:
+  40 0006 00BF     		.align	2
+  41              	.L2:
+  42 0008 00000000 		.word	last_input_modification_time
+  43              		.cfi_endproc
+  44              	.LFE341:
+  46              		.section	.text.last_input_activity_elapsed,"ax",%progbits
+  47              		.align	1
+  48              		.global	last_input_activity_elapsed
+  49              		.syntax unified
+  50              		.thumb
+  51              		.thumb_func
+  53              	last_input_activity_elapsed:
+  54              	.LFB342:
+ 115:quantum/keyboard.c **** uint32_t        last_input_activity_elapsed(void) { return timer_elapsed32(last_input_modification_
+  55              		.loc 1 115 51 is_stmt 1 view -0
+  56              		.cfi_startproc
+  57              		@ args = 0, pretend = 0, frame = 0
+  58              		@ frame_needed = 0, uses_anonymous_args = 0
+  59              		@ link register save eliminated.
+  60              		.loc 1 115 53 view .LVU4
+  61              		.loc 1 115 60 is_stmt 0 view .LVU5
+  62 0000 014B     		ldr	r3, .L5
+  63 0002 1868     		ldr	r0, [r3]
+  64 0004 FFF7FEBF 		b	timer_elapsed32
+  65              	.LVL0:
+  66              	.L6:
+  67              		.align	2
+  68              	.L5:
+  69 0008 00000000 		.word	last_input_modification_time
+  70              		.cfi_endproc
+  71              	.LFE342:
+  73              		.section	.text.last_matrix_activity_time,"ax",%progbits
+  74              		.align	1
+  75              		.global	last_matrix_activity_time
+  76              		.syntax unified
+  77              		.thumb
+  78              		.thumb_func
+  80              	last_matrix_activity_time:
+  81              	.LFB343:
+ 116:quantum/keyboard.c **** 
+ 117:quantum/keyboard.c **** static uint32_t last_matrix_modification_time = 0;
+ 118:quantum/keyboard.c **** uint32_t        last_matrix_activity_time(void) { return last_matrix_modification_time; }
+  82              		.loc 1 118 49 is_stmt 1 view -0
+  83              		.cfi_startproc
+  84              		@ args = 0, pretend = 0, frame = 0
+  85              		@ frame_needed = 0, uses_anonymous_args = 0
+  86              		@ link register save eliminated.
+  87              		.loc 1 118 51 view .LVU7
+  88              		.loc 1 118 89 is_stmt 0 view .LVU8
+  89 0000 014B     		ldr	r3, .L8
+  90 0002 1868     		ldr	r0, [r3]
+  91 0004 7047     		bx	lr
+  92              	.L9:
+  93 0006 00BF     		.align	2
+  94              	.L8:
+  95 0008 00000000 		.word	last_matrix_modification_time
+  96              		.cfi_endproc
+  97              	.LFE343:
+  99              		.section	.text.last_matrix_activity_elapsed,"ax",%progbits
+ 100              		.align	1
+ 101              		.global	last_matrix_activity_elapsed
+ 102              		.syntax unified
+ 103              		.thumb
+ 104              		.thumb_func
+ 106              	last_matrix_activity_elapsed:
+ 107              	.LFB344:
+ 119:quantum/keyboard.c **** uint32_t        last_matrix_activity_elapsed(void) { return timer_elapsed32(last_matrix_modificatio
+ 108              		.loc 1 119 52 is_stmt 1 view -0
+ 109              		.cfi_startproc
+ 110              		@ args = 0, pretend = 0, frame = 0
+ 111              		@ frame_needed = 0, uses_anonymous_args = 0
+ 112              		@ link register save eliminated.
+ 113              		.loc 1 119 54 view .LVU10
+ 114              		.loc 1 119 61 is_stmt 0 view .LVU11
+ 115 0000 014B     		ldr	r3, .L11
+ 116 0002 1868     		ldr	r0, [r3]
+ 117 0004 FFF7FEBF 		b	timer_elapsed32
+ 118              	.LVL1:
+ 119              	.L12:
+ 120              		.align	2
+ 121              	.L11:
+ 122 0008 00000000 		.word	last_matrix_modification_time
+ 123              		.cfi_endproc
+ 124              	.LFE344:
+ 126              		.section	.text.last_matrix_activity_trigger,"ax",%progbits
+ 127              		.align	1
+ 128              		.global	last_matrix_activity_trigger
+ 129              		.syntax unified
+ 130              		.thumb
+ 131              		.thumb_func
+ 133              	last_matrix_activity_trigger:
+ 134              	.LFB345:
+ 120:quantum/keyboard.c **** void            last_matrix_activity_trigger(void) { last_matrix_modification_time = last_input_mod
+ 135              		.loc 1 120 52 is_stmt 1 view -0
+ 136              		.cfi_startproc
+ 137              		@ args = 0, pretend = 0, frame = 0
+ 138              		@ frame_needed = 0, uses_anonymous_args = 0
+ 139              		.loc 1 120 54 view .LVU13
+ 140              		.loc 1 120 52 is_stmt 0 view .LVU14
+ 141 0000 08B5     		push	{r3, lr}
+ 142              		.cfi_def_cfa_offset 8
+ 143              		.cfi_offset 3, -8
+ 144              		.cfi_offset 14, -4
+ 145              		.loc 1 120 117 view .LVU15
+ 146 0002 FFF7FEFF 		bl	timer_read32
+ 147              	.LVL2:
+ 148              		.loc 1 120 115 view .LVU16
+ 149 0006 024B     		ldr	r3, .L14
+ 150 0008 1860     		str	r0, [r3]
+ 151              		.loc 1 120 84 view .LVU17
+ 152 000a 024B     		ldr	r3, .L14+4
+ 153 000c 1860     		str	r0, [r3]
+ 154              		.loc 1 120 133 view .LVU18
+ 155 000e 08BD     		pop	{r3, pc}
+ 156              	.L15:
+ 157              		.align	2
+ 158              	.L14:
+ 159 0010 00000000 		.word	last_input_modification_time
+ 160 0014 00000000 		.word	last_matrix_modification_time
+ 161              		.cfi_endproc
+ 162              	.LFE345:
+ 164              		.section	.text.last_encoder_activity_time,"ax",%progbits
+ 165              		.align	1
+ 166              		.global	last_encoder_activity_time
+ 167              		.syntax unified
+ 168              		.thumb
+ 169              		.thumb_func
+ 171              	last_encoder_activity_time:
+ 172              	.LFB346:
+ 121:quantum/keyboard.c **** 
+ 122:quantum/keyboard.c **** static uint32_t last_encoder_modification_time = 0;
+ 123:quantum/keyboard.c **** uint32_t        last_encoder_activity_time(void) { return last_encoder_modification_time; }
+ 173              		.loc 1 123 50 is_stmt 1 view -0
+ 174              		.cfi_startproc
+ 175              		@ args = 0, pretend = 0, frame = 0
+ 176              		@ frame_needed = 0, uses_anonymous_args = 0
+ 177              		@ link register save eliminated.
+ 178              		.loc 1 123 52 view .LVU20
+ 179              		.loc 1 123 91 is_stmt 0 view .LVU21
+ 180 0000 014B     		ldr	r3, .L17
+ 181 0002 1868     		ldr	r0, [r3]
+ 182 0004 7047     		bx	lr
+ 183              	.L18:
+ 184 0006 00BF     		.align	2
+ 185              	.L17:
+ 186 0008 00000000 		.word	last_encoder_modification_time
+ 187              		.cfi_endproc
+ 188              	.LFE346:
+ 190              		.section	.text.last_encoder_activity_elapsed,"ax",%progbits
+ 191              		.align	1
+ 192              		.global	last_encoder_activity_elapsed
+ 193              		.syntax unified
+ 194              		.thumb
+ 195              		.thumb_func
+ 197              	last_encoder_activity_elapsed:
+ 198              	.LFB347:
+ 124:quantum/keyboard.c **** uint32_t        last_encoder_activity_elapsed(void) { return timer_elapsed32(last_encoder_modificat
+ 199              		.loc 1 124 53 is_stmt 1 view -0
+ 200              		.cfi_startproc
+ 201              		@ args = 0, pretend = 0, frame = 0
+ 202              		@ frame_needed = 0, uses_anonymous_args = 0
+ 203              		@ link register save eliminated.
+ 204              		.loc 1 124 55 view .LVU23
+ 205              		.loc 1 124 62 is_stmt 0 view .LVU24
+ 206 0000 014B     		ldr	r3, .L20
+ 207 0002 1868     		ldr	r0, [r3]
+ 208 0004 FFF7FEBF 		b	timer_elapsed32
+ 209              	.LVL3:
+ 210              	.L21:
+ 211              		.align	2
+ 212              	.L20:
+ 213 0008 00000000 		.word	last_encoder_modification_time
+ 214              		.cfi_endproc
+ 215              	.LFE347:
+ 217              		.section	.text.last_encoder_activity_trigger,"ax",%progbits
+ 218              		.align	1
+ 219              		.global	last_encoder_activity_trigger
+ 220              		.syntax unified
+ 221              		.thumb
+ 222              		.thumb_func
+ 224              	last_encoder_activity_trigger:
+ 225              	.LFB348:
+ 125:quantum/keyboard.c **** void            last_encoder_activity_trigger(void) { last_encoder_modification_time = last_input_m
+ 226              		.loc 1 125 53 is_stmt 1 view -0
+ 227              		.cfi_startproc
+ 228              		@ args = 0, pretend = 0, frame = 0
+ 229              		@ frame_needed = 0, uses_anonymous_args = 0
+ 230              		.loc 1 125 55 view .LVU26
+ 231              		.loc 1 125 53 is_stmt 0 view .LVU27
+ 232 0000 08B5     		push	{r3, lr}
+ 233              		.cfi_def_cfa_offset 8
+ 234              		.cfi_offset 3, -8
+ 235              		.cfi_offset 14, -4
+ 236              		.loc 1 125 119 view .LVU28
+ 237 0002 FFF7FEFF 		bl	timer_read32
+ 238              	.LVL4:
+ 239              		.loc 1 125 117 view .LVU29
+ 240 0006 024B     		ldr	r3, .L23
+ 241 0008 1860     		str	r0, [r3]
+ 242              		.loc 1 125 86 view .LVU30
+ 243 000a 024B     		ldr	r3, .L23+4
+ 244 000c 1860     		str	r0, [r3]
+ 245              		.loc 1 125 135 view .LVU31
+ 246 000e 08BD     		pop	{r3, pc}
+ 247              	.L24:
+ 248              		.align	2
+ 249              	.L23:
+ 250 0010 00000000 		.word	last_input_modification_time
+ 251 0014 00000000 		.word	last_encoder_modification_time
+ 252              		.cfi_endproc
+ 253              	.LFE348:
+ 255              		.section	.text.disable_jtag,"ax",%progbits
+ 256              		.align	1
+ 257              		.global	disable_jtag
+ 258              		.syntax unified
+ 259              		.thumb
+ 260              		.thumb_func
+ 262              	disable_jtag:
+ 263              	.LFB349:
+ 126:quantum/keyboard.c **** 
+ 127:quantum/keyboard.c **** // Only enable this if console is enabled to print to
+ 128:quantum/keyboard.c **** #if defined(DEBUG_MATRIX_SCAN_RATE)
+ 129:quantum/keyboard.c **** static uint32_t matrix_timer           = 0;
+ 130:quantum/keyboard.c **** static uint32_t matrix_scan_count      = 0;
+ 131:quantum/keyboard.c **** static uint32_t last_matrix_scan_count = 0;
+ 132:quantum/keyboard.c **** 
+ 133:quantum/keyboard.c **** void matrix_scan_perf_task(void) {
+ 134:quantum/keyboard.c ****     matrix_scan_count++;
+ 135:quantum/keyboard.c **** 
+ 136:quantum/keyboard.c ****     uint32_t timer_now = timer_read32();
+ 137:quantum/keyboard.c ****     if (TIMER_DIFF_32(timer_now, matrix_timer) > 1000) {
+ 138:quantum/keyboard.c **** #    if defined(CONSOLE_ENABLE)
+ 139:quantum/keyboard.c ****         dprintf("matrix scan frequency: %lu\n", matrix_scan_count);
+ 140:quantum/keyboard.c **** #    endif
+ 141:quantum/keyboard.c ****         last_matrix_scan_count = matrix_scan_count;
+ 142:quantum/keyboard.c ****         matrix_timer           = timer_now;
+ 143:quantum/keyboard.c ****         matrix_scan_count      = 0;
+ 144:quantum/keyboard.c ****     }
+ 145:quantum/keyboard.c **** }
+ 146:quantum/keyboard.c **** 
+ 147:quantum/keyboard.c **** uint32_t get_matrix_scan_rate(void) { return last_matrix_scan_count; }
+ 148:quantum/keyboard.c **** #else
+ 149:quantum/keyboard.c **** #    define matrix_scan_perf_task()
+ 150:quantum/keyboard.c **** #endif
+ 151:quantum/keyboard.c **** 
+ 152:quantum/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 153:quantum/keyboard.c **** extern const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS];
+ 154:quantum/keyboard.c **** static matrix_row_t   get_real_keys(uint8_t row, matrix_row_t rowdata) {
+ 155:quantum/keyboard.c ****     matrix_row_t out = 0;
+ 156:quantum/keyboard.c ****     for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+ 157:quantum/keyboard.c ****         // read each key in the row data and check if the keymap defines it as a real key
+ 158:quantum/keyboard.c ****         if (pgm_read_byte(&keymaps[0][row][col]) && (rowdata & (1 << col))) {
+ 159:quantum/keyboard.c ****             // this creates new row data, if a key is defined in the keymap, it will be set here
+ 160:quantum/keyboard.c ****             out |= 1 << col;
+ 161:quantum/keyboard.c ****         }
+ 162:quantum/keyboard.c ****     }
+ 163:quantum/keyboard.c ****     return out;
+ 164:quantum/keyboard.c **** }
+ 165:quantum/keyboard.c **** 
+ 166:quantum/keyboard.c **** static inline bool popcount_more_than_one(matrix_row_t rowdata) {
+ 167:quantum/keyboard.c ****     rowdata &= rowdata - 1;  // if there are less than two bits (keys) set, rowdata will become zer
+ 168:quantum/keyboard.c ****     return rowdata;
+ 169:quantum/keyboard.c **** }
+ 170:quantum/keyboard.c **** 
+ 171:quantum/keyboard.c **** static inline bool has_ghost_in_row(uint8_t row, matrix_row_t rowdata) {
+ 172:quantum/keyboard.c ****     /* No ghost exists when less than 2 keys are down on the row.
+ 173:quantum/keyboard.c ****     If there are "active" blanks in the matrix, the key can't be pressed by the user,
+ 174:quantum/keyboard.c ****     there is no doubt as to which keys are really being pressed.
+ 175:quantum/keyboard.c ****     The ghosts will be ignored, they are KC_NO.   */
+ 176:quantum/keyboard.c ****     rowdata = get_real_keys(row, rowdata);
+ 177:quantum/keyboard.c ****     if ((popcount_more_than_one(rowdata)) == 0) {
+ 178:quantum/keyboard.c ****         return false;
+ 179:quantum/keyboard.c ****     }
+ 180:quantum/keyboard.c ****     /* Ghost occurs when the row shares a column line with other row,
+ 181:quantum/keyboard.c ****     and two columns are read on each row. Blanks in the matrix don't matter,
+ 182:quantum/keyboard.c ****     so they are filtered out.
+ 183:quantum/keyboard.c ****     If there are two or more real keys pressed and they match columns with
+ 184:quantum/keyboard.c ****     at least two of another row's real keys, the row will be ignored. Keep in mind,
+ 185:quantum/keyboard.c ****     we are checking one row at a time, not all of them at once.
+ 186:quantum/keyboard.c ****     */
+ 187:quantum/keyboard.c ****     for (uint8_t i = 0; i < MATRIX_ROWS; i++) {
+ 188:quantum/keyboard.c ****         if (i != row && popcount_more_than_one(get_real_keys(i, matrix_get_row(i)) & rowdata)) {
+ 189:quantum/keyboard.c ****             return true;
+ 190:quantum/keyboard.c ****         }
+ 191:quantum/keyboard.c ****     }
+ 192:quantum/keyboard.c ****     return false;
+ 193:quantum/keyboard.c **** }
+ 194:quantum/keyboard.c **** 
+ 195:quantum/keyboard.c **** #endif
+ 196:quantum/keyboard.c **** 
+ 197:quantum/keyboard.c **** void disable_jtag(void) {
+ 264              		.loc 1 197 25 is_stmt 1 view -0
+ 265              		.cfi_startproc
+ 266              		@ args = 0, pretend = 0, frame = 0
+ 267              		@ frame_needed = 0, uses_anonymous_args = 0
+ 268              		@ link register save eliminated.
+ 198:quantum/keyboard.c **** // To use PF4-7 (PC2-5 on ATmega32A), disable JTAG by writing JTD bit twice within four cycles.
+ 199:quantum/keyboard.c **** #if (defined(__AVR_AT90USB646__) || defined(__AVR_AT90USB647__) || defined(__AVR_AT90USB1286__) || 
+ 200:quantum/keyboard.c ****     MCUCR |= _BV(JTD);
+ 201:quantum/keyboard.c ****     MCUCR |= _BV(JTD);
+ 202:quantum/keyboard.c **** #elif defined(__AVR_ATmega32A__)
+ 203:quantum/keyboard.c ****     MCUCSR |= _BV(JTD);
+ 204:quantum/keyboard.c ****     MCUCSR |= _BV(JTD);
+ 205:quantum/keyboard.c **** #endif
+ 206:quantum/keyboard.c **** }
+ 269              		.loc 1 206 1 view .LVU33
+ 270 0000 7047     		bx	lr
+ 271              		.cfi_endproc
+ 272              	.LFE349:
+ 274              		.section	.text.matrix_setup,"ax",%progbits
+ 275              		.align	1
+ 276              		.weak	matrix_setup
+ 277              		.syntax unified
+ 278              		.thumb
+ 279              		.thumb_func
+ 281              	matrix_setup:
+ 282              	.LFB375:
+ 283              		.cfi_startproc
+ 207:quantum/keyboard.c **** 
+ 208:quantum/keyboard.c **** /** \brief matrix_setup
+ 209:quantum/keyboard.c ****  *
+ 210:quantum/keyboard.c ****  * FIXME: needs doc
+ 211:quantum/keyboard.c ****  */
+ 212:quantum/keyboard.c **** __attribute__((weak)) void matrix_setup(void) {}
+ 284              		.loc 1 212 28 view -0
+ 285              		@ args = 0, pretend = 0, frame = 0
+ 286              		@ frame_needed = 0, uses_anonymous_args = 0
+ 287              		@ link register save eliminated.
+ 288 0000 7047     		bx	lr
+ 289              		.cfi_endproc
+ 290              	.LFE375:
+ 292              		.section	.text.keyboard_pre_init_user,"ax",%progbits
+ 293              		.align	1
+ 294              		.weak	keyboard_pre_init_user
+ 295              		.syntax unified
+ 296              		.thumb
+ 297              		.thumb_func
+ 299              	keyboard_pre_init_user:
+ 300              	.LFB351:
+ 213:quantum/keyboard.c **** 
+ 214:quantum/keyboard.c **** /** \brief keyboard_pre_init_user
+ 215:quantum/keyboard.c ****  *
+ 216:quantum/keyboard.c ****  * FIXME: needs doc
+ 217:quantum/keyboard.c ****  */
+ 218:quantum/keyboard.c **** __attribute__((weak)) void keyboard_pre_init_user(void) {}
+ 301              		.loc 1 218 57 view -0
+ 302              		.cfi_startproc
+ 303              		@ args = 0, pretend = 0, frame = 0
+ 304              		@ frame_needed = 0, uses_anonymous_args = 0
+ 305              		@ link register save eliminated.
+ 306              		.loc 1 218 58 view .LVU36
+ 307 0000 7047     		bx	lr
+ 308              		.cfi_endproc
+ 309              	.LFE351:
+ 311              		.section	.text.keyboard_pre_init_kb,"ax",%progbits
+ 312              		.align	1
+ 313              		.weak	keyboard_pre_init_kb
+ 314              		.syntax unified
+ 315              		.thumb
+ 316              		.thumb_func
+ 318              	keyboard_pre_init_kb:
+ 319              	.LFB352:
+ 219:quantum/keyboard.c **** 
+ 220:quantum/keyboard.c **** /** \brief keyboard_pre_init_kb
+ 221:quantum/keyboard.c ****  *
+ 222:quantum/keyboard.c ****  * FIXME: needs doc
+ 223:quantum/keyboard.c ****  */
+ 224:quantum/keyboard.c **** __attribute__((weak)) void keyboard_pre_init_kb(void) { keyboard_pre_init_user(); }
+ 320              		.loc 1 224 55 view -0
+ 321              		.cfi_startproc
+ 322              		@ args = 0, pretend = 0, frame = 0
+ 323              		@ frame_needed = 0, uses_anonymous_args = 0
+ 324              		.loc 1 224 57 view .LVU38
+ 325              		.loc 1 224 55 is_stmt 0 view .LVU39
+ 326 0000 08B5     		push	{r3, lr}
+ 327              		.cfi_def_cfa_offset 8
+ 328              		.cfi_offset 3, -8
+ 329              		.cfi_offset 14, -4
+ 330              		.loc 1 224 57 view .LVU40
+ 331 0002 FFF7FEFF 		bl	keyboard_pre_init_user
+ 332              	.LVL5:
+ 333              		.loc 1 224 83 view .LVU41
+ 334 0006 08BD     		pop	{r3, pc}
+ 335              		.cfi_endproc
+ 336              	.LFE352:
+ 338              		.section	.text.keyboard_post_init_user,"ax",%progbits
+ 339              		.align	1
+ 340              		.weak	keyboard_post_init_user
+ 341              		.syntax unified
+ 342              		.thumb
+ 343              		.thumb_func
+ 345              	keyboard_post_init_user:
+ 346              	.LFB369:
+ 347              		.cfi_startproc
+ 225:quantum/keyboard.c **** 
+ 226:quantum/keyboard.c **** /** \brief keyboard_post_init_user
+ 227:quantum/keyboard.c ****  *
+ 228:quantum/keyboard.c ****  * FIXME: needs doc
+ 229:quantum/keyboard.c ****  */
+ 230:quantum/keyboard.c **** 
+ 231:quantum/keyboard.c **** __attribute__((weak)) void keyboard_post_init_user() {}
+ 348              		.loc 1 231 28 is_stmt 1 view -0
+ 349              		@ args = 0, pretend = 0, frame = 0
+ 350              		@ frame_needed = 0, uses_anonymous_args = 0
+ 351              		@ link register save eliminated.
+ 352 0000 7047     		bx	lr
+ 353              		.cfi_endproc
+ 354              	.LFE369:
+ 356              		.section	.text.keyboard_post_init_kb,"ax",%progbits
+ 357              		.align	1
+ 358              		.weak	keyboard_post_init_kb
+ 359              		.syntax unified
+ 360              		.thumb
+ 361              		.thumb_func
+ 363              	keyboard_post_init_kb:
+ 364              	.LFB354:
+ 232:quantum/keyboard.c **** 
+ 233:quantum/keyboard.c **** /** \brief keyboard_post_init_kb
+ 234:quantum/keyboard.c ****  *
+ 235:quantum/keyboard.c ****  * FIXME: needs doc
+ 236:quantum/keyboard.c ****  */
+ 237:quantum/keyboard.c **** 
+ 238:quantum/keyboard.c **** __attribute__((weak)) void keyboard_post_init_kb(void) { keyboard_post_init_user(); }
+ 365              		.loc 1 238 56 view -0
+ 366              		.cfi_startproc
+ 367              		@ args = 0, pretend = 0, frame = 0
+ 368              		@ frame_needed = 0, uses_anonymous_args = 0
+ 369              		.loc 1 238 58 view .LVU44
+ 370              		.loc 1 238 56 is_stmt 0 view .LVU45
+ 371 0000 08B5     		push	{r3, lr}
+ 372              		.cfi_def_cfa_offset 8
+ 373              		.cfi_offset 3, -8
+ 374              		.cfi_offset 14, -4
+ 375              		.loc 1 238 58 view .LVU46
+ 376 0002 FFF7FEFF 		bl	keyboard_post_init_user
+ 377              	.LVL6:
+ 378              		.loc 1 238 85 view .LVU47
+ 379 0006 08BD     		pop	{r3, pc}
+ 380              		.cfi_endproc
+ 381              	.LFE354:
+ 383              		.section	.text.keyboard_setup,"ax",%progbits
+ 384              		.align	1
+ 385              		.global	keyboard_setup
+ 386              		.syntax unified
+ 387              		.thumb
+ 388              		.thumb_func
+ 390              	keyboard_setup:
+ 391              	.LFB355:
+ 239:quantum/keyboard.c **** 
+ 240:quantum/keyboard.c **** /** \brief keyboard_setup
+ 241:quantum/keyboard.c ****  *
+ 242:quantum/keyboard.c ****  * FIXME: needs doc
+ 243:quantum/keyboard.c ****  */
+ 244:quantum/keyboard.c **** void keyboard_setup(void) {
+ 392              		.loc 1 244 27 is_stmt 1 view -0
+ 393              		.cfi_startproc
+ 394              		@ args = 0, pretend = 0, frame = 0
+ 395              		@ frame_needed = 0, uses_anonymous_args = 0
+ 245:quantum/keyboard.c **** #ifndef NO_JTAG_DISABLE
+ 246:quantum/keyboard.c ****     disable_jtag();
+ 396              		.loc 1 246 5 view .LVU49
+ 247:quantum/keyboard.c **** #endif
+ 248:quantum/keyboard.c ****     print_set_sendchar(sendchar);
+ 397              		.loc 1 248 5 view .LVU50
+ 244:quantum/keyboard.c **** #ifndef NO_JTAG_DISABLE
+ 398              		.loc 1 244 27 is_stmt 0 view .LVU51
+ 399 0000 08B5     		push	{r3, lr}
+ 400              		.cfi_def_cfa_offset 8
+ 401              		.cfi_offset 3, -8
+ 402              		.cfi_offset 14, -4
+ 403              		.loc 1 248 5 view .LVU52
+ 404 0002 0548     		ldr	r0, .L32
+ 405 0004 FFF7FEFF 		bl	print_set_sendchar
+ 406              	.LVL7:
+ 249:quantum/keyboard.c **** #ifdef STM32_EEPROM_ENABLE
+ 250:quantum/keyboard.c ****     EEPROM_Init();
+ 407              		.loc 1 250 5 is_stmt 1 view .LVU53
+ 408 0008 FFF7FEFF 		bl	EEPROM_Init
+ 409              	.LVL8:
+ 251:quantum/keyboard.c **** #endif
+ 252:quantum/keyboard.c **** #ifdef EEPROM_DRIVER
+ 253:quantum/keyboard.c ****     eeprom_driver_init();
+ 254:quantum/keyboard.c **** #endif
+ 255:quantum/keyboard.c ****     matrix_setup();
+ 410              		.loc 1 255 5 view .LVU54
+ 411 000c FFF7FEFF 		bl	matrix_setup
+ 412              	.LVL9:
+ 256:quantum/keyboard.c ****     keyboard_pre_init_kb();
+ 413              		.loc 1 256 5 view .LVU55
+ 414 0010 FFF7FEFF 		bl	keyboard_pre_init_kb
+ 415              	.LVL10:
+ 257:quantum/keyboard.c **** }
+ 416              		.loc 1 257 1 is_stmt 0 view .LVU56
+ 417 0014 08BD     		pop	{r3, pc}
+ 418              	.L33:
+ 419 0016 00BF     		.align	2
+ 420              	.L32:
+ 421 0018 00000000 		.word	sendchar
+ 422              		.cfi_endproc
+ 423              	.LFE355:
+ 425              		.section	.text.is_keyboard_master,"ax",%progbits
+ 426              		.align	1
+ 427              		.weak	is_keyboard_master
+ 428              		.syntax unified
+ 429              		.thumb
+ 430              		.thumb_func
+ 432              	is_keyboard_master:
+ 433              	.LFB356:
+ 258:quantum/keyboard.c **** 
+ 259:quantum/keyboard.c **** #ifndef SPLIT_KEYBOARD
+ 260:quantum/keyboard.c **** 
+ 261:quantum/keyboard.c **** /** \brief is_keyboard_master
+ 262:quantum/keyboard.c ****  *
+ 263:quantum/keyboard.c ****  * FIXME: needs doc
+ 264:quantum/keyboard.c ****  */
+ 265:quantum/keyboard.c **** __attribute__((weak)) bool is_keyboard_master(void) { return true; }
+ 434              		.loc 1 265 53 is_stmt 1 view -0
+ 435              		.cfi_startproc
+ 436              		@ args = 0, pretend = 0, frame = 0
+ 437              		@ frame_needed = 0, uses_anonymous_args = 0
+ 438              		@ link register save eliminated.
+ 439              		.loc 1 265 55 view .LVU58
+ 440              		.loc 1 265 68 is_stmt 0 view .LVU59
+ 441 0000 0120     		movs	r0, #1
+ 442 0002 7047     		bx	lr
+ 443              		.cfi_endproc
+ 444              	.LFE356:
+ 446              		.section	.text.is_keyboard_left,"ax",%progbits
+ 447              		.align	1
+ 448              		.weak	is_keyboard_left
+ 449              		.syntax unified
+ 450              		.thumb
+ 451              		.thumb_func
+ 453              	is_keyboard_left:
+ 454              	.LFB367:
+ 455              		.cfi_startproc
+ 266:quantum/keyboard.c **** 
+ 267:quantum/keyboard.c **** /** \brief is_keyboard_left
+ 268:quantum/keyboard.c ****  *
+ 269:quantum/keyboard.c ****  * FIXME: needs doc
+ 270:quantum/keyboard.c ****  */
+ 271:quantum/keyboard.c **** __attribute__((weak)) bool is_keyboard_left(void) { return true; }
+ 456              		.loc 1 271 28 is_stmt 1 view -0
+ 457              		@ args = 0, pretend = 0, frame = 0
+ 458              		@ frame_needed = 0, uses_anonymous_args = 0
+ 459              		@ link register save eliminated.
+ 460 0000 0120     		movs	r0, #1
+ 461 0002 7047     		bx	lr
+ 462              		.cfi_endproc
+ 463              	.LFE367:
+ 465              		.section	.text.should_process_keypress,"ax",%progbits
+ 466              		.align	1
+ 467              		.weak	should_process_keypress
+ 468              		.syntax unified
+ 469              		.thumb
+ 470              		.thumb_func
+ 472              	should_process_keypress:
+ 473              	.LFB358:
+ 272:quantum/keyboard.c **** 
+ 273:quantum/keyboard.c **** #endif
+ 274:quantum/keyboard.c **** 
+ 275:quantum/keyboard.c **** /** \brief should_process_keypress
+ 276:quantum/keyboard.c ****  *
+ 277:quantum/keyboard.c ****  * Override this function if you have a condition where keypresses processing should change:
+ 278:quantum/keyboard.c ****  *   - splits where the slave side needs to process for rgb/oled functionality
+ 279:quantum/keyboard.c ****  */
+ 280:quantum/keyboard.c **** __attribute__((weak)) bool should_process_keypress(void) { return is_keyboard_master(); }
+ 474              		.loc 1 280 58 view -0
+ 475              		.cfi_startproc
+ 476              		@ args = 0, pretend = 0, frame = 0
+ 477              		@ frame_needed = 0, uses_anonymous_args = 0
+ 478              		.loc 1 280 60 view .LVU62
+ 479              		.loc 1 280 58 is_stmt 0 view .LVU63
+ 480 0000 08B5     		push	{r3, lr}
+ 481              		.cfi_def_cfa_offset 8
+ 482              		.cfi_offset 3, -8
+ 483              		.cfi_offset 14, -4
+ 484              		.loc 1 280 67 view .LVU64
+ 485 0002 FFF7FEFF 		bl	is_keyboard_master
+ 486              	.LVL11:
+ 487              		.loc 1 280 89 view .LVU65
+ 488 0006 08BD     		pop	{r3, pc}
+ 489              		.cfi_endproc
+ 490              	.LFE358:
+ 492              		.section	.text.housekeeping_task_kb,"ax",%progbits
+ 493              		.align	1
+ 494              		.weak	housekeeping_task_kb
+ 495              		.syntax unified
+ 496              		.thumb
+ 497              		.thumb_func
+ 499              	housekeeping_task_kb:
+ 500              	.LFB371:
+ 501              		.cfi_startproc
+ 281:quantum/keyboard.c **** 
+ 282:quantum/keyboard.c **** /** \brief housekeeping_task_kb
+ 283:quantum/keyboard.c ****  *
+ 284:quantum/keyboard.c ****  * Override this function if you have a need to execute code for every keyboard main loop iteration
+ 285:quantum/keyboard.c ****  * This is specific to keyboard-level functionality.
+ 286:quantum/keyboard.c ****  */
+ 287:quantum/keyboard.c **** __attribute__((weak)) void housekeeping_task_kb(void) {}
+ 502              		.loc 1 287 28 is_stmt 1 view -0
+ 503              		@ args = 0, pretend = 0, frame = 0
+ 504              		@ frame_needed = 0, uses_anonymous_args = 0
+ 505              		@ link register save eliminated.
+ 506 0000 7047     		bx	lr
+ 507              		.cfi_endproc
+ 508              	.LFE371:
+ 510              		.section	.text.housekeeping_task_user,"ax",%progbits
+ 511              		.align	1
+ 512              		.weak	housekeeping_task_user
+ 513              		.syntax unified
+ 514              		.thumb
+ 515              		.thumb_func
+ 517              	housekeeping_task_user:
+ 518              	.LFB373:
+ 519              		.cfi_startproc
+ 288:quantum/keyboard.c **** 
+ 289:quantum/keyboard.c **** /** \brief housekeeping_task_user
+ 290:quantum/keyboard.c ****  *
+ 291:quantum/keyboard.c ****  * Override this function if you have a need to execute code for every keyboard main loop iteration
+ 292:quantum/keyboard.c ****  * This is specific to user/keymap-level functionality.
+ 293:quantum/keyboard.c ****  */
+ 294:quantum/keyboard.c **** __attribute__((weak)) void housekeeping_task_user(void) {}
+ 520              		.loc 1 294 28 view -0
+ 521              		@ args = 0, pretend = 0, frame = 0
+ 522              		@ frame_needed = 0, uses_anonymous_args = 0
+ 523              		@ link register save eliminated.
+ 524 0000 7047     		bx	lr
+ 525              		.cfi_endproc
+ 526              	.LFE373:
+ 528              		.section	.text.housekeeping_task,"ax",%progbits
+ 529              		.align	1
+ 530              		.global	housekeeping_task
+ 531              		.syntax unified
+ 532              		.thumb
+ 533              		.thumb_func
+ 535              	housekeeping_task:
+ 536              	.LFB361:
+ 295:quantum/keyboard.c **** 
+ 296:quantum/keyboard.c **** /** \brief housekeeping_task
+ 297:quantum/keyboard.c ****  *
+ 298:quantum/keyboard.c ****  * Invokes hooks for executing code after QMK is done after each loop iteration.
+ 299:quantum/keyboard.c ****  */
+ 300:quantum/keyboard.c **** void housekeeping_task(void) {
+ 537              		.loc 1 300 30 view -0
+ 538              		.cfi_startproc
+ 539              		@ args = 0, pretend = 0, frame = 0
+ 540              		@ frame_needed = 0, uses_anonymous_args = 0
+ 301:quantum/keyboard.c ****     housekeeping_task_kb();
+ 541              		.loc 1 301 5 view .LVU69
+ 300:quantum/keyboard.c ****     housekeeping_task_kb();
+ 542              		.loc 1 300 30 is_stmt 0 view .LVU70
+ 543 0000 08B5     		push	{r3, lr}
+ 544              		.cfi_def_cfa_offset 8
+ 545              		.cfi_offset 3, -8
+ 546              		.cfi_offset 14, -4
+ 547              		.loc 1 301 5 view .LVU71
+ 548 0002 FFF7FEFF 		bl	housekeeping_task_kb
+ 549              	.LVL12:
+ 302:quantum/keyboard.c ****     housekeeping_task_user();
+ 550              		.loc 1 302 5 is_stmt 1 view .LVU72
+ 551 0006 FFF7FEFF 		bl	housekeeping_task_user
+ 552              	.LVL13:
+ 303:quantum/keyboard.c **** }
+ 553              		.loc 1 303 1 is_stmt 0 view .LVU73
+ 554 000a 08BD     		pop	{r3, pc}
+ 555              		.cfi_endproc
+ 556              	.LFE361:
+ 558              		.section	.text.keyboard_init,"ax",%progbits
+ 559              		.align	1
+ 560              		.global	keyboard_init
+ 561              		.syntax unified
+ 562              		.thumb
+ 563              		.thumb_func
+ 565              	keyboard_init:
+ 566              	.LFB362:
+ 304:quantum/keyboard.c **** 
+ 305:quantum/keyboard.c **** /** \brief keyboard_init
+ 306:quantum/keyboard.c ****  *
+ 307:quantum/keyboard.c ****  * FIXME: needs doc
+ 308:quantum/keyboard.c ****  */
+ 309:quantum/keyboard.c **** void keyboard_init(void) {
+ 567              		.loc 1 309 26 is_stmt 1 view -0
+ 568              		.cfi_startproc
+ 569              		@ args = 0, pretend = 0, frame = 0
+ 570              		@ frame_needed = 0, uses_anonymous_args = 0
+ 310:quantum/keyboard.c ****     timer_init();
+ 571              		.loc 1 310 5 view .LVU75
+ 309:quantum/keyboard.c ****     timer_init();
+ 572              		.loc 1 309 26 is_stmt 0 view .LVU76
+ 573 0000 08B5     		push	{r3, lr}
+ 574              		.cfi_def_cfa_offset 8
+ 575              		.cfi_offset 3, -8
+ 576              		.cfi_offset 14, -4
+ 577              		.loc 1 310 5 view .LVU77
+ 578 0002 FFF7FEFF 		bl	timer_init
+ 579              	.LVL14:
+ 311:quantum/keyboard.c ****     sync_timer_init();
+ 580              		.loc 1 311 22 is_stmt 1 view .LVU78
+ 312:quantum/keyboard.c **** #ifdef VIA_ENABLE
+ 313:quantum/keyboard.c ****     via_init();
+ 314:quantum/keyboard.c **** #endif
+ 315:quantum/keyboard.c ****     matrix_init();
+ 581              		.loc 1 315 5 view .LVU79
+ 582 0006 FFF7FEFF 		bl	matrix_init
+ 583              	.LVL15:
+ 316:quantum/keyboard.c **** #if defined(CRC_ENABLE)
+ 317:quantum/keyboard.c ****     crc_init();
+ 318:quantum/keyboard.c **** #endif
+ 319:quantum/keyboard.c **** #ifdef QWIIC_ENABLE
+ 320:quantum/keyboard.c ****     qwiic_init();
+ 321:quantum/keyboard.c **** #endif
+ 322:quantum/keyboard.c **** #ifdef OLED_ENABLE
+ 323:quantum/keyboard.c ****     oled_init(OLED_ROTATION_0);
+ 324:quantum/keyboard.c **** #endif
+ 325:quantum/keyboard.c **** #ifdef ST7565_ENABLE
+ 326:quantum/keyboard.c ****     st7565_init(DISPLAY_ROTATION_0);
+ 327:quantum/keyboard.c **** #endif
+ 328:quantum/keyboard.c **** #ifdef PS2_MOUSE_ENABLE
+ 329:quantum/keyboard.c ****     ps2_mouse_init();
+ 330:quantum/keyboard.c **** #endif
+ 331:quantum/keyboard.c **** #ifdef SERIAL_MOUSE_ENABLE
+ 332:quantum/keyboard.c ****     serial_mouse_init();
+ 333:quantum/keyboard.c **** #endif
+ 334:quantum/keyboard.c **** #ifdef ADB_MOUSE_ENABLE
+ 335:quantum/keyboard.c ****     adb_mouse_init();
+ 336:quantum/keyboard.c **** #endif
+ 337:quantum/keyboard.c **** #ifdef BACKLIGHT_ENABLE
+ 338:quantum/keyboard.c ****     backlight_init();
+ 339:quantum/keyboard.c **** #endif
+ 340:quantum/keyboard.c **** #ifdef RGBLIGHT_ENABLE
+ 341:quantum/keyboard.c ****     rgblight_init();
+ 342:quantum/keyboard.c **** #endif
+ 343:quantum/keyboard.c **** #ifdef ENCODER_ENABLE
+ 344:quantum/keyboard.c ****     encoder_init();
+ 584              		.loc 1 344 5 view .LVU80
+ 585 000a FFF7FEFF 		bl	encoder_init
+ 586              	.LVL16:
+ 345:quantum/keyboard.c **** #endif
+ 346:quantum/keyboard.c **** #ifdef STENO_ENABLE
+ 347:quantum/keyboard.c ****     steno_init();
+ 348:quantum/keyboard.c **** #endif
+ 349:quantum/keyboard.c **** #ifdef POINTING_DEVICE_ENABLE
+ 350:quantum/keyboard.c ****     pointing_device_init();
+ 351:quantum/keyboard.c **** #endif
+ 352:quantum/keyboard.c **** #if defined(NKRO_ENABLE) && defined(FORCE_NKRO)
+ 353:quantum/keyboard.c ****     keymap_config.nkro = 1;
+ 354:quantum/keyboard.c ****     eeconfig_update_keymap(keymap_config.raw);
+ 355:quantum/keyboard.c **** #endif
+ 356:quantum/keyboard.c **** #ifdef DIP_SWITCH_ENABLE
+ 357:quantum/keyboard.c ****     dip_switch_init();
+ 587              		.loc 1 357 5 view .LVU81
+ 588 000e FFF7FEFF 		bl	dip_switch_init
+ 589              	.LVL17:
+ 358:quantum/keyboard.c **** #endif
+ 359:quantum/keyboard.c **** 
+ 360:quantum/keyboard.c **** #if defined(DEBUG_MATRIX_SCAN_RATE) && defined(CONSOLE_ENABLE)
+ 361:quantum/keyboard.c ****     debug_enable = true;
+ 362:quantum/keyboard.c **** #endif
+ 363:quantum/keyboard.c **** 
+ 364:quantum/keyboard.c ****     keyboard_post_init_kb(); /* Always keep this last */
+ 590              		.loc 1 364 5 view .LVU82
+ 591 0012 FFF7FEFF 		bl	keyboard_post_init_kb
+ 592              	.LVL18:
+ 365:quantum/keyboard.c **** }
+ 593              		.loc 1 365 1 is_stmt 0 view .LVU83
+ 594 0016 08BD     		pop	{r3, pc}
+ 595              		.cfi_endproc
+ 596              	.LFE362:
+ 598              		.section	.text.switch_events,"ax",%progbits
+ 599              		.align	1
+ 600              		.global	switch_events
+ 601              		.syntax unified
+ 602              		.thumb
+ 603              		.thumb_func
+ 605              	switch_events:
+ 606              	.LVL19:
+ 607              	.LFB363:
+ 366:quantum/keyboard.c **** 
+ 367:quantum/keyboard.c **** /** \brief key_event_task
+ 368:quantum/keyboard.c ****  *
+ 369:quantum/keyboard.c ****  * This function is responsible for calling into other systems when they need to respond to electri
+ 370:quantum/keyboard.c ****  * This is differnet than keycode events as no layer processing, or filtering occurs.
+ 371:quantum/keyboard.c ****  */
+ 372:quantum/keyboard.c **** void switch_events(uint8_t row, uint8_t col, bool pressed) {
+ 608              		.loc 1 372 60 is_stmt 1 view -0
+ 609              		.cfi_startproc
+ 610              		@ args = 0, pretend = 0, frame = 0
+ 611              		@ frame_needed = 0, uses_anonymous_args = 0
+ 612              		@ link register save eliminated.
+ 373:quantum/keyboard.c **** #if defined(LED_MATRIX_ENABLE)
+ 374:quantum/keyboard.c ****     process_led_matrix(row, col, pressed);
+ 375:quantum/keyboard.c **** #endif
+ 376:quantum/keyboard.c **** #if defined(RGB_MATRIX_ENABLE)
+ 377:quantum/keyboard.c ****     process_rgb_matrix(row, col, pressed);
+ 378:quantum/keyboard.c **** #endif
+ 379:quantum/keyboard.c **** }
+ 613              		.loc 1 379 1 view .LVU85
+ 614 0000 7047     		bx	lr
+ 615              		.cfi_endproc
+ 616              	.LFE363:
+ 618              		.section	.rodata.keyboard_set_leds.str1.1,"aMS",%progbits,1
+ 619              	.LC0:
+ 620 0000 6B657962 		.ascii	"keyboard_set_led: \000"
+ 620      6F617264 
+ 620      5F736574 
+ 620      5F6C6564 
+ 620      3A2000
+ 621              	.LC1:
+ 622 0013 25303258 		.ascii	"%02X\000"
+ 622      00
+ 623              	.LC2:
+ 624 0018 0A00     		.ascii	"\012\000"
+ 625              		.section	.text.keyboard_set_leds,"ax",%progbits
+ 626              		.align	1
+ 627              		.global	keyboard_set_leds
+ 628              		.syntax unified
+ 629              		.thumb
+ 630              		.thumb_func
+ 632              	keyboard_set_leds:
+ 633              	.LVL20:
+ 634              	.LFB365:
+ 380:quantum/keyboard.c **** 
+ 381:quantum/keyboard.c **** /** \brief Keyboard task: Do keyboard routine jobs
+ 382:quantum/keyboard.c ****  *
+ 383:quantum/keyboard.c ****  * Do routine keyboard jobs:
+ 384:quantum/keyboard.c ****  *
+ 385:quantum/keyboard.c ****  * * scan matrix
+ 386:quantum/keyboard.c ****  * * handle mouse movements
+ 387:quantum/keyboard.c ****  * * run visualizer code
+ 388:quantum/keyboard.c ****  * * handle midi commands
+ 389:quantum/keyboard.c ****  * * light LEDs
+ 390:quantum/keyboard.c ****  *
+ 391:quantum/keyboard.c ****  * This is repeatedly called as fast as possible.
+ 392:quantum/keyboard.c ****  */
+ 393:quantum/keyboard.c **** void keyboard_task(void) {
+ 394:quantum/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 395:quantum/keyboard.c ****     static uint8_t      led_status    = 0;
+ 396:quantum/keyboard.c ****     matrix_row_t        matrix_row    = 0;
+ 397:quantum/keyboard.c ****     matrix_row_t        matrix_change = 0;
+ 398:quantum/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 399:quantum/keyboard.c ****     uint8_t keys_processed = 0;
+ 400:quantum/keyboard.c **** #endif
+ 401:quantum/keyboard.c **** #ifdef ENCODER_ENABLE
+ 402:quantum/keyboard.c ****     bool encoders_changed = false;
+ 403:quantum/keyboard.c **** #endif
+ 404:quantum/keyboard.c **** 
+ 405:quantum/keyboard.c ****     uint8_t matrix_changed = matrix_scan();
+ 406:quantum/keyboard.c ****     if (matrix_changed) last_matrix_activity_trigger();
+ 407:quantum/keyboard.c **** 
+ 408:quantum/keyboard.c ****     for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 409:quantum/keyboard.c ****         matrix_row    = matrix_get_row(r);
+ 410:quantum/keyboard.c ****         matrix_change = matrix_row ^ matrix_prev[r];
+ 411:quantum/keyboard.c ****         if (matrix_change) {
+ 412:quantum/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 413:quantum/keyboard.c ****             if (has_ghost_in_row(r, matrix_row)) {
+ 414:quantum/keyboard.c ****                 continue;
+ 415:quantum/keyboard.c ****             }
+ 416:quantum/keyboard.c **** #endif
+ 417:quantum/keyboard.c ****             if (debug_matrix) matrix_print();
+ 418:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 419:quantum/keyboard.c ****             for (uint8_t c = 0; c < MATRIX_COLS; c++, col_mask <<= 1) {
+ 420:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 421:quantum/keyboard.c ****                     if (should_process_keypress()) {
+ 422:quantum/keyboard.c ****                         action_exec((keyevent_t){
+ 423:quantum/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 424:quantum/keyboard.c ****                         });
+ 425:quantum/keyboard.c ****                     }
+ 426:quantum/keyboard.c ****                     // record a processed key
+ 427:quantum/keyboard.c ****                     matrix_prev[r] ^= col_mask;
+ 428:quantum/keyboard.c **** 
+ 429:quantum/keyboard.c ****                     switch_events(r, c, (matrix_row & col_mask));
+ 430:quantum/keyboard.c **** 
+ 431:quantum/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 432:quantum/keyboard.c ****                     // only jump out if we have processed "enough" keys.
+ 433:quantum/keyboard.c ****                     if (++keys_processed >= QMK_KEYS_PER_SCAN)
+ 434:quantum/keyboard.c **** #endif
+ 435:quantum/keyboard.c ****                         // process a key per task call
+ 436:quantum/keyboard.c ****                         goto MATRIX_LOOP_END;
+ 437:quantum/keyboard.c ****                 }
+ 438:quantum/keyboard.c ****             }
+ 439:quantum/keyboard.c ****         }
+ 440:quantum/keyboard.c ****     }
+ 441:quantum/keyboard.c ****     // call with pseudo tick event when no real key event.
+ 442:quantum/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 443:quantum/keyboard.c ****     // we can get here with some keys processed now.
+ 444:quantum/keyboard.c ****     if (!keys_processed)
+ 445:quantum/keyboard.c **** #endif
+ 446:quantum/keyboard.c ****         action_exec(TICK);
+ 447:quantum/keyboard.c **** 
+ 448:quantum/keyboard.c **** MATRIX_LOOP_END:
+ 449:quantum/keyboard.c **** 
+ 450:quantum/keyboard.c **** #ifdef DEBUG_MATRIX_SCAN_RATE
+ 451:quantum/keyboard.c ****     matrix_scan_perf_task();
+ 452:quantum/keyboard.c **** #endif
+ 453:quantum/keyboard.c **** 
+ 454:quantum/keyboard.c **** #if defined(RGBLIGHT_ENABLE)
+ 455:quantum/keyboard.c ****     rgblight_task();
+ 456:quantum/keyboard.c **** #endif
+ 457:quantum/keyboard.c **** 
+ 458:quantum/keyboard.c **** #ifdef LED_MATRIX_ENABLE
+ 459:quantum/keyboard.c ****     led_matrix_task();
+ 460:quantum/keyboard.c **** #endif
+ 461:quantum/keyboard.c **** #ifdef RGB_MATRIX_ENABLE
+ 462:quantum/keyboard.c ****     rgb_matrix_task();
+ 463:quantum/keyboard.c **** #endif
+ 464:quantum/keyboard.c **** 
+ 465:quantum/keyboard.c **** #if defined(BACKLIGHT_ENABLE)
+ 466:quantum/keyboard.c **** #    if defined(BACKLIGHT_PIN) || defined(BACKLIGHT_PINS)
+ 467:quantum/keyboard.c ****     backlight_task();
+ 468:quantum/keyboard.c **** #    endif
+ 469:quantum/keyboard.c **** #endif
+ 470:quantum/keyboard.c **** 
+ 471:quantum/keyboard.c **** #ifdef ENCODER_ENABLE
+ 472:quantum/keyboard.c ****     encoders_changed = encoder_read();
+ 473:quantum/keyboard.c ****     if (encoders_changed) last_encoder_activity_trigger();
+ 474:quantum/keyboard.c **** #endif
+ 475:quantum/keyboard.c **** 
+ 476:quantum/keyboard.c **** #ifdef QWIIC_ENABLE
+ 477:quantum/keyboard.c ****     qwiic_task();
+ 478:quantum/keyboard.c **** #endif
+ 479:quantum/keyboard.c **** 
+ 480:quantum/keyboard.c **** #ifdef OLED_ENABLE
+ 481:quantum/keyboard.c ****     oled_task();
+ 482:quantum/keyboard.c **** #    if OLED_TIMEOUT > 0
+ 483:quantum/keyboard.c ****     // Wake up oled if user is using those fabulous keys or spinning those encoders!
+ 484:quantum/keyboard.c **** #        ifdef ENCODER_ENABLE
+ 485:quantum/keyboard.c ****     if (matrix_changed || encoders_changed) oled_on();
+ 486:quantum/keyboard.c **** #        else
+ 487:quantum/keyboard.c ****     if (matrix_changed) oled_on();
+ 488:quantum/keyboard.c **** #        endif
+ 489:quantum/keyboard.c **** #    endif
+ 490:quantum/keyboard.c **** #endif
+ 491:quantum/keyboard.c **** 
+ 492:quantum/keyboard.c **** #ifdef ST7565_ENABLE
+ 493:quantum/keyboard.c ****     st7565_task();
+ 494:quantum/keyboard.c **** #    if ST7565_TIMEOUT > 0
+ 495:quantum/keyboard.c ****     // Wake up display if user is using those fabulous keys or spinning those encoders!
+ 496:quantum/keyboard.c **** #        ifdef ENCODER_ENABLE
+ 497:quantum/keyboard.c ****     if (matrix_changed || encoders_changed) st7565_on();
+ 498:quantum/keyboard.c **** #        else
+ 499:quantum/keyboard.c ****     if (matrix_changed) st7565_on();
+ 500:quantum/keyboard.c **** #        endif
+ 501:quantum/keyboard.c **** #    endif
+ 502:quantum/keyboard.c **** #endif
+ 503:quantum/keyboard.c **** 
+ 504:quantum/keyboard.c **** #ifdef MOUSEKEY_ENABLE
+ 505:quantum/keyboard.c ****     // mousekey repeat & acceleration
+ 506:quantum/keyboard.c ****     mousekey_task();
+ 507:quantum/keyboard.c **** #endif
+ 508:quantum/keyboard.c **** 
+ 509:quantum/keyboard.c **** #ifdef PS2_MOUSE_ENABLE
+ 510:quantum/keyboard.c ****     ps2_mouse_task();
+ 511:quantum/keyboard.c **** #endif
+ 512:quantum/keyboard.c **** 
+ 513:quantum/keyboard.c **** #ifdef SERIAL_MOUSE_ENABLE
+ 514:quantum/keyboard.c ****     serial_mouse_task();
+ 515:quantum/keyboard.c **** #endif
+ 516:quantum/keyboard.c **** 
+ 517:quantum/keyboard.c **** #ifdef ADB_MOUSE_ENABLE
+ 518:quantum/keyboard.c ****     adb_mouse_task();
+ 519:quantum/keyboard.c **** #endif
+ 520:quantum/keyboard.c **** 
+ 521:quantum/keyboard.c **** #ifdef SERIAL_LINK_ENABLE
+ 522:quantum/keyboard.c ****     serial_link_update();
+ 523:quantum/keyboard.c **** #endif
+ 524:quantum/keyboard.c **** 
+ 525:quantum/keyboard.c **** #ifdef VISUALIZER_ENABLE
+ 526:quantum/keyboard.c ****     visualizer_update(default_layer_state, layer_state, visualizer_get_mods(), host_keyboard_leds()
+ 527:quantum/keyboard.c **** #endif
+ 528:quantum/keyboard.c **** 
+ 529:quantum/keyboard.c **** #ifdef POINTING_DEVICE_ENABLE
+ 530:quantum/keyboard.c ****     pointing_device_task();
+ 531:quantum/keyboard.c **** #endif
+ 532:quantum/keyboard.c **** 
+ 533:quantum/keyboard.c **** #ifdef MIDI_ENABLE
+ 534:quantum/keyboard.c ****     midi_task();
+ 535:quantum/keyboard.c **** #endif
+ 536:quantum/keyboard.c **** 
+ 537:quantum/keyboard.c **** #ifdef VELOCIKEY_ENABLE
+ 538:quantum/keyboard.c ****     if (velocikey_enabled()) {
+ 539:quantum/keyboard.c ****         velocikey_decelerate();
+ 540:quantum/keyboard.c ****     }
+ 541:quantum/keyboard.c **** #endif
+ 542:quantum/keyboard.c **** 
+ 543:quantum/keyboard.c **** #ifdef JOYSTICK_ENABLE
+ 544:quantum/keyboard.c ****     joystick_task();
+ 545:quantum/keyboard.c **** #endif
+ 546:quantum/keyboard.c **** 
+ 547:quantum/keyboard.c **** #ifdef DIGITIZER_ENABLE
+ 548:quantum/keyboard.c ****     digitizer_task();
+ 549:quantum/keyboard.c **** #endif
+ 550:quantum/keyboard.c **** 
+ 551:quantum/keyboard.c ****     // update LED
+ 552:quantum/keyboard.c ****     if (led_status != host_keyboard_leds()) {
+ 553:quantum/keyboard.c ****         led_status = host_keyboard_leds();
+ 554:quantum/keyboard.c ****         keyboard_set_leds(led_status);
+ 555:quantum/keyboard.c ****     }
+ 556:quantum/keyboard.c **** }
+ 557:quantum/keyboard.c **** 
+ 558:quantum/keyboard.c **** /** \brief keyboard set leds
+ 559:quantum/keyboard.c ****  *
+ 560:quantum/keyboard.c ****  * FIXME: needs doc
+ 561:quantum/keyboard.c ****  */
+ 562:quantum/keyboard.c **** void keyboard_set_leds(uint8_t leds) {
+ 635              		.loc 1 562 38 view -0
+ 636              		.cfi_startproc
+ 637              		@ args = 0, pretend = 0, frame = 0
+ 638              		@ frame_needed = 0, uses_anonymous_args = 0
+ 563:quantum/keyboard.c ****     if (debug_keyboard) {
+ 639              		.loc 1 563 5 view .LVU87
+ 562:quantum/keyboard.c ****     if (debug_keyboard) {
+ 640              		.loc 1 562 38 is_stmt 0 view .LVU88
+ 641 0000 38B5     		push	{r3, r4, r5, lr}
+ 642              		.cfi_def_cfa_offset 16
+ 643              		.cfi_offset 3, -16
+ 644              		.cfi_offset 4, -12
+ 645              		.cfi_offset 5, -8
+ 646              		.cfi_offset 14, -4
+ 647              		.loc 1 563 9 view .LVU89
+ 648 0002 0E4D     		ldr	r5, .L58
+ 649 0004 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 562:quantum/keyboard.c ****     if (debug_keyboard) {
+ 650              		.loc 1 562 38 view .LVU90
+ 651 0006 0446     		mov	r4, r0
+ 652              		.loc 1 563 8 view .LVU91
+ 653 0008 5807     		lsls	r0, r3, #29
+ 654              	.LVL21:
+ 655              		.loc 1 563 8 view .LVU92
+ 656 000a 11D5     		bpl	.L45
+ 564:quantum/keyboard.c ****         debug("keyboard_set_led: ");
+ 657              		.loc 1 564 9 is_stmt 1 view .LVU93
+ 658              		.loc 1 564 9 view .LVU94
+ 659 000c D907     		lsls	r1, r3, #31
+ 660 000e 0FD5     		bpl	.L45
+ 661              		.loc 1 564 9 discriminator 1 view .LVU95
+ 662 0010 0B48     		ldr	r0, .L58+4
+ 663 0012 FFF7FEFF 		bl	printf_
+ 664              	.LVL22:
+ 665              		.loc 1 564 9 discriminator 1 view .LVU96
+ 565:quantum/keyboard.c ****         debug_hex8(leds);
+ 666              		.loc 1 565 9 discriminator 1 view .LVU97
+ 667              		.loc 1 565 9 discriminator 1 view .LVU98
+ 668 0016 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 669 0018 DA07     		lsls	r2, r3, #31
+ 670 001a 09D5     		bpl	.L45
+ 671              		.loc 1 565 9 discriminator 1 view .LVU99
+ 672 001c 0948     		ldr	r0, .L58+8
+ 673 001e 2146     		mov	r1, r4
+ 674 0020 FFF7FEFF 		bl	printf_
+ 675              	.LVL23:
+ 676              		.loc 1 565 9 discriminator 1 view .LVU100
+ 566:quantum/keyboard.c ****         debug("\n");
+ 677              		.loc 1 566 9 discriminator 1 view .LVU101
+ 678              		.loc 1 566 9 discriminator 1 view .LVU102
+ 679 0024 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 680 0026 DB07     		lsls	r3, r3, #31
+ 681 0028 02D5     		bpl	.L45
+ 682              		.loc 1 566 9 discriminator 1 view .LVU103
+ 683 002a 0748     		ldr	r0, .L58+12
+ 684 002c FFF7FEFF 		bl	printf_
+ 685              	.LVL24:
+ 686              	.L45:
+ 687              		.loc 1 566 9 discriminator 3 view .LVU104
+ 567:quantum/keyboard.c ****     }
+ 568:quantum/keyboard.c ****     led_set(leds);
+ 688              		.loc 1 568 5 discriminator 3 view .LVU105
+ 689 0030 2046     		mov	r0, r4
+ 569:quantum/keyboard.c **** }
+ 690              		.loc 1 569 1 is_stmt 0 discriminator 3 view .LVU106
+ 691 0032 BDE83840 		pop	{r3, r4, r5, lr}
+ 692              		.cfi_restore 14
+ 693              		.cfi_restore 5
+ 694              		.cfi_restore 4
+ 695              		.cfi_restore 3
+ 696              		.cfi_def_cfa_offset 0
+ 568:quantum/keyboard.c **** }
+ 697              		.loc 1 568 5 discriminator 3 view .LVU107
+ 698 0036 FFF7FEBF 		b	led_set
+ 699              	.LVL25:
+ 700              	.L59:
+ 701 003a 00BF     		.align	2
+ 702              	.L58:
+ 703 003c 00000000 		.word	debug_config
+ 704 0040 00000000 		.word	.LC0
+ 705 0044 13000000 		.word	.LC1
+ 706 0048 18000000 		.word	.LC2
+ 707              		.cfi_endproc
+ 708              	.LFE365:
+ 710              		.section	.text.keyboard_task,"ax",%progbits
+ 711              		.align	1
+ 712              		.global	keyboard_task
+ 713              		.syntax unified
+ 714              		.thumb
+ 715              		.thumb_func
+ 717              	keyboard_task:
+ 718              	.LFB364:
+ 393:quantum/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 719              		.loc 1 393 26 is_stmt 1 view -0
+ 720              		.cfi_startproc
+ 721              		@ args = 0, pretend = 0, frame = 8
+ 722              		@ frame_needed = 0, uses_anonymous_args = 0
+ 394:quantum/keyboard.c ****     static uint8_t      led_status    = 0;
+ 723              		.loc 1 394 5 view .LVU109
+ 395:quantum/keyboard.c ****     matrix_row_t        matrix_row    = 0;
+ 724              		.loc 1 395 5 view .LVU110
+ 396:quantum/keyboard.c ****     matrix_row_t        matrix_change = 0;
+ 725              		.loc 1 396 5 view .LVU111
+ 726              	.LVL26:
+ 397:quantum/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 727              		.loc 1 397 5 view .LVU112
+ 402:quantum/keyboard.c **** #endif
+ 728              		.loc 1 402 5 view .LVU113
+ 405:quantum/keyboard.c ****     if (matrix_changed) last_matrix_activity_trigger();
+ 729              		.loc 1 405 5 view .LVU114
+ 393:quantum/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 730              		.loc 1 393 26 is_stmt 0 view .LVU115
+ 731 0000 2DE9F74F 		push	{r0, r1, r2, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 732              		.cfi_def_cfa_offset 48
+ 733              		.cfi_offset 4, -36
+ 734              		.cfi_offset 5, -32
+ 735              		.cfi_offset 6, -28
+ 736              		.cfi_offset 7, -24
+ 737              		.cfi_offset 8, -20
+ 738              		.cfi_offset 9, -16
+ 739              		.cfi_offset 10, -12
+ 740              		.cfi_offset 11, -8
+ 741              		.cfi_offset 14, -4
+ 405:quantum/keyboard.c ****     if (matrix_changed) last_matrix_activity_trigger();
+ 742              		.loc 1 405 30 view .LVU116
+ 743 0004 FFF7FEFF 		bl	matrix_scan
+ 744              	.LVL27:
+ 406:quantum/keyboard.c **** 
+ 745              		.loc 1 406 5 is_stmt 1 view .LVU117
+ 406:quantum/keyboard.c **** 
+ 746              		.loc 1 406 8 is_stmt 0 view .LVU118
+ 747 0008 08B1     		cbz	r0, .L61
+ 406:quantum/keyboard.c **** 
+ 748              		.loc 1 406 25 is_stmt 1 discriminator 1 view .LVU119
+ 749 000a FFF7FEFF 		bl	last_matrix_activity_trigger
+ 750              	.LVL28:
+ 751              	.LBB10:
+ 408:quantum/keyboard.c ****         matrix_row    = matrix_get_row(r);
+ 752              		.loc 1 408 27 discriminator 1 view .LVU120
+ 753              	.L61:
+ 408:quantum/keyboard.c ****         matrix_row    = matrix_get_row(r);
+ 754              		.loc 1 408 27 is_stmt 0 discriminator 1 view .LVU121
+ 755 000e DFF8ECB0 		ldr	fp, .L90+4
+ 756              	.LBB11:
+ 417:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 757              		.loc 1 417 17 view .LVU122
+ 758 0012 DFF8ECA0 		ldr	r10, .L90+8
+ 759              	.LBE11:
+ 760              	.LBE10:
+ 393:quantum/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 761              		.loc 1 393 26 view .LVU123
+ 762 0016 0027     		movs	r7, #0
+ 763 0018 D846     		mov	r8, fp
+ 764              	.LVL29:
+ 765              	.L63:
+ 393:quantum/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 766              		.loc 1 393 26 view .LVU124
+ 767 001a 5FFA87F9 		uxtb	r9, r7
+ 768              	.LVL30:
+ 769              	.LBB19:
+ 409:quantum/keyboard.c ****         matrix_change = matrix_row ^ matrix_prev[r];
+ 770              		.loc 1 409 9 is_stmt 1 view .LVU125
+ 409:quantum/keyboard.c ****         matrix_change = matrix_row ^ matrix_prev[r];
+ 771              		.loc 1 409 25 is_stmt 0 view .LVU126
+ 772 001e 4846     		mov	r0, r9
+ 773 0020 FFF7FEFF 		bl	matrix_get_row
+ 774              	.LVL31:
+ 410:quantum/keyboard.c ****         if (matrix_change) {
+ 775              		.loc 1 410 49 view .LVU127
+ 776 0024 1BF8014B 		ldrb	r4, [fp], #1	@ zero_extendqisi2
+ 411:quantum/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 777              		.loc 1 411 12 view .LVU128
+ 778 0028 8442     		cmp	r4, r0
+ 409:quantum/keyboard.c ****         matrix_change = matrix_row ^ matrix_prev[r];
+ 779              		.loc 1 409 25 view .LVU129
+ 780 002a 0546     		mov	r5, r0
+ 781              	.LVL32:
+ 410:quantum/keyboard.c ****         if (matrix_change) {
+ 782              		.loc 1 410 9 is_stmt 1 view .LVU130
+ 411:quantum/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 783              		.loc 1 411 9 view .LVU131
+ 411:quantum/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 784              		.loc 1 411 12 is_stmt 0 view .LVU132
+ 785 002c 15D1     		bne	.L62
+ 786              	.LVL33:
+ 787              	.L71:
+ 408:quantum/keyboard.c ****         matrix_row    = matrix_get_row(r);
+ 788              		.loc 1 408 43 is_stmt 1 view .LVU133
+ 408:quantum/keyboard.c ****         matrix_row    = matrix_get_row(r);
+ 789              		.loc 1 408 27 view .LVU134
+ 790 002e 0137     		adds	r7, r7, #1
+ 791              	.LVL34:
+ 408:quantum/keyboard.c ****         matrix_row    = matrix_get_row(r);
+ 792              		.loc 1 408 27 is_stmt 0 view .LVU135
+ 793 0030 082F     		cmp	r7, #8
+ 794 0032 F2D1     		bne	.L63
+ 795              	.LBE19:
+ 446:quantum/keyboard.c **** 
+ 796              		.loc 1 446 9 is_stmt 1 view .LVU136
+ 446:quantum/keyboard.c **** 
+ 797              		.loc 1 446 21 is_stmt 0 view .LVU137
+ 798 0034 4FF6FF73 		movw	r3, #65535
+ 799 0038 ADF80030 		strh	r3, [sp]	@ movhi
+ 800 003c 0023     		movs	r3, #0
+ 801 003e 8DF80230 		strb	r3, [sp, #2]
+ 802 0042 FFF7FEFF 		bl	timer_read
+ 803              	.LVL35:
+ 804 0046 40F00100 		orr	r0, r0, #1
+ 805 004a ADF80400 		strh	r0, [sp, #4]	@ movhi
+ 446:quantum/keyboard.c **** 
+ 806              		.loc 1 446 9 view .LVU138
+ 807 004e 02AB     		add	r3, sp, #8
+ 808 0050 13E90300 		ldmdb	r3, {r0, r1}
+ 809 0054 FFF7FEFF 		bl	action_exec
+ 810              	.LVL36:
+ 811 0058 31E0     		b	.L69
+ 812              	.LVL37:
+ 813              	.L62:
+ 814              	.LBB20:
+ 815              	.LBB16:
+ 417:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 816              		.loc 1 417 13 is_stmt 1 view .LVU139
+ 417:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 817              		.loc 1 417 17 is_stmt 0 view .LVU140
+ 818 005a 9AF80030 		ldrb	r3, [r10]	@ zero_extendqisi2
+ 417:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 819              		.loc 1 417 16 view .LVU141
+ 820 005e 9B07     		lsls	r3, r3, #30
+ 821 0060 01D5     		bpl	.L65
+ 417:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 822              		.loc 1 417 31 is_stmt 1 discriminator 1 view .LVU142
+ 823 0062 FFF7FEFF 		bl	matrix_print
+ 824              	.LVL38:
+ 825              	.L65:
+ 417:quantum/keyboard.c ****             matrix_row_t col_mask = 1;
+ 826              		.loc 1 417 31 is_stmt 0 discriminator 1 view .LVU143
+ 827              	.LBE16:
+ 410:quantum/keyboard.c ****         if (matrix_change) {
+ 828              		.loc 1 410 23 view .LVU144
+ 829 0066 6C40     		eors	r4, r4, r5
+ 830              	.LVL39:
+ 410:quantum/keyboard.c ****         if (matrix_change) {
+ 831              		.loc 1 410 23 view .LVU145
+ 832 0068 E2B2     		uxtb	r2, r4
+ 833              	.LBB17:
+ 418:quantum/keyboard.c ****             for (uint8_t c = 0; c < MATRIX_COLS; c++, col_mask <<= 1) {
+ 834              		.loc 1 418 13 is_stmt 1 view .LVU146
+ 835              	.LVL40:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 836              		.loc 1 419 13 view .LVU147
+ 837              	.LBB12:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 838              		.loc 1 419 18 view .LVU148
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 839              		.loc 1 419 35 view .LVU149
+ 420:quantum/keyboard.c ****                     if (should_process_keypress()) {
+ 840              		.loc 1 420 17 view .LVU150
+ 420:quantum/keyboard.c ****                     if (should_process_keypress()) {
+ 841              		.loc 1 420 20 is_stmt 0 view .LVU151
+ 842 006a 14F00104 		ands	r4, r4, #1
+ 843 006e 3BD1     		bne	.L74
+ 844              	.LBE12:
+ 418:quantum/keyboard.c ****             for (uint8_t c = 0; c < MATRIX_COLS; c++, col_mask <<= 1) {
+ 845              		.loc 1 418 26 view .LVU152
+ 846 0070 0123     		movs	r3, #1
+ 847              	.LVL41:
+ 848              	.L67:
+ 849              	.LBB14:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 850              		.loc 1 419 53 is_stmt 1 discriminator 2 view .LVU153
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 851              		.loc 1 419 51 is_stmt 0 discriminator 2 view .LVU154
+ 852 0072 661C     		adds	r6, r4, #1
+ 853 0074 F6B2     		uxtb	r6, r6
+ 854              	.LVL42:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 855              		.loc 1 419 64 discriminator 2 view .LVU155
+ 856 0076 5B00     		lsls	r3, r3, #1
+ 857              	.LVL43:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 858              		.loc 1 419 35 discriminator 2 view .LVU156
+ 859 0078 062E     		cmp	r6, #6
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 860              		.loc 1 419 64 discriminator 2 view .LVU157
+ 861 007a DCB2     		uxtb	r4, r3
+ 862              	.LVL44:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 863              		.loc 1 419 35 is_stmt 1 discriminator 2 view .LVU158
+ 864 007c D7D0     		beq	.L71
+ 420:quantum/keyboard.c ****                     if (should_process_keypress()) {
+ 865              		.loc 1 420 17 view .LVU159
+ 420:quantum/keyboard.c ****                     if (should_process_keypress()) {
+ 866              		.loc 1 420 20 is_stmt 0 view .LVU160
+ 867 007e 2242     		tst	r2, r4
+ 868 0080 34D0     		beq	.L75
+ 869              	.LVL45:
+ 870              	.L66:
+ 421:quantum/keyboard.c ****                         action_exec((keyevent_t){
+ 871              		.loc 1 421 21 is_stmt 1 view .LVU161
+ 421:quantum/keyboard.c ****                         action_exec((keyevent_t){
+ 872              		.loc 1 421 25 is_stmt 0 view .LVU162
+ 873 0082 FFF7FEFF 		bl	should_process_keypress
+ 874              	.LVL46:
+ 421:quantum/keyboard.c ****                         action_exec((keyevent_t){
+ 875              		.loc 1 421 24 view .LVU163
+ 876 0086 A8B1     		cbz	r0, .L68
+ 877              	.LBB13:
+ 422:quantum/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 878              		.loc 1 422 25 is_stmt 1 view .LVU164
+ 423:quantum/keyboard.c ****                         });
+ 879              		.loc 1 423 91 is_stmt 0 view .LVU165
+ 880 0088 2540     		ands	r5, r5, r4
+ 881              	.LVL47:
+ 423:quantum/keyboard.c ****                         });
+ 882              		.loc 1 423 91 view .LVU166
+ 883 008a EDB2     		uxtb	r5, r5
+ 884 008c 003D     		subs	r5, r5, #0
+ 885 008e 18BF     		it	ne
+ 886 0090 0125     		movne	r5, #1
+ 422:quantum/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 887              		.loc 1 422 49 view .LVU167
+ 888 0092 8DF80060 		strb	r6, [sp]
+ 889 0096 8DF80190 		strb	r9, [sp, #1]
+ 423:quantum/keyboard.c ****                         });
+ 890              		.loc 1 423 91 view .LVU168
+ 891 009a 8DF80250 		strb	r5, [sp, #2]
+ 423:quantum/keyboard.c ****                         });
+ 892              		.loc 1 423 113 view .LVU169
+ 893 009e FFF7FEFF 		bl	timer_read
+ 894              	.LVL48:
+ 422:quantum/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 895              		.loc 1 422 49 view .LVU170
+ 896 00a2 40F00100 		orr	r0, r0, #1
+ 897 00a6 ADF80400 		strh	r0, [sp, #4]	@ movhi
+ 422:quantum/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 898              		.loc 1 422 25 view .LVU171
+ 899 00aa 02AB     		add	r3, sp, #8
+ 900 00ac 13E90300 		ldmdb	r3, {r0, r1}
+ 901 00b0 FFF7FEFF 		bl	action_exec
+ 902              	.LVL49:
+ 903              	.L68:
+ 422:quantum/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 904              		.loc 1 422 25 view .LVU172
+ 905              	.LBE13:
+ 427:quantum/keyboard.c **** 
+ 906              		.loc 1 427 21 is_stmt 1 view .LVU173
+ 427:quantum/keyboard.c **** 
+ 907              		.loc 1 427 36 is_stmt 0 view .LVU174
+ 908 00b4 18F80730 		ldrb	r3, [r8, r7]	@ zero_extendqisi2
+ 909 00b8 6340     		eors	r3, r3, r4
+ 910 00ba 08F80730 		strb	r3, [r8, r7]
+ 429:quantum/keyboard.c **** 
+ 911              		.loc 1 429 21 is_stmt 1 view .LVU175
+ 436:quantum/keyboard.c ****                 }
+ 912              		.loc 1 436 25 view .LVU176
+ 913              	.LVL50:
+ 914              	.L69:
+ 436:quantum/keyboard.c ****                 }
+ 915              		.loc 1 436 25 is_stmt 0 view .LVU177
+ 916              	.LBE14:
+ 917              	.LBE17:
+ 918              	.LBE20:
+ 472:quantum/keyboard.c ****     if (encoders_changed) last_encoder_activity_trigger();
+ 919              		.loc 1 472 5 is_stmt 1 view .LVU178
+ 472:quantum/keyboard.c ****     if (encoders_changed) last_encoder_activity_trigger();
+ 920              		.loc 1 472 24 is_stmt 0 view .LVU179
+ 921 00be FFF7FEFF 		bl	encoder_read
+ 922              	.LVL51:
+ 473:quantum/keyboard.c **** #endif
+ 923              		.loc 1 473 5 is_stmt 1 view .LVU180
+ 473:quantum/keyboard.c **** #endif
+ 924              		.loc 1 473 8 is_stmt 0 view .LVU181
+ 925 00c2 08B1     		cbz	r0, .L72
+ 473:quantum/keyboard.c **** #endif
+ 926              		.loc 1 473 27 is_stmt 1 discriminator 1 view .LVU182
+ 927 00c4 FFF7FEFF 		bl	last_encoder_activity_trigger
+ 928              	.LVL52:
+ 929              	.L72:
+ 506:quantum/keyboard.c **** #endif
+ 930              		.loc 1 506 5 view .LVU183
+ 552:quantum/keyboard.c ****         led_status = host_keyboard_leds();
+ 931              		.loc 1 552 20 is_stmt 0 view .LVU184
+ 932 00c8 0B4C     		ldr	r4, .L90
+ 506:quantum/keyboard.c **** #endif
+ 933              		.loc 1 506 5 view .LVU185
+ 934 00ca FFF7FEFF 		bl	mousekey_task
+ 935              	.LVL53:
+ 552:quantum/keyboard.c ****         led_status = host_keyboard_leds();
+ 936              		.loc 1 552 5 is_stmt 1 view .LVU186
+ 552:quantum/keyboard.c ****         led_status = host_keyboard_leds();
+ 937              		.loc 1 552 23 is_stmt 0 view .LVU187
+ 938 00ce FFF7FEFF 		bl	host_keyboard_leds
+ 939              	.LVL54:
+ 552:quantum/keyboard.c ****         led_status = host_keyboard_leds();
+ 940              		.loc 1 552 8 view .LVU188
+ 941 00d2 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 942 00d4 8342     		cmp	r3, r0
+ 943 00d6 0CD0     		beq	.L60
+ 553:quantum/keyboard.c ****         keyboard_set_leds(led_status);
+ 944              		.loc 1 553 9 is_stmt 1 view .LVU189
+ 553:quantum/keyboard.c ****         keyboard_set_leds(led_status);
+ 945              		.loc 1 553 22 is_stmt 0 view .LVU190
+ 946 00d8 FFF7FEFF 		bl	host_keyboard_leds
+ 947              	.LVL55:
+ 553:quantum/keyboard.c ****         keyboard_set_leds(led_status);
+ 948              		.loc 1 553 20 view .LVU191
+ 949 00dc 2070     		strb	r0, [r4]
+ 554:quantum/keyboard.c ****     }
+ 950              		.loc 1 554 9 is_stmt 1 view .LVU192
+ 556:quantum/keyboard.c **** 
+ 951              		.loc 1 556 1 is_stmt 0 view .LVU193
+ 952 00de 03B0     		add	sp, sp, #12
+ 953              		.cfi_remember_state
+ 954              		.cfi_def_cfa_offset 36
+ 955              		@ sp needed
+ 956 00e0 BDE8F04F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 957              		.cfi_restore 14
+ 958              		.cfi_restore 11
+ 959              		.cfi_restore 10
+ 960              		.cfi_restore 9
+ 961              		.cfi_restore 8
+ 962              		.cfi_restore 7
+ 963              		.cfi_restore 6
+ 964              		.cfi_restore 5
+ 965              		.cfi_restore 4
+ 966              		.cfi_def_cfa_offset 0
+ 554:quantum/keyboard.c ****     }
+ 967              		.loc 1 554 9 view .LVU194
+ 968 00e4 FFF7FEBF 		b	keyboard_set_leds
+ 969              	.LVL56:
+ 970              	.L74:
+ 971              		.cfi_restore_state
+ 972              	.LBB21:
+ 973              	.LBB18:
+ 974              	.LBB15:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 975              		.loc 1 419 26 view .LVU195
+ 976 00e8 0026     		movs	r6, #0
+ 977 00ea CAE7     		b	.L66
+ 978              	.LVL57:
+ 979              	.L75:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 980              		.loc 1 419 64 view .LVU196
+ 981 00ec 2346     		mov	r3, r4
+ 982              	.LVL58:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 983              		.loc 1 419 51 view .LVU197
+ 984 00ee 3446     		mov	r4, r6
+ 985 00f0 BFE7     		b	.L67
+ 986              	.LVL59:
+ 987              	.L60:
+ 419:quantum/keyboard.c ****                 if (matrix_change & col_mask) {
+ 988              		.loc 1 419 51 view .LVU198
+ 989              	.LBE15:
+ 990              	.LBE18:
+ 991              	.LBE21:
+ 556:quantum/keyboard.c **** 
+ 992              		.loc 1 556 1 view .LVU199
+ 993 00f2 03B0     		add	sp, sp, #12
+ 994              		.cfi_def_cfa_offset 36
+ 995              		@ sp needed
+ 996 00f4 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 997              	.L91:
+ 998              		.align	2
+ 999              	.L90:
+ 1000 00f8 00000000 		.word	led_status.0
+ 1001 00fc 00000000 		.word	matrix_prev.1
+ 1002 0100 00000000 		.word	debug_config
+ 1003              		.cfi_endproc
+ 1004              	.LFE364:
+ 1006              		.section	.bss.led_status.0,"aw",%nobits
+ 1009              	led_status.0:
+ 1010 0000 00       		.space	1
+ 1011              		.section	.bss.matrix_prev.1,"aw",%nobits
+ 1014              	matrix_prev.1:
+ 1015 0000 00000000 		.space	8
+ 1015      00000000 
+ 1016              		.section	.bss.last_encoder_modification_time,"aw",%nobits
+ 1017              		.align	2
+ 1020              	last_encoder_modification_time:
+ 1021 0000 00000000 		.space	4
+ 1022              		.section	.bss.last_matrix_modification_time,"aw",%nobits
+ 1023              		.align	2
+ 1026              	last_matrix_modification_time:
+ 1027 0000 00000000 		.space	4
+ 1028              		.section	.bss.last_input_modification_time,"aw",%nobits
+ 1029              		.align	2
+ 1032              	last_input_modification_time:
+ 1033 0000 00000000 		.space	4
+ 1034              		.text
+ 1035              	.Letext0:
+ 1036              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1037              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1038              		.file 4 "quantum/keyboard.h"
+ 1039              		.file 5 "quantum/matrix.h"
+ 1040              		.file 6 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 1041              		.file 7 "quantum/logging/sendchar.h"
+ 1042              		.file 8 "quantum/logging/debug.h"
+ 1043              		.file 9 "tmk_core/common/host.h"
+ 1044              		.file 10 "quantum/encoder.h"
+ 1045              		.file 11 "quantum/led.h"
+ 1046              		.file 12 "quantum/action.h"
+ 1047              		.file 13 "tmk_core/common/timer.h"
+ 1048              		.file 14 "quantum/mousekey.h"
+ 1049              		.file 15 "lib/printf/printf.h"
+ 1050              		.file 16 "quantum/dip_switch.h"
+ 1051              		.file 17 "tmk_core/common/chibios/eeprom_stm32.h"
+ 1052              		.file 18 "quantum/logging/print.h"
+ 1053              		.file 19 "quantum/sequencer/sequencer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 keyboard.c
+     /tmp/ccxaDnbk.s:21     .text.last_input_activity_time:0000000000000000 $t
+     /tmp/ccxaDnbk.s:27     .text.last_input_activity_time:0000000000000000 last_input_activity_time
+     /tmp/ccxaDnbk.s:42     .text.last_input_activity_time:0000000000000008 $d
+     /tmp/ccxaDnbk.s:1032   .bss.last_input_modification_time:0000000000000000 last_input_modification_time
+     /tmp/ccxaDnbk.s:47     .text.last_input_activity_elapsed:0000000000000000 $t
+     /tmp/ccxaDnbk.s:53     .text.last_input_activity_elapsed:0000000000000000 last_input_activity_elapsed
+     /tmp/ccxaDnbk.s:69     .text.last_input_activity_elapsed:0000000000000008 $d
+     /tmp/ccxaDnbk.s:74     .text.last_matrix_activity_time:0000000000000000 $t
+     /tmp/ccxaDnbk.s:80     .text.last_matrix_activity_time:0000000000000000 last_matrix_activity_time
+     /tmp/ccxaDnbk.s:95     .text.last_matrix_activity_time:0000000000000008 $d
+     /tmp/ccxaDnbk.s:1026   .bss.last_matrix_modification_time:0000000000000000 last_matrix_modification_time
+     /tmp/ccxaDnbk.s:100    .text.last_matrix_activity_elapsed:0000000000000000 $t
+     /tmp/ccxaDnbk.s:106    .text.last_matrix_activity_elapsed:0000000000000000 last_matrix_activity_elapsed
+     /tmp/ccxaDnbk.s:122    .text.last_matrix_activity_elapsed:0000000000000008 $d
+     /tmp/ccxaDnbk.s:127    .text.last_matrix_activity_trigger:0000000000000000 $t
+     /tmp/ccxaDnbk.s:133    .text.last_matrix_activity_trigger:0000000000000000 last_matrix_activity_trigger
+     /tmp/ccxaDnbk.s:159    .text.last_matrix_activity_trigger:0000000000000010 $d
+     /tmp/ccxaDnbk.s:165    .text.last_encoder_activity_time:0000000000000000 $t
+     /tmp/ccxaDnbk.s:171    .text.last_encoder_activity_time:0000000000000000 last_encoder_activity_time
+     /tmp/ccxaDnbk.s:186    .text.last_encoder_activity_time:0000000000000008 $d
+     /tmp/ccxaDnbk.s:1020   .bss.last_encoder_modification_time:0000000000000000 last_encoder_modification_time
+     /tmp/ccxaDnbk.s:191    .text.last_encoder_activity_elapsed:0000000000000000 $t
+     /tmp/ccxaDnbk.s:197    .text.last_encoder_activity_elapsed:0000000000000000 last_encoder_activity_elapsed
+     /tmp/ccxaDnbk.s:213    .text.last_encoder_activity_elapsed:0000000000000008 $d
+     /tmp/ccxaDnbk.s:218    .text.last_encoder_activity_trigger:0000000000000000 $t
+     /tmp/ccxaDnbk.s:224    .text.last_encoder_activity_trigger:0000000000000000 last_encoder_activity_trigger
+     /tmp/ccxaDnbk.s:250    .text.last_encoder_activity_trigger:0000000000000010 $d
+     /tmp/ccxaDnbk.s:256    .text.disable_jtag:0000000000000000 $t
+     /tmp/ccxaDnbk.s:262    .text.disable_jtag:0000000000000000 disable_jtag
+     /tmp/ccxaDnbk.s:275    .text.matrix_setup:0000000000000000 $t
+     /tmp/ccxaDnbk.s:281    .text.matrix_setup:0000000000000000 matrix_setup
+     /tmp/ccxaDnbk.s:293    .text.keyboard_pre_init_user:0000000000000000 $t
+     /tmp/ccxaDnbk.s:299    .text.keyboard_pre_init_user:0000000000000000 keyboard_pre_init_user
+     /tmp/ccxaDnbk.s:312    .text.keyboard_pre_init_kb:0000000000000000 $t
+     /tmp/ccxaDnbk.s:318    .text.keyboard_pre_init_kb:0000000000000000 keyboard_pre_init_kb
+     /tmp/ccxaDnbk.s:339    .text.keyboard_post_init_user:0000000000000000 $t
+     /tmp/ccxaDnbk.s:345    .text.keyboard_post_init_user:0000000000000000 keyboard_post_init_user
+     /tmp/ccxaDnbk.s:357    .text.keyboard_post_init_kb:0000000000000000 $t
+     /tmp/ccxaDnbk.s:363    .text.keyboard_post_init_kb:0000000000000000 keyboard_post_init_kb
+     /tmp/ccxaDnbk.s:384    .text.keyboard_setup:0000000000000000 $t
+     /tmp/ccxaDnbk.s:390    .text.keyboard_setup:0000000000000000 keyboard_setup
+     /tmp/ccxaDnbk.s:421    .text.keyboard_setup:0000000000000018 $d
+     /tmp/ccxaDnbk.s:426    .text.is_keyboard_master:0000000000000000 $t
+     /tmp/ccxaDnbk.s:432    .text.is_keyboard_master:0000000000000000 is_keyboard_master
+     /tmp/ccxaDnbk.s:447    .text.is_keyboard_left:0000000000000000 $t
+     /tmp/ccxaDnbk.s:453    .text.is_keyboard_left:0000000000000000 is_keyboard_left
+     /tmp/ccxaDnbk.s:466    .text.should_process_keypress:0000000000000000 $t
+     /tmp/ccxaDnbk.s:472    .text.should_process_keypress:0000000000000000 should_process_keypress
+     /tmp/ccxaDnbk.s:493    .text.housekeeping_task_kb:0000000000000000 $t
+     /tmp/ccxaDnbk.s:499    .text.housekeeping_task_kb:0000000000000000 housekeeping_task_kb
+     /tmp/ccxaDnbk.s:511    .text.housekeeping_task_user:0000000000000000 $t
+     /tmp/ccxaDnbk.s:517    .text.housekeeping_task_user:0000000000000000 housekeeping_task_user
+     /tmp/ccxaDnbk.s:529    .text.housekeeping_task:0000000000000000 $t
+     /tmp/ccxaDnbk.s:535    .text.housekeeping_task:0000000000000000 housekeeping_task
+     /tmp/ccxaDnbk.s:559    .text.keyboard_init:0000000000000000 $t
+     /tmp/ccxaDnbk.s:565    .text.keyboard_init:0000000000000000 keyboard_init
+     /tmp/ccxaDnbk.s:599    .text.switch_events:0000000000000000 $t
+     /tmp/ccxaDnbk.s:605    .text.switch_events:0000000000000000 switch_events
+     /tmp/ccxaDnbk.s:626    .text.keyboard_set_leds:0000000000000000 $t
+     /tmp/ccxaDnbk.s:632    .text.keyboard_set_leds:0000000000000000 keyboard_set_leds
+     /tmp/ccxaDnbk.s:703    .text.keyboard_set_leds:000000000000003c $d
+     /tmp/ccxaDnbk.s:711    .text.keyboard_task:0000000000000000 $t
+     /tmp/ccxaDnbk.s:717    .text.keyboard_task:0000000000000000 keyboard_task
+     /tmp/ccxaDnbk.s:1000   .text.keyboard_task:00000000000000f8 $d
+     /tmp/ccxaDnbk.s:1009   .bss.led_status.0:0000000000000000 led_status.0
+     /tmp/ccxaDnbk.s:1014   .bss.matrix_prev.1:0000000000000000 matrix_prev.1
+     /tmp/ccxaDnbk.s:1010   .bss.led_status.0:0000000000000000 $d
+     /tmp/ccxaDnbk.s:1015   .bss.matrix_prev.1:0000000000000000 $d
+     /tmp/ccxaDnbk.s:1017   .bss.last_encoder_modification_time:0000000000000000 $d
+     /tmp/ccxaDnbk.s:1023   .bss.last_matrix_modification_time:0000000000000000 $d
+     /tmp/ccxaDnbk.s:1029   .bss.last_input_modification_time:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+timer_elapsed32
+timer_read32
+print_set_sendchar
+EEPROM_Init
+sendchar
+timer_init
+matrix_init
+encoder_init
+dip_switch_init
+printf_
+led_set
+debug_config
+matrix_scan
+matrix_get_row
+timer_read
+action_exec
+matrix_print
+encoder_read
+mousekey_task
+host_keyboard_leds

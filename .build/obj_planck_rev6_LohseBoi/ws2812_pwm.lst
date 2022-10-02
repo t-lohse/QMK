@@ -1,0 +1,720 @@
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 2
+  13              		.file	"ws2812_pwm.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.ws2812_init,"ax",%progbits
+  18              		.align	1
+  19              		.global	ws2812_init
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	ws2812_init:
+  27              	.LFB341:
+  28              		.file 1 "platforms/chibios/drivers/ws2812_pwm.c"
+   1:platforms/chibios/drivers/ws2812_pwm.c **** #include "ws2812.h"
+   2:platforms/chibios/drivers/ws2812_pwm.c **** #include "quantum.h"
+   3:platforms/chibios/drivers/ws2812_pwm.c **** #include <hal.h>
+   4:platforms/chibios/drivers/ws2812_pwm.c **** 
+   5:platforms/chibios/drivers/ws2812_pwm.c **** /* Adapted from https://github.com/joewa/WS2812-LED-Driver_ChibiOS/ */
+   6:platforms/chibios/drivers/ws2812_pwm.c **** 
+   7:platforms/chibios/drivers/ws2812_pwm.c **** #ifdef RGBW
+   8:platforms/chibios/drivers/ws2812_pwm.c **** #    error "RGBW not supported"
+   9:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  10:platforms/chibios/drivers/ws2812_pwm.c **** 
+  11:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_PWM_DRIVER
+  12:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_PWM_DRIVER PWMD2  // TIMx
+  13:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  14:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_PWM_CHANNEL
+  15:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_PWM_CHANNEL 2  // Channel
+  16:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  17:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_PWM_PAL_MODE
+  18:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_PWM_PAL_MODE 2  // DI Pin's alternate function value
+  19:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  20:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_DMA_STREAM
+  21:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_DMA_STREAM STM32_DMA1_STREAM2  // DMA Stream for TIMx_UP
+  22:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  23:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_DMA_CHANNEL
+  24:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_DMA_CHANNEL 2  // DMA Channel for TIMx_UP
+  25:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  26:platforms/chibios/drivers/ws2812_pwm.c **** #if (STM32_DMA_SUPPORTS_DMAMUX == TRUE) && !defined(WS2812_DMAMUX_ID)
+  27:platforms/chibios/drivers/ws2812_pwm.c **** #    error "please consult your MCU's datasheet and specify in your config.h: #define WS2812_DMAMUX
+  28:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  29:platforms/chibios/drivers/ws2812_pwm.c **** 
+  30:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_PWM_COMPLEMENTARY_OUTPUT
+  31:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_PWM_OUTPUT_MODE PWM_OUTPUT_ACTIVE_HIGH
+  32:platforms/chibios/drivers/ws2812_pwm.c **** #else
+  33:platforms/chibios/drivers/ws2812_pwm.c **** #    if !STM32_PWM_USE_ADVANCED
+  34:platforms/chibios/drivers/ws2812_pwm.c **** #        error "WS2812_PWM_COMPLEMENTARY_OUTPUT requires STM32_PWM_USE_ADVANCED == TRUE"
+  35:platforms/chibios/drivers/ws2812_pwm.c **** #    endif
+  36:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_PWM_OUTPUT_MODE PWM_COMPLEMENTARY_OUTPUT_ACTIVE_HIGH
+  37:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  38:platforms/chibios/drivers/ws2812_pwm.c **** 
+  39:platforms/chibios/drivers/ws2812_pwm.c **** // Push Pull or Open Drain Configuration
+  40:platforms/chibios/drivers/ws2812_pwm.c **** // Default Push Pull
+  41:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_EXTERNAL_PULLUP
+  42:platforms/chibios/drivers/ws2812_pwm.c **** #    if defined(USE_GPIOV1)
+  43:platforms/chibios/drivers/ws2812_pwm.c **** #        define WS2812_OUTPUT_MODE PAL_MODE_STM32_ALTERNATE_PUSHPULL
+  44:platforms/chibios/drivers/ws2812_pwm.c **** #    else
+  45:platforms/chibios/drivers/ws2812_pwm.c **** #        define WS2812_OUTPUT_MODE PAL_MODE_ALTERNATE(WS2812_PWM_PAL_MODE) | PAL_STM32_OTYPE_PUSHPU
+  46:platforms/chibios/drivers/ws2812_pwm.c **** #    endif
+  47:platforms/chibios/drivers/ws2812_pwm.c **** #else
+  48:platforms/chibios/drivers/ws2812_pwm.c **** #    if defined(USE_GPIOV1)
+  49:platforms/chibios/drivers/ws2812_pwm.c **** #        define WS2812_OUTPUT_MODE PAL_MODE_STM32_ALTERNATE_OPENDRAIN
+  50:platforms/chibios/drivers/ws2812_pwm.c **** #    else
+  51:platforms/chibios/drivers/ws2812_pwm.c **** #        define WS2812_OUTPUT_MODE PAL_MODE_ALTERNATE(WS2812_PWM_PAL_MODE) | PAL_STM32_OTYPE_OPENDR
+  52:platforms/chibios/drivers/ws2812_pwm.c **** #    endif
+  53:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  54:platforms/chibios/drivers/ws2812_pwm.c **** 
+  55:platforms/chibios/drivers/ws2812_pwm.c **** #ifndef WS2812_PWM_TARGET_PERIOD
+  56:platforms/chibios/drivers/ws2812_pwm.c **** //#    define WS2812_PWM_TARGET_PERIOD 800000 // Original code is 800k...?
+  57:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_PWM_TARGET_PERIOD 80000  // TODO: work out why 10x less on f303/f4x1
+  58:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+  59:platforms/chibios/drivers/ws2812_pwm.c **** 
+  60:platforms/chibios/drivers/ws2812_pwm.c **** /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
+  61:platforms/chibios/drivers/ws2812_pwm.c **** 
+  62:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_PWM_FREQUENCY (STM32_SYSCLK / 2)                             /**< Clock frequency of
+  63:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_PWM_PERIOD (WS2812_PWM_FREQUENCY / WS2812_PWM_TARGET_PERIOD) /**< Clock period in ti
+  64:platforms/chibios/drivers/ws2812_pwm.c **** 
+  65:platforms/chibios/drivers/ws2812_pwm.c **** /**
+  66:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Number of bit-periods to hold the data line low at the end of a frame
+  67:platforms/chibios/drivers/ws2812_pwm.c ****  *
+  68:platforms/chibios/drivers/ws2812_pwm.c ****  * The reset period for each frame is defined in WS2812_TRST_US.
+  69:platforms/chibios/drivers/ws2812_pwm.c ****  * Calculate the number of zeroes to add at the end assuming 1.25 uS/bit:
+  70:platforms/chibios/drivers/ws2812_pwm.c ****  */
+  71:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_RESET_BIT_N (1000 * WS2812_TRST_US / 1250)
+  72:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_COLOR_BIT_N (RGBLED_NUM * 24)                   /**< Number of data bits */
+  73:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_BIT_N (WS2812_COLOR_BIT_N + WS2812_RESET_BIT_N) /**< Total number of bits in a frame
+  74:platforms/chibios/drivers/ws2812_pwm.c **** 
+  75:platforms/chibios/drivers/ws2812_pwm.c **** /**
+  76:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   High period for a zero, in ticks
+  77:platforms/chibios/drivers/ws2812_pwm.c ****  *
+  78:platforms/chibios/drivers/ws2812_pwm.c ****  * Per the datasheet:
+  79:platforms/chibios/drivers/ws2812_pwm.c ****  * WS2812:
+  80:platforms/chibios/drivers/ws2812_pwm.c ****  * - T0H: 200 nS to 500 nS, inclusive
+  81:platforms/chibios/drivers/ws2812_pwm.c ****  * - T0L: 650 nS to 950 nS, inclusive
+  82:platforms/chibios/drivers/ws2812_pwm.c ****  * WS2812B:
+  83:platforms/chibios/drivers/ws2812_pwm.c ****  * - T0H: 200 nS to 500 nS, inclusive
+  84:platforms/chibios/drivers/ws2812_pwm.c ****  * - T0L: 750 nS to 1050 nS, inclusive
+  85:platforms/chibios/drivers/ws2812_pwm.c ****  *
+  86:platforms/chibios/drivers/ws2812_pwm.c ****  * The duty cycle is calculated for a high period of 350 nS.
+  87:platforms/chibios/drivers/ws2812_pwm.c ****  */
+  88:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_DUTYCYCLE_0 (WS2812_PWM_FREQUENCY / (1000000000 / 350))
+  89:platforms/chibios/drivers/ws2812_pwm.c **** 
+  90:platforms/chibios/drivers/ws2812_pwm.c **** /**
+  91:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   High period for a one, in ticks
+  92:platforms/chibios/drivers/ws2812_pwm.c ****  *
+  93:platforms/chibios/drivers/ws2812_pwm.c ****  * Per the datasheet:
+  94:platforms/chibios/drivers/ws2812_pwm.c ****  * WS2812:
+  95:platforms/chibios/drivers/ws2812_pwm.c ****  * - T1H: 550 nS to 850 nS, inclusive
+  96:platforms/chibios/drivers/ws2812_pwm.c ****  * - T1L: 450 nS to 750 nS, inclusive
+  97:platforms/chibios/drivers/ws2812_pwm.c ****  * WS2812B:
+  98:platforms/chibios/drivers/ws2812_pwm.c ****  * - T1H: 750 nS to 1050 nS, inclusive
+  99:platforms/chibios/drivers/ws2812_pwm.c ****  * - T1L: 200 nS to 500 nS, inclusive
+ 100:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 101:platforms/chibios/drivers/ws2812_pwm.c ****  * The duty cycle is calculated for a high period of 800 nS.
+ 102:platforms/chibios/drivers/ws2812_pwm.c ****  * This is in the middle of the specifications of the WS2812 and WS2812B.
+ 103:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 104:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_DUTYCYCLE_1 (WS2812_PWM_FREQUENCY / (1000000000 / 800))
+ 105:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 106:platforms/chibios/drivers/ws2812_pwm.c **** /* --- PRIVATE MACROS ------------------------------------------------------- */
+ 107:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 108:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 109:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given bit
+ 110:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 111:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 112:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] byte:                 The byte number [0, 2]
+ 113:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 114:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 115:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 116:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 117:platforms/chibios/drivers/ws2812_pwm.c **** #define WS2812_BIT(led, byte, bit) (24 * (led) + 8 * (byte) + (7 - (bit)))
+ 118:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 119:platforms/chibios/drivers/ws2812_pwm.c **** #if (WS2812_BYTE_ORDER == WS2812_BYTE_ORDER_GRB)
+ 120:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 121:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given red bit
+ 122:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 123:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the middle byte in the color packet
+ 124:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 125:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 126:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 127:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 128:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 129:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 130:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_RED_BIT(led, bit) WS2812_BIT((led), 1, (bit))
+ 131:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 132:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 133:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given green bit
+ 134:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 135:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the first byte in the color packet
+ 136:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 137:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 138:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 139:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 140:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 141:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 142:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_GREEN_BIT(led, bit) WS2812_BIT((led), 0, (bit))
+ 143:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 144:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 145:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given blue bit
+ 146:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 147:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the last byte in the color packet
+ 148:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 149:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 150:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit index [0, 7]
+ 151:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 152:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 153:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 154:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_BLUE_BIT(led, bit) WS2812_BIT((led), 2, (bit))
+ 155:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 156:platforms/chibios/drivers/ws2812_pwm.c **** #elif (WS2812_BYTE_ORDER == WS2812_BYTE_ORDER_RGB)
+ 157:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 158:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given red bit
+ 159:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 160:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the middle byte in the color packet
+ 161:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 162:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 163:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 164:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 165:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 166:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 167:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_RED_BIT(led, bit) WS2812_BIT((led), 0, (bit))
+ 168:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 169:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 170:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given green bit
+ 171:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 172:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the first byte in the color packet
+ 173:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 174:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 175:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 176:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 177:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 178:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 179:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_GREEN_BIT(led, bit) WS2812_BIT((led), 1, (bit))
+ 180:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 181:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 182:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given blue bit
+ 183:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 184:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the last byte in the color packet
+ 185:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 186:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 187:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit index [0, 7]
+ 188:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 189:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 190:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 191:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_BLUE_BIT(led, bit) WS2812_BIT((led), 2, (bit))
+ 192:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 193:platforms/chibios/drivers/ws2812_pwm.c **** #elif (WS2812_BYTE_ORDER == WS2812_BYTE_ORDER_BGR)
+ 194:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 195:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given red bit
+ 196:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 197:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the middle byte in the color packet
+ 198:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 199:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 200:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 201:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 202:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 203:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 204:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_RED_BIT(led, bit) WS2812_BIT((led), 2, (bit))
+ 205:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 206:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 207:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given green bit
+ 208:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 209:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the first byte in the color packet
+ 210:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 211:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 212:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit number [0, 7]
+ 213:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 214:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 215:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 216:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_GREEN_BIT(led, bit) WS2812_BIT((led), 1, (bit))
+ 217:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 218:platforms/chibios/drivers/ws2812_pwm.c **** /**
+ 219:platforms/chibios/drivers/ws2812_pwm.c ****  * @brief   Determine the index in @ref ws2812_frame_buffer "the frame buffer" of a given blue bit
+ 220:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 221:platforms/chibios/drivers/ws2812_pwm.c ****  * @note    The red byte is the last byte in the color packet
+ 222:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 223:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] led:                  The led index [0, @ref RGBLED_NUM)
+ 224:platforms/chibios/drivers/ws2812_pwm.c ****  * @param[in] bit:                  The bit index [0, 7]
+ 225:platforms/chibios/drivers/ws2812_pwm.c ****  *
+ 226:platforms/chibios/drivers/ws2812_pwm.c ****  * @return                          The bit index
+ 227:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 228:platforms/chibios/drivers/ws2812_pwm.c **** #    define WS2812_BLUE_BIT(led, bit) WS2812_BIT((led), 0, (bit))
+ 229:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+ 230:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 231:platforms/chibios/drivers/ws2812_pwm.c **** /* --- PRIVATE VARIABLES ---------------------------------------------------- */
+ 232:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 233:platforms/chibios/drivers/ws2812_pwm.c **** static uint32_t ws2812_frame_buffer[WS2812_BIT_N + 1]; /**< Buffer for a frame */
+ 234:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 235:platforms/chibios/drivers/ws2812_pwm.c **** /* --- PUBLIC FUNCTIONS ----------------------------------------------------- */
+ 236:platforms/chibios/drivers/ws2812_pwm.c **** /*
+ 237:platforms/chibios/drivers/ws2812_pwm.c ****  * Gedanke: Double-buffer type transactions: double buffer transfers using two memory pointers for
+ 238:platforms/chibios/drivers/ws2812_pwm.c **** the memory (while the DMA is reading/writing from/to a buffer, the application can
+ 239:platforms/chibios/drivers/ws2812_pwm.c **** write/read to/from the other buffer).
+ 240:platforms/chibios/drivers/ws2812_pwm.c ****  */
+ 241:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 242:platforms/chibios/drivers/ws2812_pwm.c **** void ws2812_init(void) {
+  29              		.loc 1 242 24 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+ 243:platforms/chibios/drivers/ws2812_pwm.c ****     // Initialize led frame buffer
+ 244:platforms/chibios/drivers/ws2812_pwm.c ****     uint32_t i;
+  33              		.loc 1 244 5 view .LVU1
+ 245:platforms/chibios/drivers/ws2812_pwm.c ****     for (i = 0; i < WS2812_COLOR_BIT_N; i++) ws2812_frame_buffer[i] = WS2812_DUTYCYCLE_0;      // A
+  34              		.loc 1 245 5 view .LVU2
+  35              	.LVL0:
+  36              		.loc 1 245 19 view .LVU3
+ 242:platforms/chibios/drivers/ws2812_pwm.c ****     // Initialize led frame buffer
+  37              		.loc 1 242 24 is_stmt 0 view .LVU4
+  38 0000 38B5     		push	{r3, r4, r5, lr}
+  39              		.cfi_def_cfa_offset 16
+  40              		.cfi_offset 3, -16
+  41              		.cfi_offset 4, -12
+  42              		.cfi_offset 5, -8
+  43              		.cfi_offset 14, -4
+  44 0002 1B4D     		ldr	r5, .L4
+  45              		.loc 1 245 12 view .LVU5
+  46 0004 0023     		movs	r3, #0
+ 242:platforms/chibios/drivers/ws2812_pwm.c ****     // Initialize led frame buffer
+  47              		.loc 1 242 24 view .LVU6
+  48 0006 2A46     		mov	r2, r5
+  49              		.loc 1 245 69 view .LVU7
+  50 0008 0C21     		movs	r1, #12
+  51              	.LVL1:
+  52              	.L2:
+  53              		.loc 1 245 46 is_stmt 1 discriminator 3 view .LVU8
+  54              		.loc 1 245 42 is_stmt 0 discriminator 3 view .LVU9
+  55 000a 0133     		adds	r3, r3, #1
+  56              	.LVL2:
+  57              		.loc 1 245 19 discriminator 3 view .LVU10
+  58 000c D82B     		cmp	r3, #216
+  59              		.loc 1 245 69 discriminator 3 view .LVU11
+  60 000e 42F8041B 		str	r1, [r2], #4
+  61              		.loc 1 245 42 is_stmt 1 discriminator 3 view .LVU12
+  62              	.LVL3:
+  63              		.loc 1 245 19 discriminator 3 view .LVU13
+  64 0012 FAD1     		bne	.L2
+ 246:platforms/chibios/drivers/ws2812_pwm.c ****     for (i = 0; i < WS2812_RESET_BIT_N; i++) ws2812_frame_buffer[i + WS2812_COLOR_BIT_N] = 0;  // A
+  65              		.loc 1 246 90 is_stmt 0 view .LVU14
+  66 0014 4FF46072 		mov	r2, #896
+  67 0018 0021     		movs	r1, #0
+  68 001a 1648     		ldr	r0, .L4+4
+ 247:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 248:platforms/chibios/drivers/ws2812_pwm.c ****     palSetLineMode(RGB_DI_PIN, WS2812_OUTPUT_MODE);
+ 249:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 250:platforms/chibios/drivers/ws2812_pwm.c ****     // PWM Configuration
+ 251:platforms/chibios/drivers/ws2812_pwm.c ****     //#pragma GCC diagnostic ignored "-Woverride-init"  // Turn off override-init warning for this 
+ 252:platforms/chibios/drivers/ws2812_pwm.c ****     static const PWMConfig ws2812_pwm_config = {
+ 253:platforms/chibios/drivers/ws2812_pwm.c ****         .frequency = WS2812_PWM_FREQUENCY,
+ 254:platforms/chibios/drivers/ws2812_pwm.c ****         .period    = WS2812_PWM_PERIOD,  // Mit dieser Periode wird UDE-Event erzeugt und ein neuer
+ 255:platforms/chibios/drivers/ws2812_pwm.c ****         .callback  = NULL,
+ 256:platforms/chibios/drivers/ws2812_pwm.c ****         .channels =
+ 257:platforms/chibios/drivers/ws2812_pwm.c ****             {
+ 258:platforms/chibios/drivers/ws2812_pwm.c ****                 [0 ... 3]                = {.mode = PWM_OUTPUT_DISABLED, .callback = NULL},     // 
+ 259:platforms/chibios/drivers/ws2812_pwm.c ****                 [WS2812_PWM_CHANNEL - 1] = {.mode = WS2812_PWM_OUTPUT_MODE, .callback = NULL},  // 
+ 260:platforms/chibios/drivers/ws2812_pwm.c ****             },
+ 261:platforms/chibios/drivers/ws2812_pwm.c ****         .cr2  = 0,
+ 262:platforms/chibios/drivers/ws2812_pwm.c ****         .dier = TIM_DIER_UDE,  // DMA on update event for next period
+ 263:platforms/chibios/drivers/ws2812_pwm.c ****     };
+ 264:platforms/chibios/drivers/ws2812_pwm.c ****     //#pragma GCC diagnostic pop  // Restore command-line warning options
+ 265:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 266:platforms/chibios/drivers/ws2812_pwm.c ****     // Configure DMA
+ 267:platforms/chibios/drivers/ws2812_pwm.c ****     // dmaInit(); // Joe added this
+ 268:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamAlloc(WS2812_DMA_STREAM - STM32_DMA_STREAM(0), 10, NULL, NULL);
+ 269:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetPeripheral(WS2812_DMA_STREAM, &(WS2812_PWM_DRIVER.tim->CCR[WS2812_PWM_CHANNEL - 1])
+  69              		.loc 1 269 5 view .LVU15
+  70 001c 164C     		ldr	r4, .L4+8
+ 246:platforms/chibios/drivers/ws2812_pwm.c ****     for (i = 0; i < WS2812_RESET_BIT_N; i++) ws2812_frame_buffer[i + WS2812_COLOR_BIT_N] = 0;  // A
+  71              		.loc 1 246 90 view .LVU16
+  72 001e FFF7FEFF 		bl	memset
+  73              	.LVL4:
+ 248:platforms/chibios/drivers/ws2812_pwm.c **** 
+  74              		.loc 1 248 5 is_stmt 1 view .LVU17
+  75 0022 9A22     		movs	r2, #154
+  76 0024 0221     		movs	r1, #2
+  77 0026 4FF09040 		mov	r0, #1207959552
+  78 002a FFF7FEFF 		bl	_pal_lld_setgroupmode
+  79              	.LVL5:
+ 252:platforms/chibios/drivers/ws2812_pwm.c ****         .frequency = WS2812_PWM_FREQUENCY,
+  80              		.loc 1 252 5 view .LVU18
+ 268:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetPeripheral(WS2812_DMA_STREAM, &(WS2812_PWM_DRIVER.tim->CCR[WS2812_PWM_CHANNEL - 1])
+  81              		.loc 1 268 5 view .LVU19
+  82 002e 0023     		movs	r3, #0
+  83 0030 1A46     		mov	r2, r3
+  84 0032 0A21     		movs	r1, #10
+  85 0034 0120     		movs	r0, #1
+  86 0036 FFF7FEFF 		bl	dmaStreamAlloc
+  87              	.LVL6:
+  88              		.loc 1 269 5 view .LVU20
+  89 003a 104B     		ldr	r3, .L4+12
+  90 003c A269     		ldr	r2, [r4, #24]
+  91 003e 5B69     		ldr	r3, [r3, #20]
+ 270:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMemory0(WS2812_DMA_STREAM, ws2812_frame_buffer);
+ 271:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetTransactionSize(WS2812_DMA_STREAM, WS2812_BIT_N);
+ 272:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMode(WS2812_DMA_STREAM, STM32_DMA_CR_CHSEL(WS2812_DMA_CHANNEL) | STM32_DMA_CR_DIR_M
+ 273:platforms/chibios/drivers/ws2812_pwm.c ****     // M2P: Memory 2 Periph; PL: Priority Level
+ 274:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 275:platforms/chibios/drivers/ws2812_pwm.c **** #if (STM32_DMA_SUPPORTS_DMAMUX == TRUE)
+ 276:platforms/chibios/drivers/ws2812_pwm.c ****     // If the MCU has a DMAMUX we need to assign the correct resource
+ 277:platforms/chibios/drivers/ws2812_pwm.c ****     dmaSetRequestSource(WS2812_DMA_STREAM, WS2812_DMAMUX_ID);
+ 278:platforms/chibios/drivers/ws2812_pwm.c **** #endif
+ 279:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 280:platforms/chibios/drivers/ws2812_pwm.c ****     // Start DMA
+ 281:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamEnable(WS2812_DMA_STREAM);
+ 282:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 283:platforms/chibios/drivers/ws2812_pwm.c ****     // Configure PWM
+ 284:platforms/chibios/drivers/ws2812_pwm.c ****     // NOTE: It's required that preload be enabled on the timer channel CCR register. This is curre
+ 285:platforms/chibios/drivers/ws2812_pwm.c ****     // ChibiOS driver code, so we don't have to do anything special to the timer. If we did, we'd h
+ 286:platforms/chibios/drivers/ws2812_pwm.c ****     // disable counting, enable the channel, and then make whatever configuration changes we need.
+ 287:platforms/chibios/drivers/ws2812_pwm.c ****     pwmStart(&WS2812_PWM_DRIVER, &ws2812_pwm_config);
+  92              		.loc 1 287 5 is_stmt 0 view .LVU21
+  93 0040 0F49     		ldr	r1, .L4+16
+ 269:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMemory0(WS2812_DMA_STREAM, ws2812_frame_buffer);
+  94              		.loc 1 269 5 view .LVU22
+  95 0042 3832     		adds	r2, r2, #56
+  96 0044 9A60     		str	r2, [r3, #8]
+ 269:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMemory0(WS2812_DMA_STREAM, ws2812_frame_buffer);
+  97              		.loc 1 269 101 is_stmt 1 view .LVU23
+ 270:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMemory0(WS2812_DMA_STREAM, ws2812_frame_buffer);
+  98              		.loc 1 270 5 view .LVU24
+ 271:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMode(WS2812_DMA_STREAM, STM32_DMA_CR_CHSEL(WS2812_DMA_CHANNEL) | STM32_DMA_CR_DIR_M
+  99              		.loc 1 271 5 is_stmt 0 view .LVU25
+ 100 0046 4FF4DC72 		mov	r2, #440
+ 270:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMemory0(WS2812_DMA_STREAM, ws2812_frame_buffer);
+ 101              		.loc 1 270 5 view .LVU26
+ 102 004a DD60     		str	r5, [r3, #12]
+ 270:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMemory0(WS2812_DMA_STREAM, ws2812_frame_buffer);
+ 103              		.loc 1 270 64 is_stmt 1 view .LVU27
+ 271:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMode(WS2812_DMA_STREAM, STM32_DMA_CR_CHSEL(WS2812_DMA_CHANNEL) | STM32_DMA_CR_DIR_M
+ 104              		.loc 1 271 5 view .LVU28
+ 105 004c 5A60     		str	r2, [r3, #4]
+ 271:platforms/chibios/drivers/ws2812_pwm.c ****     dmaStreamSetMode(WS2812_DMA_STREAM, STM32_DMA_CR_CHSEL(WS2812_DMA_CHANNEL) | STM32_DMA_CR_DIR_M
+ 106              		.loc 1 271 65 view .LVU29
+ 272:platforms/chibios/drivers/ws2812_pwm.c ****     // M2P: Memory 2 Periph; PL: Priority Level
+ 107              		.loc 1 272 5 view .LVU30
+ 108 004e 43F6B022 		movw	r2, #15024
+ 109 0052 1A60     		str	r2, [r3]
+ 272:platforms/chibios/drivers/ws2812_pwm.c ****     // M2P: Memory 2 Periph; PL: Priority Level
+ 110              		.loc 1 272 216 view .LVU31
+ 281:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 111              		.loc 1 281 5 view .LVU32
+ 112 0054 1A68     		ldr	r2, [r3]
+ 113 0056 42F00102 		orr	r2, r2, #1
+ 114 005a 1A60     		str	r2, [r3]
+ 281:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 115              		.loc 1 281 39 view .LVU33
+ 116              		.loc 1 287 5 view .LVU34
+ 117 005c 2046     		mov	r0, r4
+ 118 005e FFF7FEFF 		bl	pwmStart
+ 119              	.LVL7:
+ 288:platforms/chibios/drivers/ws2812_pwm.c ****     pwmEnableChannel(&WS2812_PWM_DRIVER, WS2812_PWM_CHANNEL - 1, 0);  // Initial period is 0; outpu
+ 120              		.loc 1 288 5 view .LVU35
+ 121 0062 2046     		mov	r0, r4
+ 122 0064 0022     		movs	r2, #0
+ 289:platforms/chibios/drivers/ws2812_pwm.c **** }
+ 123              		.loc 1 289 1 is_stmt 0 view .LVU36
+ 124 0066 BDE83840 		pop	{r3, r4, r5, lr}
+ 125              		.cfi_restore 14
+ 126              		.cfi_restore 5
+ 127              		.cfi_restore 4
+ 128              		.cfi_restore 3
+ 129              		.cfi_def_cfa_offset 0
+ 288:platforms/chibios/drivers/ws2812_pwm.c ****     pwmEnableChannel(&WS2812_PWM_DRIVER, WS2812_PWM_CHANNEL - 1, 0);  // Initial period is 0; outpu
+ 130              		.loc 1 288 5 view .LVU37
+ 131 006a 0121     		movs	r1, #1
+ 132 006c FFF7FEBF 		b	pwmEnableChannel
+ 133              	.LVL8:
+ 134              	.L5:
+ 135              		.align	2
+ 136              	.L4:
+ 137 0070 00000000 		.word	.LANCHOR0
+ 138 0074 60030000 		.word	.LANCHOR0+864
+ 139 0078 00000000 		.word	PWMD2
+ 140 007c 00000000 		.word	_stm32_dma_streams
+ 141 0080 00000000 		.word	.LANCHOR1
+ 142              		.cfi_endproc
+ 143              	.LFE341:
+ 145              		.section	.text.ws2812_write_led,"ax",%progbits
+ 146              		.align	1
+ 147              		.global	ws2812_write_led
+ 148              		.syntax unified
+ 149              		.thumb
+ 150              		.thumb_func
+ 151              		.fpu fpv4-sp-d16
+ 153              	ws2812_write_led:
+ 154              	.LVL9:
+ 155              	.LFB342:
+ 290:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 291:platforms/chibios/drivers/ws2812_pwm.c **** void ws2812_write_led(uint16_t led_number, uint8_t r, uint8_t g, uint8_t b) {
+ 156              		.loc 1 291 77 is_stmt 1 view -0
+ 157              		.cfi_startproc
+ 158              		@ args = 0, pretend = 0, frame = 0
+ 159              		@ frame_needed = 0, uses_anonymous_args = 0
+ 292:platforms/chibios/drivers/ws2812_pwm.c ****     // Write color to frame buffer
+ 293:platforms/chibios/drivers/ws2812_pwm.c ****     for (uint8_t bit = 0; bit < 8; bit++) {
+ 160              		.loc 1 293 5 view .LVU39
+ 161              	.LBB2:
+ 162              		.loc 1 293 10 view .LVU40
+ 163              		.loc 1 293 31 view .LVU41
+ 164              	.LBE2:
+ 291:platforms/chibios/drivers/ws2812_pwm.c ****     // Write color to frame buffer
+ 165              		.loc 1 291 77 is_stmt 0 view .LVU42
+ 166 0000 30B5     		push	{r4, r5, lr}
+ 167              		.cfi_def_cfa_offset 12
+ 168              		.cfi_offset 4, -12
+ 169              		.cfi_offset 5, -8
+ 170              		.cfi_offset 14, -4
+ 171              	.LBB3:
+ 294:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_RED_BIT(led_number, bit)]   = ((r >> bit) & 0x01) ? WS2812_DUTYC
+ 172              		.loc 1 294 29 view .LVU43
+ 173 0002 1824     		movs	r4, #24
+ 174 0004 6043     		muls	r0, r4, r0
+ 175              	.LVL10:
+ 176              		.loc 1 294 29 view .LVU44
+ 177 0006 114C     		ldr	r4, .L15
+ 178 0008 0730     		adds	r0, r0, #7
+ 179 000a 04EB8004 		add	r4, r4, r0, lsl #2
+ 180 000e 0020     		movs	r0, #0
+ 181              	.LVL11:
+ 182              	.L10:
+ 183              		.loc 1 294 9 is_stmt 1 view .LVU45
+ 184              		.loc 1 294 70 is_stmt 0 view .LVU46
+ 185 0010 41FA00F5 		asr	r5, r1, r0
+ 186              		.loc 1 294 107 view .LVU47
+ 187 0014 15F0010F 		tst	r5, #1
+ 188 0018 14BF     		ite	ne
+ 189 001a 1C25     		movne	r5, #28
+ 190 001c 0C25     		moveq	r5, #12
+ 191              		.loc 1 294 64 view .LVU48
+ 192 001e 2562     		str	r5, [r4, #32]
+ 295:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_GREEN_BIT(led_number, bit)] = ((g >> bit) & 0x01) ? WS2812_DUTYC
+ 193              		.loc 1 295 9 is_stmt 1 view .LVU49
+ 194              		.loc 1 295 70 is_stmt 0 view .LVU50
+ 195 0020 42FA00F5 		asr	r5, r2, r0
+ 196              		.loc 1 295 107 view .LVU51
+ 197 0024 15F0010F 		tst	r5, #1
+ 198 0028 14BF     		ite	ne
+ 199 002a 1C25     		movne	r5, #28
+ 200 002c 0C25     		moveq	r5, #12
+ 201              		.loc 1 295 64 view .LVU52
+ 202 002e 44F80459 		str	r5, [r4], #-4
+ 296:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_BLUE_BIT(led_number, bit)]  = ((b >> bit) & 0x01) ? WS2812_DUTYC
+ 203              		.loc 1 296 9 is_stmt 1 view .LVU53
+ 204              		.loc 1 296 70 is_stmt 0 view .LVU54
+ 205 0032 43FA00F5 		asr	r5, r3, r0
+ 206              		.loc 1 296 107 view .LVU55
+ 207 0036 15F0010F 		tst	r5, #1
+ 293:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_RED_BIT(led_number, bit)]   = ((r >> bit) & 0x01) ? WS2812_DUTYC
+ 208              		.loc 1 293 31 view .LVU56
+ 209 003a 00F10100 		add	r0, r0, #1
+ 210              	.LVL12:
+ 211              		.loc 1 296 107 view .LVU57
+ 212 003e 14BF     		ite	ne
+ 213 0040 1C25     		movne	r5, #28
+ 214 0042 0C25     		moveq	r5, #12
+ 293:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_RED_BIT(led_number, bit)]   = ((r >> bit) & 0x01) ? WS2812_DUTYC
+ 215              		.loc 1 293 31 view .LVU58
+ 216 0044 0828     		cmp	r0, #8
+ 217              		.loc 1 296 64 view .LVU59
+ 218 0046 6564     		str	r5, [r4, #68]
+ 293:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_RED_BIT(led_number, bit)]   = ((r >> bit) & 0x01) ? WS2812_DUTYC
+ 219              		.loc 1 293 39 is_stmt 1 view .LVU60
+ 293:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_frame_buffer[WS2812_RED_BIT(led_number, bit)]   = ((r >> bit) & 0x01) ? WS2812_DUTYC
+ 220              		.loc 1 293 31 view .LVU61
+ 221 0048 E2D1     		bne	.L10
+ 222              	.LBE3:
+ 297:platforms/chibios/drivers/ws2812_pwm.c ****     }
+ 298:platforms/chibios/drivers/ws2812_pwm.c **** }
+ 223              		.loc 1 298 1 is_stmt 0 view .LVU62
+ 224 004a 30BD     		pop	{r4, r5, pc}
+ 225              	.L16:
+ 226              		.align	2
+ 227              	.L15:
+ 228 004c 00000000 		.word	.LANCHOR0
+ 229              		.cfi_endproc
+ 230              	.LFE342:
+ 232              		.section	.text.ws2812_setleds,"ax",%progbits
+ 233              		.align	1
+ 234              		.global	ws2812_setleds
+ 235              		.syntax unified
+ 236              		.thumb
+ 237              		.thumb_func
+ 238              		.fpu fpv4-sp-d16
+ 240              	ws2812_setleds:
+ 241              	.LVL13:
+ 242              	.LFB343:
+ 299:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 300:platforms/chibios/drivers/ws2812_pwm.c **** // Setleds for standard RGB
+ 301:platforms/chibios/drivers/ws2812_pwm.c **** void ws2812_setleds(LED_TYPE* ledarray, uint16_t leds) {
+ 243              		.loc 1 301 56 is_stmt 1 view -0
+ 244              		.cfi_startproc
+ 245              		@ args = 0, pretend = 0, frame = 0
+ 246              		@ frame_needed = 0, uses_anonymous_args = 0
+ 302:platforms/chibios/drivers/ws2812_pwm.c ****     static bool s_init = false;
+ 247              		.loc 1 302 5 view .LVU64
+ 303:platforms/chibios/drivers/ws2812_pwm.c ****     if (!s_init) {
+ 248              		.loc 1 303 5 view .LVU65
+ 301:platforms/chibios/drivers/ws2812_pwm.c ****     static bool s_init = false;
+ 249              		.loc 1 301 56 is_stmt 0 view .LVU66
+ 250 0000 70B5     		push	{r4, r5, r6, lr}
+ 251              		.cfi_def_cfa_offset 16
+ 252              		.cfi_offset 4, -16
+ 253              		.cfi_offset 5, -12
+ 254              		.cfi_offset 6, -8
+ 255              		.cfi_offset 14, -4
+ 256              		.loc 1 303 9 view .LVU67
+ 257 0002 0D4D     		ldr	r5, .L21
+ 258              		.loc 1 303 8 view .LVU68
+ 259 0004 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 301:platforms/chibios/drivers/ws2812_pwm.c ****     static bool s_init = false;
+ 260              		.loc 1 301 56 view .LVU69
+ 261 0006 0446     		mov	r4, r0
+ 262 0008 0E46     		mov	r6, r1
+ 263              		.loc 1 303 8 view .LVU70
+ 264 000a 1BB9     		cbnz	r3, .L18
+ 304:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_init();
+ 265              		.loc 1 304 9 is_stmt 1 view .LVU71
+ 266 000c FFF7FEFF 		bl	ws2812_init
+ 267              	.LVL14:
+ 305:platforms/chibios/drivers/ws2812_pwm.c ****         s_init = true;
+ 268              		.loc 1 305 9 view .LVU72
+ 269              		.loc 1 305 16 is_stmt 0 view .LVU73
+ 270 0010 0123     		movs	r3, #1
+ 271 0012 2B70     		strb	r3, [r5]
+ 272              	.L18:
+ 301:platforms/chibios/drivers/ws2812_pwm.c ****     static bool s_init = false;
+ 273              		.loc 1 301 56 discriminator 1 view .LVU74
+ 274 0014 0025     		movs	r5, #0
+ 275              	.LVL15:
+ 276              	.L19:
+ 277              	.LBB4:
+ 306:platforms/chibios/drivers/ws2812_pwm.c ****     }
+ 307:platforms/chibios/drivers/ws2812_pwm.c **** 
+ 308:platforms/chibios/drivers/ws2812_pwm.c ****     for (uint16_t i = 0; i < leds; i++) {
+ 278              		.loc 1 308 28 discriminator 1 view .LVU75
+ 279 0016 B542     		cmp	r5, r6
+ 280 0018 A8B2     		uxth	r0, r5
+ 281              	.LVL16:
+ 282              		.loc 1 308 28 is_stmt 1 discriminator 1 view .LVU76
+ 283 001a 04F10304 		add	r4, r4, #3
+ 284 001e 00D1     		bne	.L20
+ 285              	.LBE4:
+ 309:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_write_led(i, ledarray[i].r, ledarray[i].g, ledarray[i].b);
+ 310:platforms/chibios/drivers/ws2812_pwm.c ****     }
+ 311:platforms/chibios/drivers/ws2812_pwm.c **** }
+ 286              		.loc 1 311 1 is_stmt 0 view .LVU77
+ 287 0020 70BD     		pop	{r4, r5, r6, pc}
+ 288              	.L20:
+ 289              	.LBB5:
+ 309:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_write_led(i, ledarray[i].r, ledarray[i].g, ledarray[i].b);
+ 290              		.loc 1 309 9 is_stmt 1 discriminator 3 view .LVU78
+ 291 0022 14F8013C 		ldrb	r3, [r4, #-1]	@ zero_extendqisi2
+ 292 0026 14F8032C 		ldrb	r2, [r4, #-3]	@ zero_extendqisi2
+ 293 002a 14F8021C 		ldrb	r1, [r4, #-2]	@ zero_extendqisi2
+ 294 002e FFF7FEFF 		bl	ws2812_write_led
+ 295              	.LVL17:
+ 308:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_write_led(i, ledarray[i].r, ledarray[i].g, ledarray[i].b);
+ 296              		.loc 1 308 37 discriminator 3 view .LVU79
+ 308:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_write_led(i, ledarray[i].r, ledarray[i].g, ledarray[i].b);
+ 297              		.loc 1 308 37 is_stmt 0 discriminator 3 view .LVU80
+ 298 0032 0135     		adds	r5, r5, #1
+ 299              	.LVL18:
+ 308:platforms/chibios/drivers/ws2812_pwm.c ****         ws2812_write_led(i, ledarray[i].r, ledarray[i].g, ledarray[i].b);
+ 300              		.loc 1 308 37 discriminator 3 view .LVU81
+ 301 0034 EFE7     		b	.L19
+ 302              	.L22:
+ 303 0036 00BF     		.align	2
+ 304              	.L21:
+ 305 0038 00000000 		.word	.LANCHOR2
+ 306              	.LBE5:
+ 307              		.cfi_endproc
+ 308              	.LFE343:
+ 310              		.section	.bss.s_init.0,"aw",%nobits
+ 311              		.set	.LANCHOR2,. + 0
+ 314              	s_init.0:
+ 315 0000 00       		.space	1
+ 316              		.section	.bss.ws2812_frame_buffer,"aw",%nobits
+ 317              		.align	2
+ 318              		.set	.LANCHOR0,. + 0
+ 321              	ws2812_frame_buffer:
+ 322 0000 00000000 		.space	1764
+ 322      00000000 
+ 322      00000000 
+ 322      00000000 
+ 322      00000000 
+ 323              		.section	.rodata.ws2812_pwm_config.1,"a"
+ 324              		.align	2
+ 325              		.set	.LANCHOR1,. + 0
+ 328              	ws2812_pwm_config.1:
+ 329 0000 00512502 		.word	36000000
+ 330 0004 C2010000 		.word	450
+ 331 0008 00000000 		.word	0
+ 332 000c 00000000 		.word	0
+ 333 0010 00000000 		.word	0
+ 334 0014 01000000 		.word	1
+ 335 0018 00000000 		.word	0
+ 336 001c 00000000 		.word	0
+ 337 0020 00000000 		.word	0
+ 338 0024 00000000 		.word	0
+ 339 0028 00000000 		.word	0
+ 340 002c 00000000 		.space	16
+ 340      00000000 
+ 340      00000000 
+ 340      00000000 
+ 341 003c 00000000 		.word	0
+ 342 0040 00010000 		.word	256
+ 343              		.text
+ 344              	.Letext0:
+ 345              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 346              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 347              		.file 4 "./quantum/color.h"
+ 348              		.file 5 "/usr/lib/gcc/arm-none-eabi/11.2.0/include/stddef.h"
+ 349              		.file 6 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
+ 350              		.file 7 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 351              		.file 8 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 352              		.file 9 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 353              		.file 10 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 354              		.file 11 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 355              		.file 12 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 356              		.file 13 "quantum/sequencer/sequencer.h"
+ 357              		.file 14 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 ws2812_pwm.c
+     /tmp/ccSNpwyN.s:18     .text.ws2812_init:0000000000000000 $t
+     /tmp/ccSNpwyN.s:26     .text.ws2812_init:0000000000000000 ws2812_init
+     /tmp/ccSNpwyN.s:137    .text.ws2812_init:0000000000000070 $d
+     /tmp/ccSNpwyN.s:146    .text.ws2812_write_led:0000000000000000 $t
+     /tmp/ccSNpwyN.s:153    .text.ws2812_write_led:0000000000000000 ws2812_write_led
+     /tmp/ccSNpwyN.s:228    .text.ws2812_write_led:000000000000004c $d
+     /tmp/ccSNpwyN.s:233    .text.ws2812_setleds:0000000000000000 $t
+     /tmp/ccSNpwyN.s:240    .text.ws2812_setleds:0000000000000000 ws2812_setleds
+     /tmp/ccSNpwyN.s:305    .text.ws2812_setleds:0000000000000038 $d
+     /tmp/ccSNpwyN.s:314    .bss.s_init.0:0000000000000000 s_init.0
+     /tmp/ccSNpwyN.s:315    .bss.s_init.0:0000000000000000 $d
+     /tmp/ccSNpwyN.s:317    .bss.ws2812_frame_buffer:0000000000000000 $d
+     /tmp/ccSNpwyN.s:321    .bss.ws2812_frame_buffer:0000000000000000 ws2812_frame_buffer
+     /tmp/ccSNpwyN.s:324    .rodata.ws2812_pwm_config.1:0000000000000000 $d
+     /tmp/ccSNpwyN.s:328    .rodata.ws2812_pwm_config.1:0000000000000000 ws2812_pwm_config.1
+
+UNDEFINED SYMBOLS
+memset
+_pal_lld_setgroupmode
+dmaStreamAlloc
+pwmStart
+pwmEnableChannel
+PWMD2
+_stm32_dma_streams

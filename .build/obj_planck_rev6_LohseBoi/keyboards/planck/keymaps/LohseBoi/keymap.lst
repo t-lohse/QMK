@@ -1,0 +1,1895 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"keymap.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "keyboards/planck/keymaps/LohseBoi/keymap.c"
+  20              		.section	.text.layer_state_set_user,"ax",%progbits
+  21              		.align	1
+  22              		.global	layer_state_set_user
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	layer_state_set_user:
+  28              	.LVL0:
+  29              	.LFB341:
+   1:keyboards/planck/keymaps/LohseBoi/keymap.c **** /* Copyright 2015-2021 Jack Humbert
+   2:keyboards/planck/keymaps/LohseBoi/keymap.c ****  *
+   3:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * This program is free software: you can redistribute it and/or modify
+   4:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * it under the terms of the GNU General Public License as published by
+   5:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * (at your option) any later version.
+   7:keyboards/planck/keymaps/LohseBoi/keymap.c ****  *
+   8:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * This program is distributed in the hope that it will be useful,
+   9:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * GNU General Public License for more details.
+  12:keyboards/planck/keymaps/LohseBoi/keymap.c ****  *
+  13:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * You should have received a copy of the GNU General Public License
+  14:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:keyboards/planck/keymaps/LohseBoi/keymap.c ****  */
+  16:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  17:keyboards/planck/keymaps/LohseBoi/keymap.c **** #include QMK_KEYBOARD_H
+  18:keyboards/planck/keymaps/LohseBoi/keymap.c **** #include "muse.h"
+  19:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  20:keyboards/planck/keymaps/LohseBoi/keymap.c **** //#define SET_COL rgblight_enable(); 
+  21:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  22:keyboards/planck/keymaps/LohseBoi/keymap.c **** //Lower hold/tap
+  23:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint16_t lwr_timer = 0;
+  24:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool lwr_tapped = false;
+  25:keyboards/planck/keymaps/LohseBoi/keymap.c **** //Raise hold/tap
+  26:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint16_t rse_timer = 0;
+  27:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool rse_tapped = false;
+  28:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  29:keyboards/planck/keymaps/LohseBoi/keymap.c **** //Shift/Caps
+  30:keyboards/planck/keymaps/LohseBoi/keymap.c **** #define KC_SFTCL MT(MOD_LSFT, KC_CAPS)
+  31:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  32:keyboards/planck/keymaps/LohseBoi/keymap.c **** //Alt+Tab
+  33:keyboards/planck/keymaps/LohseBoi/keymap.c **** #define ALT_TAB KC_ALT_TAB
+  34:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool alttab_active = false;
+  35:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  36:keyboards/planck/keymaps/LohseBoi/keymap.c **** //Media macro variables
+  37:keyboards/planck/keymaps/LohseBoi/keymap.c **** const uint16_t media_time = 750;
+  38:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool is_media_active = false;
+  39:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint16_t media_timer = 0;
+  40:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint8_t media_counter = 0;
+  41:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  42:keyboards/planck/keymaps/LohseBoi/keymap.c **** enum planck_layers {
+  43:keyboards/planck/keymaps/LohseBoi/keymap.c ****     _DVORAK,
+  44:keyboards/planck/keymaps/LohseBoi/keymap.c ****     _QWERTY,
+  45:keyboards/planck/keymaps/LohseBoi/keymap.c ****     _LOWER,
+  46:keyboards/planck/keymaps/LohseBoi/keymap.c ****     _RAISE,
+  47:keyboards/planck/keymaps/LohseBoi/keymap.c ****     _ADJUST,
+  48:keyboards/planck/keymaps/LohseBoi/keymap.c **** };
+  49:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  50:keyboards/planck/keymaps/LohseBoi/keymap.c **** enum planck_keycodes {
+  51:keyboards/planck/keymaps/LohseBoi/keymap.c ****     DVORAK = SAFE_RANGE,
+  52:keyboards/planck/keymaps/LohseBoi/keymap.c ****   QWERTY,
+  53:keyboards/planck/keymaps/LohseBoi/keymap.c ****   BACKLIT,
+  54:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  55:keyboards/planck/keymaps/LohseBoi/keymap.c ****   //Homemade Keys
+  56:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_HLWR,
+  57:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_HRWR,
+  58:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_LWR,
+  59:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_RWR,
+  60:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_MED,
+  61:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_ALT_TAB,
+  62:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_SOUND,
+  63:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_SOUNDF,
+  64:keyboards/planck/keymaps/LohseBoi/keymap.c ****   KC_QUOOT
+  65:keyboards/planck/keymaps/LohseBoi/keymap.c **** };
+  66:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  67:keyboards/planck/keymaps/LohseBoi/keymap.c **** #define LOWER MO(_LOWER)
+  68:keyboards/planck/keymaps/LohseBoi/keymap.c **** #define RAISE MO(_RAISE)
+  69:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  70:keyboards/planck/keymaps/LohseBoi/keymap.c **** const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+  71:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  72:keyboards/planck/keymaps/LohseBoi/keymap.c **** /* Dvorak                                    |
+  73:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------------------------------------------------.
+  74:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |  _   |   ;  |   ,  |   .  |   P  |   Y  |   F  |   G  |   C  |   R  |   L  |   =  |
+  75:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+  76:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |ESC/` |   A  |   O  |   E  |   U  |   I  |   D  |   H  |   T  |   N  |   S  |  /   |
+  77:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+  78:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * | TAB  |   '  |   Q  |   J  |   K  |   X  |   B  |   M  |   W  |   V  |   Z  |   \  |
+  79:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+  80:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |SHIFT | LAlt | Ctrl | GUI  | LWR  | SPC  |  ENT | RSE  |AltGr |  DEL |PrtScr| BSPC |
+  81:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------------------------------------------------'
+  82:keyboards/planck/keymaps/LohseBoi/keymap.c ****  */
+  83:keyboards/planck/keymaps/LohseBoi/keymap.c **** [_DVORAK] = LAYOUT_planck_grid(
+  84:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_UNDS,  KC_SCLN, KC_COMM, KC_DOT,  KC_P,    KC_Y,    KC_F,    KC_G,    KC_C,    KC_R,    KC_L
+  85:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_GESC,  KC_A,    KC_O,    KC_E,    KC_U,    KC_I,    KC_D,    KC_H,    KC_T,    KC_N,    KC_S
+  86:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_TAB,   KC_QUOOT, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_
+  87:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_LSFT,  KC_LALT, KC_LCTL, KC_LGUI, KC_LWR, KC_SPC,  KC_ENT,  KC_RWR, KC_RALT, KC_DEL,  KC_PSC
+  88:keyboards/planck/keymaps/LohseBoi/keymap.c **** ),
+  89:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+  90:keyboards/planck/keymaps/LohseBoi/keymap.c **** /* Qwerty                                    |
+  91:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------------------------------------------------.
+  92:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |  _   |   Q  |   W  |   E  |   R  |   T  |   Y  |   U  |   I  |   O  |   P  |   =  |
+  93:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+  94:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |ESC/` |   A  |   S  |   D  |   F  |   G  |   H  |   J  |   K  |   L  |   ;  |   \  |
+  95:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+  96:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * | TAB  |   Z  |   X  |   C  |   V  |   B  |   N  |   M  |   ,  |   .  |   /  |   '  |
+  97:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+  98:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |SHIFT | LAlt | Ctrl | GUI  | LWR  | SPC  |  ENT | RSE  |AltGr |  DEL |PrtScr| BSPC |
+  99:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------------------------------------------------'
+ 100:keyboards/planck/keymaps/LohseBoi/keymap.c ****  */
+ 101:keyboards/planck/keymaps/LohseBoi/keymap.c **** [_QWERTY] = LAYOUT_planck_grid(
+ 102:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_UNDS,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P
+ 103:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_GESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_S
+ 104:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_TAB,   KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_S
+ 105:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_LSFT,  KC_LALT, KC_LCTL, KC_LGUI, KC_LWR, KC_SPC,  KC_ENT,  KC_RWR, KC_RALT, KC_DEL,  KC_PSC
+ 106:keyboards/planck/keymaps/LohseBoi/keymap.c **** ),
+ 107:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 108:keyboards/planck/keymaps/LohseBoi/keymap.c **** /* Lower                                     |
+ 109:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------------------------------------------------.
+ 110:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |   -  |  {   |   (  |   &  |   !  |  #   |   ^  |   %  |   *  |   )  |   }  |  +   |
+ 111:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 112:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |  `   |  [   |      |      |      |      | LEFT | DOWN |  UP  | RIGHT|   ]  |  @   |
+ 113:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 114:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * | TAB  |      |      |      |      |      | VOLD | VOLU | BRID | BRIU | MUTE |  $   |
+ 115:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 116:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |SFT/CL| Alt  | CTRL | GUI  | LWR  | SPC  | ENT  | RSE  |AltGr | DEL  |PrtScr| BCSP |
+ 117:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------------------------------------------------'
+ 118:keyboards/planck/keymaps/LohseBoi/keymap.c ****  */
+ 119:keyboards/planck/keymaps/LohseBoi/keymap.c **** [_LOWER] = LAYOUT_planck_grid(
+ 120:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_MINS,  KC_LCBR, KC_LPRN, KC_AMPR, KC_EXLM, KC_HASH, KC_CIRC, KC_PERC, KC_ASTR, KC_RPRN, KC_R
+ 121:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_GRV,   KC_LBRC, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, KC_R
+ 122:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_TAB,   XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_VOLD, KC_VOLU, KC_BRID, KC_BRIU, KC_M
+ 123:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_SFTCL, _______, _______, _______, _______, _______, _______, _______, _______, _______, ____
+ 124:keyboards/planck/keymaps/LohseBoi/keymap.c **** ),
+ 125:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 126:keyboards/planck/keymaps/LohseBoi/keymap.c **** /* Raise                                     |
+ 127:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------------------------------------------------.
+ 128:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |   -  |   1  |   2  |   3  |   4  |   5  |   6  |   7  |   8  |   9  |   0  |  +   |
+ 129:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 130:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |  F1  |  F2  |  F3  |  F4  |  F5  |  F6  |  F7  |  F8  |  F9  |  F10 |  F11 |  F12 |
+ 131:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 132:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |ALTTAB| Prev | PLYP | Next |      |      |      |      |      |      |      |      |
+ 133:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 134:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * | SFT  | Alt  | CTRL | GUI  | LWR  | SPC  | ENT  | RSE  |AltGr | DEL  |PrtScr| BCSP |
+ 135:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------------------------------------------------'
+ 136:keyboards/planck/keymaps/LohseBoi/keymap.c ****  */
+ 137:keyboards/planck/keymaps/LohseBoi/keymap.c **** [_RAISE] = LAYOUT_planck_grid(
+ 138:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_MINS, KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,
+ 139:keyboards/planck/keymaps/LohseBoi/keymap.c ****     KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F1
+ 140:keyboards/planck/keymaps/LohseBoi/keymap.c ****     ALT_TAB, KC_MPRV, KC_MPLY, KC_MNXT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_SO
+ 141:keyboards/planck/keymaps/LohseBoi/keymap.c ****     _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _____
+ 142:keyboards/planck/keymaps/LohseBoi/keymap.c **** ),
+ 143:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 144:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 145:keyboards/planck/keymaps/LohseBoi/keymap.c **** /* Adjust (Lower + Raise)                    |
+ 146:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------------------------------------------------.
+ 147:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |      |DVORAK|QWERTY|      |      |      |      |      |      |EEPRST| DEBUG| RESET|
+ 148:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 149:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |      |      |      |      |      |      |      |      |      |      |      |      |
+ 150:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 151:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |      |      |      |      |      |      |      |      |      |      |      |      |
+ 152:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------+------+------+------+------+------+------|
+ 153:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * |      |      |      |      | LWR  | SPC  | ENT  | RSE  |      |      |      |      |
+ 154:keyboards/planck/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------------------------------------------------'
+ 155:keyboards/planck/keymaps/LohseBoi/keymap.c ****  */
+ 156:keyboards/planck/keymaps/LohseBoi/keymap.c **** [_ADJUST] = LAYOUT_planck_grid(
+ 157:keyboards/planck/keymaps/LohseBoi/keymap.c ****     XXXXXXX, DVORAK,  QWERTY, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, EEP_RST, DEBUG,
+ 158:keyboards/planck/keymaps/LohseBoi/keymap.c ****     XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXX
+ 159:keyboards/planck/keymaps/LohseBoi/keymap.c ****     XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXX
+ 160:keyboards/planck/keymaps/LohseBoi/keymap.c ****     XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, _______, _______, _______, _______, XXXXXXX, XXXXXXX, XXXXX
+ 161:keyboards/planck/keymaps/LohseBoi/keymap.c **** )
+ 162:keyboards/planck/keymaps/LohseBoi/keymap.c **** };
+ 163:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 164:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 165:keyboards/planck/keymaps/LohseBoi/keymap.c **** #ifdef AUDIO_ENABLE
+ 166:keyboards/planck/keymaps/LohseBoi/keymap.c ****   float plover_song[][2]     = SONG(PLOVER_SOUND);
+ 167:keyboards/planck/keymaps/LohseBoi/keymap.c ****   float plover_gb_song[][2]  = SONG(PLOVER_GOODBYE_SOUND);
+ 168:keyboards/planck/keymaps/LohseBoi/keymap.c **** #endif
+ 169:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 170:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 171:keyboards/planck/keymaps/LohseBoi/keymap.c **** layer_state_t layer_state_set_user(layer_state_t state) {
+  30              		.loc 1 171 57 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+ 172:keyboards/planck/keymaps/LohseBoi/keymap.c ****   return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST);
+  35              		.loc 1 172 3 view .LVU1
+  36              		.loc 1 172 10 is_stmt 0 view .LVU2
+  37 0000 0423     		movs	r3, #4
+  38 0002 0322     		movs	r2, #3
+  39 0004 0221     		movs	r1, #2
+  40 0006 FFF7FEBF 		b	update_tri_layer_state
+  41              	.LVL1:
+  42              		.loc 1 172 10 view .LVU3
+  43              		.cfi_endproc
+  44              	.LFE341:
+  46              		.section	.rodata.process_record_user.str1.1,"aMS",%progbits,1
+  47              	.LC1:
+  48 0000 01012B00 		.ascii	"\001\001+\000"
+  49              	.LC2:
+  50 0004 2700     		.ascii	"'\000"
+  51              	.LC3:
+  52 0006 2200     		.ascii	"\"\000"
+  53              		.section	.text.process_record_user,"ax",%progbits
+  54              		.align	1
+  55              		.global	process_record_user
+  56              		.syntax unified
+  57              		.thumb
+  58              		.thumb_func
+  60              	process_record_user:
+  61              	.LVL2:
+  62              	.LFB342:
+ 173:keyboards/planck/keymaps/LohseBoi/keymap.c **** }
+ 174:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 175:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  63              		.loc 1 175 65 is_stmt 1 view -0
+  64              		.cfi_startproc
+  65              		@ args = 0, pretend = 0, frame = 0
+  66              		@ frame_needed = 0, uses_anonymous_args = 0
+ 176:keyboards/planck/keymaps/LohseBoi/keymap.c **** //rgblight_set_layer_state(_QWERTY, 0);
+ 177:keyboards/planck/keymaps/LohseBoi/keymap.c ****   switch (keycode) {
+  67              		.loc 1 177 3 view .LVU5
+  68 0000 A0F5BA40 		sub	r0, r0, #23808
+  69              	.LVL3:
+  70              		.loc 1 177 3 is_stmt 0 view .LVU6
+  71 0004 6338     		subs	r0, r0, #99
+ 175:keyboards/planck/keymaps/LohseBoi/keymap.c **** //rgblight_set_layer_state(_QWERTY, 0);
+  72              		.loc 1 175 65 view .LVU7
+  73 0006 10B5     		push	{r4, lr}
+  74              		.cfi_def_cfa_offset 8
+  75              		.cfi_offset 4, -8
+  76              		.cfi_offset 14, -4
+  77              		.loc 1 177 3 view .LVU8
+  78 0008 0B28     		cmp	r0, #11
+  79 000a 29D8     		bhi	.L3
+  80 000c DFE800F0 		tbb	[pc, r0]
+  81              	.L5:
+  82 0010 0D       		.byte	(.L16-.L5)/2
+  83 0011 06       		.byte	(.L15-.L5)/2
+  84 0012 12       		.byte	(.L14-.L5)/2
+  85 0013 34       		.byte	(.L13-.L5)/2
+  86 0014 61       		.byte	(.L12-.L5)/2
+  87 0015 76       		.byte	(.L11-.L5)/2
+  88 0016 82       		.byte	(.L10-.L5)/2
+  89 0017 19       		.byte	(.L9-.L5)/2
+  90 0018 2A       		.byte	(.L8-.L5)/2
+  91 0019 85       		.byte	(.L7-.L5)/2
+  92 001a 8C       		.byte	(.L6-.L5)/2
+  93 001b 93       		.byte	(.L4-.L5)/2
+  94              		.p2align 1
+  95              	.L15:
+ 178:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case QWERTY:
+ 179:keyboards/planck/keymaps/LohseBoi/keymap.c ****       if (record->event.pressed) {
+  96              		.loc 1 179 7 is_stmt 1 view .LVU9
+  97              		.loc 1 179 10 is_stmt 0 view .LVU10
+  98 001c 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+  99 001e 13B1     		cbz	r3, .L17
+ 180:keyboards/planck/keymaps/LohseBoi/keymap.c ****         //print("mode just switched to qwerty and this is a huge string\n");
+ 181:keyboards/planck/keymaps/LohseBoi/keymap.c ****         set_single_persistent_default_layer(_QWERTY);
+ 100              		.loc 1 181 9 is_stmt 1 view .LVU11
+ 101 0020 0120     		movs	r0, #1
+ 102              	.L57:
+ 182:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 183:keyboards/planck/keymaps/LohseBoi/keymap.c ****       return false;
+ 184:keyboards/planck/keymaps/LohseBoi/keymap.c ****       break;
+ 185:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case DVORAK:
+ 186:keyboards/planck/keymaps/LohseBoi/keymap.c ****       if (record->event.pressed) {
+ 187:keyboards/planck/keymaps/LohseBoi/keymap.c ****         //print("mode just switched to qwerty and this is a huge string\n");
+ 188:keyboards/planck/keymaps/LohseBoi/keymap.c ****         set_single_persistent_default_layer(_DVORAK);
+ 103              		.loc 1 188 9 is_stmt 0 view .LVU12
+ 104 0022 FFF7FEFF 		bl	set_single_persistent_default_layer
+ 105              	.LVL4:
+ 106              	.L17:
+ 183:keyboards/planck/keymaps/LohseBoi/keymap.c ****       break;
+ 107              		.loc 1 183 14 view .LVU13
+ 108 0026 0020     		movs	r0, #0
+ 109              	.L18:
+ 189:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 190:keyboards/planck/keymaps/LohseBoi/keymap.c ****       return false;
+ 191:keyboards/planck/keymaps/LohseBoi/keymap.c ****       break;
+ 192:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case BACKLIT:
+ 193:keyboards/planck/keymaps/LohseBoi/keymap.c ****       if (record->event.pressed) {
+ 194:keyboards/planck/keymaps/LohseBoi/keymap.c ****         register_code(KC_RSFT);
+ 195:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #ifdef BACKLIGHT_ENABLE
+ 196:keyboards/planck/keymaps/LohseBoi/keymap.c ****           backlight_step();
+ 197:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #endif
+ 198:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #ifdef KEYBOARD_planck_rev5
+ 199:keyboards/planck/keymaps/LohseBoi/keymap.c ****           writePinLow(E6);
+ 200:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #endif
+ 201:keyboards/planck/keymaps/LohseBoi/keymap.c ****       } else {
+ 202:keyboards/planck/keymaps/LohseBoi/keymap.c ****         unregister_code(KC_RSFT);
+ 203:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #ifdef KEYBOARD_planck_rev5
+ 204:keyboards/planck/keymaps/LohseBoi/keymap.c ****           writePinHigh(E6);
+ 205:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #endif
+ 206:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 207:keyboards/planck/keymaps/LohseBoi/keymap.c ****       return false;
+ 208:keyboards/planck/keymaps/LohseBoi/keymap.c ****       break;
+ 209:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_MED:
+ 210:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 211:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (!is_media_active)
+ 212:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 media_timer = timer_read(); //Timer starts
+ 213:keyboards/planck/keymaps/LohseBoi/keymap.c ****     
+ 214:keyboards/planck/keymaps/LohseBoi/keymap.c ****             is_media_active = true; 
+ 215:keyboards/planck/keymaps/LohseBoi/keymap.c ****             media_counter++;
+ 216:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 217:keyboards/planck/keymaps/LohseBoi/keymap.c ****             //Do nothing on release
+ 218:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 219:keyboards/planck/keymaps/LohseBoi/keymap.c ****         break;
+ 220:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_ALT_TAB:
+ 221:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 222:keyboards/planck/keymaps/LohseBoi/keymap.c ****             //alttab_active = true;
+ 223:keyboards/planck/keymaps/LohseBoi/keymap.c ****             register_code(KC_LALT);
+ 224:keyboards/planck/keymaps/LohseBoi/keymap.c ****             SEND_STRING(SS_TAP(X_TAB));
+ 225:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 226:keyboards/planck/keymaps/LohseBoi/keymap.c ****             //Do nothing on release
+ 227:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 228:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 229:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_HLWR:
+ 230:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 231:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_LOWER);
+ 232:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 233:keyboards/planck/keymaps/LohseBoi/keymap.c ****             lwr_timer = timer_read();
+ 234:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 235:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 236:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (timer_elapsed(lwr_timer) < 100) {
+ 237:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped = !lwr_tapped;
+ 238:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped ? layer_on(_LOWER) : layer_off(_LOWER);
+ 239:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 240:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 layer_off(_LOWER);
+ 241:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 242:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_off(_LOWER);
+ 243:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 244:keyboards/planck/keymaps/LohseBoi/keymap.c ****             unregister_code(KC_LALT);
+ 245:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 246:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 247:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_HRWR:
+ 248:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 249:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 250:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 251:keyboards/planck/keymaps/LohseBoi/keymap.c ****             rse_timer = timer_read();
+ 252:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 253:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 254:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (timer_elapsed(rse_timer) < 100) {
+ 255:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped = !rse_tapped;
+ 256:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped ? layer_on(_RAISE) : layer_off(_RAISE);
+ 257:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 258:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 layer_off(_RAISE);
+ 259:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 260:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 261:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 262:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 263:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_LWR:
+ 264:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 265:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_LOWER);
+ 266:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 267:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 268:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 269:keyboards/planck/keymaps/LohseBoi/keymap.c ****            layer_off(_LOWER);
+ 270:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 271:keyboards/planck/keymaps/LohseBoi/keymap.c ****             unregister_code(KC_LALT);
+ 272:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 273:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 274:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_RWR:
+ 275:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 276:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 277:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 278:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 279:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 280:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_off(_RAISE);
+ 281:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 282:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 283:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 284:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_SOUND:
+ 285:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 286:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_C4);
+ 287:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 288:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_stop_tone(NOTE_C4);
+ 289:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 290:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 291:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_SOUNDF:
+ 292:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 293:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_CS4);
+ 294:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 295:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_stop_tone(NOTE_CS4);
+ 296:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 297:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 298:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_QUOOT:
+ 299:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (record->event.pressed) {
+ 300:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if ((get_mods() & MOD_BIT(KC_LSFT)) == MOD_BIT(KC_LSFT))
+ 301:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 SEND_STRING("'");
+ 302:keyboards/planck/keymaps/LohseBoi/keymap.c ****             else
+ 303:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 SEND_STRING("\"");
+ 304:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 305:keyboards/planck/keymaps/LohseBoi/keymap.c ****         return false;
+ 306:keyboards/planck/keymaps/LohseBoi/keymap.c ****   }
+ 307:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 308:keyboards/planck/keymaps/LohseBoi/keymap.c ****   return true;
+ 309:keyboards/planck/keymaps/LohseBoi/keymap.c **** }
+ 110              		.loc 1 309 1 view .LVU14
+ 111 0028 10BD     		pop	{r4, pc}
+ 112              	.LVL5:
+ 113              	.L16:
+ 184:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case DVORAK:
+ 114              		.loc 1 184 7 is_stmt 1 view .LVU15
+ 186:keyboards/planck/keymaps/LohseBoi/keymap.c ****         //print("mode just switched to qwerty and this is a huge string\n");
+ 115              		.loc 1 186 7 view .LVU16
+ 186:keyboards/planck/keymaps/LohseBoi/keymap.c ****         //print("mode just switched to qwerty and this is a huge string\n");
+ 116              		.loc 1 186 10 is_stmt 0 view .LVU17
+ 117 002a 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 118 002c 002B     		cmp	r3, #0
+ 119 002e FAD0     		beq	.L17
+ 188:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 120              		.loc 1 188 9 is_stmt 1 view .LVU18
+ 121 0030 0020     		movs	r0, #0
+ 122 0032 F6E7     		b	.L57
+ 123              	.L14:
+ 191:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case BACKLIT:
+ 124              		.loc 1 191 7 view .LVU19
+ 193:keyboards/planck/keymaps/LohseBoi/keymap.c ****         register_code(KC_RSFT);
+ 125              		.loc 1 193 7 view .LVU20
+ 193:keyboards/planck/keymaps/LohseBoi/keymap.c ****         register_code(KC_RSFT);
+ 126              		.loc 1 193 10 is_stmt 0 view .LVU21
+ 127 0034 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 194:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #ifdef BACKLIGHT_ENABLE
+ 128              		.loc 1 194 9 view .LVU22
+ 129 0036 E520     		movs	r0, #229
+ 193:keyboards/planck/keymaps/LohseBoi/keymap.c ****         register_code(KC_RSFT);
+ 130              		.loc 1 193 10 view .LVU23
+ 131 0038 002B     		cmp	r3, #0
+ 132 003a 44D0     		beq	.L56
+ 194:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #ifdef BACKLIGHT_ENABLE
+ 133              		.loc 1 194 9 is_stmt 1 view .LVU24
+ 134 003c FFF7FEFF 		bl	register_code
+ 135              	.LVL6:
+ 194:keyboards/planck/keymaps/LohseBoi/keymap.c ****         #ifdef BACKLIGHT_ENABLE
+ 136              		.loc 1 194 9 is_stmt 0 view .LVU25
+ 137 0040 F1E7     		b	.L17
+ 138              	.LVL7:
+ 139              	.L9:
+ 208:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case KC_MED:
+ 140              		.loc 1 208 7 is_stmt 1 view .LVU26
+ 210:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (!is_media_active)
+ 141              		.loc 1 210 9 view .LVU27
+ 210:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (!is_media_active)
+ 142              		.loc 1 210 12 is_stmt 0 view .LVU28
+ 143 0042 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 144 0044 63B1     		cbz	r3, .L3
+ 211:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 media_timer = timer_read(); //Timer starts
+ 145              		.loc 1 211 13 is_stmt 1 view .LVU29
+ 211:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 media_timer = timer_read(); //Timer starts
+ 146              		.loc 1 211 17 is_stmt 0 view .LVU30
+ 147 0046 414C     		ldr	r4, .L69
+ 211:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 media_timer = timer_read(); //Timer starts
+ 148              		.loc 1 211 16 view .LVU31
+ 149 0048 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 150 004a 1BB9     		cbnz	r3, .L20
+ 212:keyboards/planck/keymaps/LohseBoi/keymap.c ****     
+ 151              		.loc 1 212 17 is_stmt 1 view .LVU32
+ 212:keyboards/planck/keymaps/LohseBoi/keymap.c ****     
+ 152              		.loc 1 212 31 is_stmt 0 view .LVU33
+ 153 004c FFF7FEFF 		bl	timer_read
+ 154              	.LVL8:
+ 212:keyboards/planck/keymaps/LohseBoi/keymap.c ****     
+ 155              		.loc 1 212 29 view .LVU34
+ 156 0050 3F4B     		ldr	r3, .L69+4
+ 157 0052 1880     		strh	r0, [r3]	@ movhi
+ 158              	.L20:
+ 214:keyboards/planck/keymaps/LohseBoi/keymap.c ****             media_counter++;
+ 159              		.loc 1 214 13 is_stmt 1 view .LVU35
+ 215:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 160              		.loc 1 215 26 is_stmt 0 view .LVU36
+ 161 0054 3F4A     		ldr	r2, .L69+8
+ 214:keyboards/planck/keymaps/LohseBoi/keymap.c ****             media_counter++;
+ 162              		.loc 1 214 29 view .LVU37
+ 163 0056 0123     		movs	r3, #1
+ 164 0058 2370     		strb	r3, [r4]
+ 215:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 165              		.loc 1 215 13 is_stmt 1 view .LVU38
+ 215:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 166              		.loc 1 215 26 is_stmt 0 view .LVU39
+ 167 005a 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 168 005c 0133     		adds	r3, r3, #1
+ 169 005e 1370     		strb	r3, [r2]
+ 170              	.L3:
+ 183:keyboards/planck/keymaps/LohseBoi/keymap.c ****       break;
+ 171              		.loc 1 183 14 view .LVU40
+ 172 0060 0120     		movs	r0, #1
+ 173 0062 E1E7     		b	.L18
+ 174              	.LVL9:
+ 175              	.L8:
+ 221:keyboards/planck/keymaps/LohseBoi/keymap.c ****             //alttab_active = true;
+ 176              		.loc 1 221 9 is_stmt 1 view .LVU41
+ 221:keyboards/planck/keymaps/LohseBoi/keymap.c ****             //alttab_active = true;
+ 177              		.loc 1 221 12 is_stmt 0 view .LVU42
+ 178 0064 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 179 0066 002B     		cmp	r3, #0
+ 180 0068 DDD0     		beq	.L17
+ 223:keyboards/planck/keymaps/LohseBoi/keymap.c ****             SEND_STRING(SS_TAP(X_TAB));
+ 181              		.loc 1 223 13 is_stmt 1 view .LVU43
+ 182 006a E220     		movs	r0, #226
+ 183 006c FFF7FEFF 		bl	register_code
+ 184              	.LVL10:
+ 224:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 185              		.loc 1 224 13 view .LVU44
+ 186 0070 3948     		ldr	r0, .L69+12
+ 187              	.L59:
+ 303:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 188              		.loc 1 303 17 is_stmt 0 view .LVU45
+ 189 0072 FFF7FEFF 		bl	send_string_P
+ 190              	.LVL11:
+ 191 0076 D6E7     		b	.L17
+ 192              	.LVL12:
+ 193              	.L13:
+ 230:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_LOWER);
+ 194              		.loc 1 230 9 is_stmt 1 view .LVU46
+ 230:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_LOWER);
+ 195              		.loc 1 230 12 is_stmt 0 view .LVU47
+ 196 0078 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 197 007a 384C     		ldr	r4, .L69+16
+ 198 007c 5BB1     		cbz	r3, .L21
+ 231:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 199              		.loc 1 231 13 is_stmt 1 view .LVU48
+ 200 007e 0220     		movs	r0, #2
+ 201              	.L58:
+ 249:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 202              		.loc 1 249 13 is_stmt 0 view .LVU49
+ 203 0080 FFF7FEFF 		bl	layer_on
+ 204              	.LVL13:
+ 250:keyboards/planck/keymaps/LohseBoi/keymap.c ****             rse_timer = timer_read();
+ 205              		.loc 1 250 13 is_stmt 1 view .LVU50
+ 206 0084 0422     		movs	r2, #4
+ 207 0086 0321     		movs	r1, #3
+ 208 0088 0220     		movs	r0, #2
+ 209 008a FFF7FEFF 		bl	update_tri_layer
+ 210              	.LVL14:
+ 251:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 211              		.loc 1 251 13 view .LVU51
+ 251:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 212              		.loc 1 251 25 is_stmt 0 view .LVU52
+ 213 008e FFF7FEFF 		bl	timer_read
+ 214              	.LVL15:
+ 251:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 215              		.loc 1 251 23 view .LVU53
+ 216 0092 2080     		strh	r0, [r4]	@ movhi
+ 217 0094 C7E7     		b	.L17
+ 218              	.LVL16:
+ 219              	.L21:
+ 236:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped = !lwr_tapped;
+ 220              		.loc 1 236 13 is_stmt 1 view .LVU54
+ 236:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped = !lwr_tapped;
+ 221              		.loc 1 236 17 is_stmt 0 view .LVU55
+ 222 0096 2088     		ldrh	r0, [r4]
+ 223 0098 FFF7FEFF 		bl	timer_elapsed
+ 224              	.LVL17:
+ 236:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped = !lwr_tapped;
+ 225              		.loc 1 236 16 view .LVU56
+ 226 009c 6328     		cmp	r0, #99
+ 238:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 227              		.loc 1 238 30 view .LVU57
+ 228 009e 4FF00200 		mov	r0, #2
+ 236:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped = !lwr_tapped;
+ 229              		.loc 1 236 16 view .LVU58
+ 230 00a2 13D8     		bhi	.L22
+ 237:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped ? layer_on(_LOWER) : layer_off(_LOWER);
+ 231              		.loc 1 237 17 is_stmt 1 view .LVU59
+ 232 00a4 2E4A     		ldr	r2, .L69+20
+ 233 00a6 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 234 00a8 83F00103 		eor	r3, r3, #1
+ 237:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 lwr_tapped ? layer_on(_LOWER) : layer_off(_LOWER);
+ 235              		.loc 1 237 28 is_stmt 0 view .LVU60
+ 236 00ac 1370     		strb	r3, [r2]
+ 238:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 237              		.loc 1 238 17 is_stmt 1 view .LVU61
+ 238:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 238              		.loc 1 238 47 is_stmt 0 view .LVU62
+ 239 00ae 6BB1     		cbz	r3, .L22
+ 238:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 240              		.loc 1 238 30 discriminator 1 view .LVU63
+ 241 00b0 FFF7FEFF 		bl	layer_on
+ 242              	.LVL18:
+ 243              	.L23:
+ 242:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 244              		.loc 1 242 13 is_stmt 1 view .LVU64
+ 245 00b4 0220     		movs	r0, #2
+ 246 00b6 FFF7FEFF 		bl	layer_off
+ 247              	.LVL19:
+ 243:keyboards/planck/keymaps/LohseBoi/keymap.c ****             unregister_code(KC_LALT);
+ 248              		.loc 1 243 13 view .LVU65
+ 249 00ba 0220     		movs	r0, #2
+ 250 00bc 0422     		movs	r2, #4
+ 251 00be 0321     		movs	r1, #3
+ 252 00c0 FFF7FEFF 		bl	update_tri_layer
+ 253              	.LVL20:
+ 244:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 254              		.loc 1 244 13 view .LVU66
+ 255 00c4 E220     		movs	r0, #226
+ 256              	.L56:
+ 257 00c6 FFF7FEFF 		bl	unregister_code
+ 258              	.LVL21:
+ 259 00ca ACE7     		b	.L17
+ 260              	.L22:
+ 238:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 261              		.loc 1 238 49 is_stmt 0 discriminator 2 view .LVU67
+ 262 00cc FFF7FEFF 		bl	layer_off
+ 263              	.LVL22:
+ 264 00d0 F0E7     		b	.L23
+ 265              	.LVL23:
+ 266              	.L12:
+ 248:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 267              		.loc 1 248 9 is_stmt 1 view .LVU68
+ 248:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 268              		.loc 1 248 12 is_stmt 0 view .LVU69
+ 269 00d2 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 270 00d4 234C     		ldr	r4, .L69+24
+ 271 00d6 0BB1     		cbz	r3, .L24
+ 249:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 272              		.loc 1 249 13 is_stmt 1 view .LVU70
+ 273 00d8 0320     		movs	r0, #3
+ 274 00da D1E7     		b	.L58
+ 275              	.L24:
+ 254:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped = !rse_tapped;
+ 276              		.loc 1 254 13 view .LVU71
+ 254:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped = !rse_tapped;
+ 277              		.loc 1 254 17 is_stmt 0 view .LVU72
+ 278 00dc 2088     		ldrh	r0, [r4]
+ 279 00de FFF7FEFF 		bl	timer_elapsed
+ 280              	.LVL24:
+ 254:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped = !rse_tapped;
+ 281              		.loc 1 254 16 view .LVU73
+ 282 00e2 6328     		cmp	r0, #99
+ 256:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 283              		.loc 1 256 30 view .LVU74
+ 284 00e4 4FF00300 		mov	r0, #3
+ 254:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped = !rse_tapped;
+ 285              		.loc 1 254 16 view .LVU75
+ 286 00e8 05D8     		bhi	.L64
+ 255:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped ? layer_on(_RAISE) : layer_off(_RAISE);
+ 287              		.loc 1 255 17 is_stmt 1 view .LVU76
+ 288 00ea 1F4A     		ldr	r2, .L69+28
+ 289 00ec 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 290 00ee 83F00103 		eor	r3, r3, #1
+ 255:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 rse_tapped ? layer_on(_RAISE) : layer_off(_RAISE);
+ 291              		.loc 1 255 28 is_stmt 0 view .LVU77
+ 292 00f2 1370     		strb	r3, [r2]
+ 256:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 293              		.loc 1 256 17 is_stmt 1 view .LVU78
+ 294              	.L68:
+ 275:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 295              		.loc 1 275 12 is_stmt 0 view .LVU79
+ 296 00f4 33B9     		cbnz	r3, .L61
+ 297              	.L64:
+ 280:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 298              		.loc 1 280 13 view .LVU80
+ 299 00f6 FFF7FEFF 		bl	layer_off
+ 300              	.LVL25:
+ 281:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 301              		.loc 1 281 13 is_stmt 1 view .LVU81
+ 302 00fa 05E0     		b	.L60
+ 303              	.LVL26:
+ 304              	.L11:
+ 264:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_LOWER);
+ 305              		.loc 1 264 9 view .LVU82
+ 264:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_LOWER);
+ 306              		.loc 1 264 12 is_stmt 0 view .LVU83
+ 307 00fc 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 308 00fe 002B     		cmp	r3, #0
+ 309 0100 D8D0     		beq	.L23
+ 265:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 310              		.loc 1 265 13 is_stmt 1 view .LVU84
+ 311 0102 0220     		movs	r0, #2
+ 312              	.LVL27:
+ 313              	.L61:
+ 265:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 314              		.loc 1 265 13 is_stmt 0 view .LVU85
+ 315 0104 FFF7FEFF 		bl	layer_on
+ 316              	.LVL28:
+ 317              	.L60:
+ 266:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 318              		.loc 1 266 13 is_stmt 1 view .LVU86
+ 319 0108 0422     		movs	r2, #4
+ 320 010a 0321     		movs	r1, #3
+ 321 010c 0220     		movs	r0, #2
+ 322 010e FFF7FEFF 		bl	update_tri_layer
+ 323              	.LVL29:
+ 324 0112 88E7     		b	.L17
+ 325              	.LVL30:
+ 326              	.L10:
+ 275:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 327              		.loc 1 275 9 view .LVU87
+ 275:keyboards/planck/keymaps/LohseBoi/keymap.c ****             layer_on(_RAISE);
+ 328              		.loc 1 275 12 is_stmt 0 view .LVU88
+ 329 0114 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 276:keyboards/planck/keymaps/LohseBoi/keymap.c ****             update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 330              		.loc 1 276 13 view .LVU89
+ 331 0116 0320     		movs	r0, #3
+ 332 0118 ECE7     		b	.L68
+ 333              	.L7:
+ 285:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_C4);
+ 334              		.loc 1 285 9 is_stmt 1 view .LVU90
+ 285:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_C4);
+ 335              		.loc 1 285 12 is_stmt 0 view .LVU91
+ 336 011a 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 286:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 337              		.loc 1 286 13 view .LVU92
+ 338 011c 9FED130A 		vldr.32	s0, .L69+32
+ 339              	.L66:
+ 292:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_CS4);
+ 340              		.loc 1 292 12 view .LVU93
+ 341 0120 33B1     		cbz	r3, .L63
+ 293:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 342              		.loc 1 293 13 view .LVU94
+ 343 0122 FFF7FEFF 		bl	audio_play_tone
+ 344              	.LVL31:
+ 293:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 345              		.loc 1 293 13 view .LVU95
+ 346 0126 7EE7     		b	.L17
+ 347              	.LVL32:
+ 348              	.L6:
+ 292:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_CS4);
+ 349              		.loc 1 292 9 is_stmt 1 view .LVU96
+ 292:keyboards/planck/keymaps/LohseBoi/keymap.c ****             audio_play_tone(NOTE_CS4);
+ 350              		.loc 1 292 12 is_stmt 0 view .LVU97
+ 351 0128 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 293:keyboards/planck/keymaps/LohseBoi/keymap.c ****         } else {
+ 352              		.loc 1 293 13 view .LVU98
+ 353 012a 9FED110A 		vldr.32	s0, .L69+36
+ 354 012e F7E7     		b	.L66
+ 355              	.L63:
+ 295:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 356              		.loc 1 295 13 view .LVU99
+ 357 0130 FFF7FEFF 		bl	audio_stop_tone
+ 358              	.LVL33:
+ 295:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 359              		.loc 1 295 13 view .LVU100
+ 360 0134 77E7     		b	.L17
+ 361              	.LVL34:
+ 362              	.L4:
+ 299:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if ((get_mods() & MOD_BIT(KC_LSFT)) == MOD_BIT(KC_LSFT))
+ 363              		.loc 1 299 9 is_stmt 1 view .LVU101
+ 299:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if ((get_mods() & MOD_BIT(KC_LSFT)) == MOD_BIT(KC_LSFT))
+ 364              		.loc 1 299 12 is_stmt 0 view .LVU102
+ 365 0136 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 366 0138 002B     		cmp	r3, #0
+ 367 013a 3FF474AF 		beq	.L17
+ 300:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 SEND_STRING("'");
+ 368              		.loc 1 300 13 is_stmt 1 view .LVU103
+ 300:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 SEND_STRING("'");
+ 369              		.loc 1 300 18 is_stmt 0 view .LVU104
+ 370 013e FFF7FEFF 		bl	get_mods
+ 371              	.LVL35:
+ 300:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 SEND_STRING("'");
+ 372              		.loc 1 300 16 view .LVU105
+ 373 0142 8307     		lsls	r3, r0, #30
+ 301:keyboards/planck/keymaps/LohseBoi/keymap.c ****             else
+ 374              		.loc 1 301 17 is_stmt 1 view .LVU106
+ 375 0144 4CBF     		ite	mi
+ 376 0146 0B48     		ldrmi	r0, .L69+40
+ 303:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 377              		.loc 1 303 17 view .LVU107
+ 378 0148 0B48     		ldrpl	r0, .L69+44
+ 379 014a 92E7     		b	.L59
+ 380              	.L70:
+ 381              		.align	2
+ 382              	.L69:
+ 383 014c 00000000 		.word	is_media_active
+ 384 0150 00000000 		.word	media_timer
+ 385 0154 00000000 		.word	media_counter
+ 386 0158 00000000 		.word	.LC1
+ 387 015c 00000000 		.word	lwr_timer
+ 388 0160 00000000 		.word	lwr_tapped
+ 389 0164 00000000 		.word	rse_timer
+ 390 0168 00000000 		.word	rse_tapped
+ 391 016c A4D08243 		.word	1132646564
+ 392 0170 0A978A43 		.word	1133156106
+ 393 0174 04000000 		.word	.LC2
+ 394 0178 06000000 		.word	.LC3
+ 395              		.cfi_endproc
+ 396              	.LFE342:
+ 398              		.section	.text.encoder_update_user,"ax",%progbits
+ 399              		.align	1
+ 400              		.global	encoder_update_user
+ 401              		.syntax unified
+ 402              		.thumb
+ 403              		.thumb_func
+ 405              	encoder_update_user:
+ 406              	.LVL36:
+ 407              	.LFB343:
+ 310:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 311:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool muse_mode = false;
+ 312:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint8_t last_muse_note = 0;
+ 313:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint16_t muse_counter = 0;
+ 314:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint8_t muse_offset = 70;
+ 315:keyboards/planck/keymaps/LohseBoi/keymap.c **** uint16_t muse_tempo = 50;
+ 316:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 317:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool encoder_update_user(uint8_t index, bool clockwise) {
+ 408              		.loc 1 317 57 view -0
+ 409              		.cfi_startproc
+ 410              		@ args = 0, pretend = 0, frame = 0
+ 411              		@ frame_needed = 0, uses_anonymous_args = 0
+ 318:keyboards/planck/keymaps/LohseBoi/keymap.c ****   if (muse_mode) {
+ 412              		.loc 1 318 3 view .LVU109
+ 413              		.loc 1 318 7 is_stmt 0 view .LVU110
+ 414 0000 104B     		ldr	r3, .L81
+ 415              		.loc 1 318 6 view .LVU111
+ 416 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 317:keyboards/planck/keymaps/LohseBoi/keymap.c ****   if (muse_mode) {
+ 417              		.loc 1 317 57 view .LVU112
+ 418 0004 10B5     		push	{r4, lr}
+ 419              		.cfi_def_cfa_offset 8
+ 420              		.cfi_offset 4, -8
+ 421              		.cfi_offset 14, -4
+ 317:keyboards/planck/keymaps/LohseBoi/keymap.c ****   if (muse_mode) {
+ 422              		.loc 1 317 57 view .LVU113
+ 423 0006 0C46     		mov	r4, r1
+ 424              		.loc 1 318 6 view .LVU114
+ 425 0008 A3B1     		cbz	r3, .L72
+ 319:keyboards/planck/keymaps/LohseBoi/keymap.c ****     if (IS_LAYER_ON(_RAISE)) {
+ 426              		.loc 1 319 5 is_stmt 1 view .LVU115
+ 427              		.loc 1 319 9 is_stmt 0 view .LVU116
+ 428 000a 0320     		movs	r0, #3
+ 429              	.LVL37:
+ 430              		.loc 1 319 9 view .LVU117
+ 431 000c FFF7FEFF 		bl	layer_state_is
+ 432              	.LVL38:
+ 433              		.loc 1 319 8 view .LVU118
+ 434 0010 40B1     		cbz	r0, .L73
+ 320:keyboards/planck/keymaps/LohseBoi/keymap.c ****       if (clockwise) {
+ 435              		.loc 1 320 7 is_stmt 1 view .LVU119
+ 321:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_offset++;
+ 436              		.loc 1 321 20 is_stmt 0 view .LVU120
+ 437 0012 0D4A     		ldr	r2, .L81+4
+ 438 0014 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 320:keyboards/planck/keymaps/LohseBoi/keymap.c ****       if (clockwise) {
+ 439              		.loc 1 320 10 view .LVU121
+ 440 0016 1CB1     		cbz	r4, .L74
+ 441              		.loc 1 321 9 is_stmt 1 view .LVU122
+ 442              		.loc 1 321 20 is_stmt 0 view .LVU123
+ 443 0018 0133     		adds	r3, r3, #1
+ 444              	.L78:
+ 322:keyboards/planck/keymaps/LohseBoi/keymap.c ****       } else {
+ 323:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_offset--;
+ 445              		.loc 1 323 20 view .LVU124
+ 446 001a 1370     		strb	r3, [r2]
+ 447              	.L75:
+ 324:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 325:keyboards/planck/keymaps/LohseBoi/keymap.c ****     } else {
+ 326:keyboards/planck/keymaps/LohseBoi/keymap.c ****       if (clockwise) {
+ 327:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_tempo+=1;
+ 328:keyboards/planck/keymaps/LohseBoi/keymap.c ****       } else {
+ 329:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_tempo-=1;
+ 330:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 331:keyboards/planck/keymaps/LohseBoi/keymap.c ****     }
+ 332:keyboards/planck/keymaps/LohseBoi/keymap.c ****   } else {
+ 333:keyboards/planck/keymaps/LohseBoi/keymap.c ****     if (clockwise) {
+ 334:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #ifdef MOUSEKEY_ENABLE
+ 335:keyboards/planck/keymaps/LohseBoi/keymap.c ****         tap_code(KC_MS_WH_DOWN);
+ 336:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 337:keyboards/planck/keymaps/LohseBoi/keymap.c ****         tap_code(KC_PGDN);
+ 338:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #endif
+ 339:keyboards/planck/keymaps/LohseBoi/keymap.c ****     } else {
+ 340:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #ifdef MOUSEKEY_ENABLE
+ 341:keyboards/planck/keymaps/LohseBoi/keymap.c ****         tap_code(KC_MS_WH_UP);
+ 342:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 343:keyboards/planck/keymaps/LohseBoi/keymap.c ****         tap_code(KC_PGUP);
+ 344:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #endif
+ 345:keyboards/planck/keymaps/LohseBoi/keymap.c ****     }
+ 346:keyboards/planck/keymaps/LohseBoi/keymap.c ****   }
+ 347:keyboards/planck/keymaps/LohseBoi/keymap.c ****     return true;
+ 448              		.loc 1 347 5 is_stmt 1 view .LVU125
+ 348:keyboards/planck/keymaps/LohseBoi/keymap.c **** }
+ 449              		.loc 1 348 1 is_stmt 0 view .LVU126
+ 450 001c 0120     		movs	r0, #1
+ 451 001e 10BD     		pop	{r4, pc}
+ 452              	.L74:
+ 323:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 453              		.loc 1 323 9 is_stmt 1 view .LVU127
+ 323:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 454              		.loc 1 323 20 is_stmt 0 view .LVU128
+ 455 0020 013B     		subs	r3, r3, #1
+ 456 0022 FAE7     		b	.L78
+ 457              	.L73:
+ 326:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_tempo+=1;
+ 458              		.loc 1 326 7 is_stmt 1 view .LVU129
+ 327:keyboards/planck/keymaps/LohseBoi/keymap.c ****       } else {
+ 459              		.loc 1 327 19 is_stmt 0 view .LVU130
+ 460 0024 094A     		ldr	r2, .L81+8
+ 461 0026 1388     		ldrh	r3, [r2]
+ 326:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_tempo+=1;
+ 462              		.loc 1 326 10 view .LVU131
+ 463 0028 14B1     		cbz	r4, .L76
+ 327:keyboards/planck/keymaps/LohseBoi/keymap.c ****       } else {
+ 464              		.loc 1 327 9 is_stmt 1 view .LVU132
+ 327:keyboards/planck/keymaps/LohseBoi/keymap.c ****       } else {
+ 465              		.loc 1 327 19 is_stmt 0 view .LVU133
+ 466 002a 0133     		adds	r3, r3, #1
+ 467              	.L80:
+ 329:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 468              		.loc 1 329 19 view .LVU134
+ 469 002c 1380     		strh	r3, [r2]	@ movhi
+ 470 002e F5E7     		b	.L75
+ 471              	.L76:
+ 329:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 472              		.loc 1 329 9 is_stmt 1 view .LVU135
+ 329:keyboards/planck/keymaps/LohseBoi/keymap.c ****       }
+ 473              		.loc 1 329 19 is_stmt 0 view .LVU136
+ 474 0030 013B     		subs	r3, r3, #1
+ 475 0032 FBE7     		b	.L80
+ 476              	.LVL39:
+ 477              	.L72:
+ 333:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #ifdef MOUSEKEY_ENABLE
+ 478              		.loc 1 333 5 is_stmt 1 view .LVU137
+ 333:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #ifdef MOUSEKEY_ENABLE
+ 479              		.loc 1 333 8 is_stmt 0 view .LVU138
+ 480 0034 19B1     		cbz	r1, .L77
+ 335:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 481              		.loc 1 335 9 is_stmt 1 view .LVU139
+ 482 0036 FA20     		movs	r0, #250
+ 483              	.LVL40:
+ 484              	.L79:
+ 341:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 485              		.loc 1 341 9 is_stmt 0 view .LVU140
+ 486 0038 FFF7FEFF 		bl	tap_code
+ 487              	.LVL41:
+ 341:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 488              		.loc 1 341 9 view .LVU141
+ 489 003c EEE7     		b	.L75
+ 490              	.LVL42:
+ 491              	.L77:
+ 341:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 492              		.loc 1 341 9 is_stmt 1 view .LVU142
+ 493 003e F920     		movs	r0, #249
+ 494              	.LVL43:
+ 341:keyboards/planck/keymaps/LohseBoi/keymap.c ****       #else
+ 495              		.loc 1 341 9 is_stmt 0 view .LVU143
+ 496 0040 FAE7     		b	.L79
+ 497              	.L82:
+ 498 0042 00BF     		.align	2
+ 499              	.L81:
+ 500 0044 00000000 		.word	muse_mode
+ 501 0048 00000000 		.word	muse_offset
+ 502 004c 00000000 		.word	muse_tempo
+ 503              		.cfi_endproc
+ 504              	.LFE343:
+ 506              		.section	.text.dip_switch_update_user,"ax",%progbits
+ 507              		.align	1
+ 508              		.global	dip_switch_update_user
+ 509              		.syntax unified
+ 510              		.thumb
+ 511              		.thumb_func
+ 513              	dip_switch_update_user:
+ 514              	.LVL44:
+ 515              	.LFB344:
+ 349:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 350:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool dip_switch_update_user(uint8_t index, bool active) {
+ 516              		.loc 1 350 57 is_stmt 1 view -0
+ 517              		.cfi_startproc
+ 518              		@ args = 0, pretend = 0, frame = 0
+ 519              		@ frame_needed = 0, uses_anonymous_args = 0
+ 351:keyboards/planck/keymaps/LohseBoi/keymap.c ****     switch (index) {
+ 520              		.loc 1 351 5 view .LVU145
+ 350:keyboards/planck/keymaps/LohseBoi/keymap.c ****     switch (index) {
+ 521              		.loc 1 350 57 is_stmt 0 view .LVU146
+ 522 0000 10B5     		push	{r4, lr}
+ 523              		.cfi_def_cfa_offset 8
+ 524              		.cfi_offset 4, -8
+ 525              		.cfi_offset 14, -4
+ 526              		.loc 1 351 5 view .LVU147
+ 527 0002 0246     		mov	r2, r0
+ 528 0004 18B1     		cbz	r0, .L84
+ 529 0006 0128     		cmp	r0, #1
+ 530 0008 19D0     		beq	.L85
+ 531              	.LVL45:
+ 532              	.L86:
+ 352:keyboards/planck/keymaps/LohseBoi/keymap.c ****         case 0: {
+ 353:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #ifdef AUDIO_ENABLE
+ 354:keyboards/planck/keymaps/LohseBoi/keymap.c ****             static bool play_sound = false;
+ 355:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #endif
+ 356:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (active) {
+ 357:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #ifdef AUDIO_ENABLE
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 if (play_sound) { PLAY_SONG(plover_song); }
+ 359:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 360:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 layer_on(_ADJUST);
+ 361:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 362:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #ifdef AUDIO_ENABLE
+ 363:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 if (play_sound) { PLAY_SONG(plover_gb_song); }
+ 364:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 365:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 layer_off(_ADJUST);
+ 366:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 367:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #ifdef AUDIO_ENABLE
+ 368:keyboards/planck/keymaps/LohseBoi/keymap.c ****             play_sound = true;
+ 369:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #endif
+ 370:keyboards/planck/keymaps/LohseBoi/keymap.c ****             break;
+ 371:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 372:keyboards/planck/keymaps/LohseBoi/keymap.c ****         case 1:
+ 373:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (active) {
+ 374:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 muse_mode = true;
+ 375:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 376:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 muse_mode = false;
+ 377:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 378:keyboards/planck/keymaps/LohseBoi/keymap.c ****     }
+ 379:keyboards/planck/keymaps/LohseBoi/keymap.c ****     return true;
+ 533              		.loc 1 379 5 is_stmt 1 view .LVU148
+ 380:keyboards/planck/keymaps/LohseBoi/keymap.c **** }
+ 534              		.loc 1 380 1 is_stmt 0 view .LVU149
+ 535 000a 0120     		movs	r0, #1
+ 536 000c 10BD     		pop	{r4, pc}
+ 537              	.LVL46:
+ 538              	.L84:
+ 539              	.LBB2:
+ 354:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #endif
+ 540              		.loc 1 354 13 is_stmt 1 view .LVU150
+ 356:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #ifdef AUDIO_ENABLE
+ 541              		.loc 1 356 13 view .LVU151
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 542              		.loc 1 358 21 is_stmt 0 view .LVU152
+ 543 000e 0F4C     		ldr	r4, .L98
+ 544 0010 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 356:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #ifdef AUDIO_ENABLE
+ 545              		.loc 1 356 16 view .LVU153
+ 546 0012 51B1     		cbz	r1, .L87
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 547              		.loc 1 358 17 is_stmt 1 view .LVU154
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 548              		.loc 1 358 20 is_stmt 0 view .LVU155
+ 549 0014 1BB1     		cbz	r3, .L88
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 550              		.loc 1 358 35 is_stmt 1 discriminator 1 view .LVU156
+ 551 0016 0E48     		ldr	r0, .L98+4
+ 552              	.LVL47:
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 553              		.loc 1 358 35 is_stmt 0 discriminator 1 view .LVU157
+ 554 0018 0621     		movs	r1, #6
+ 555              	.LVL48:
+ 358:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 556              		.loc 1 358 35 discriminator 1 view .LVU158
+ 557 001a FFF7FEFF 		bl	audio_play_melody
+ 558              	.LVL49:
+ 559              	.L88:
+ 360:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 560              		.loc 1 360 17 is_stmt 1 view .LVU159
+ 561 001e 0420     		movs	r0, #4
+ 562 0020 FFF7FEFF 		bl	layer_on
+ 563              	.LVL50:
+ 564              	.L89:
+ 368:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #endif
+ 565              		.loc 1 368 13 view .LVU160
+ 368:keyboards/planck/keymaps/LohseBoi/keymap.c ****             #endif
+ 566              		.loc 1 368 24 is_stmt 0 view .LVU161
+ 567 0024 0123     		movs	r3, #1
+ 568 0026 2370     		strb	r3, [r4]
+ 370:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 569              		.loc 1 370 13 is_stmt 1 view .LVU162
+ 570 0028 EFE7     		b	.L86
+ 571              	.LVL51:
+ 572              	.L87:
+ 363:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 573              		.loc 1 363 17 view .LVU163
+ 363:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 574              		.loc 1 363 20 is_stmt 0 view .LVU164
+ 575 002a 23B1     		cbz	r3, .L90
+ 363:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 576              		.loc 1 363 35 is_stmt 1 discriminator 1 view .LVU165
+ 577 002c 0A46     		mov	r2, r1
+ 578 002e 0948     		ldr	r0, .L98+8
+ 579              	.LVL52:
+ 363:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 580              		.loc 1 363 35 is_stmt 0 discriminator 1 view .LVU166
+ 581 0030 0621     		movs	r1, #6
+ 582              	.LVL53:
+ 363:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 #endif
+ 583              		.loc 1 363 35 discriminator 1 view .LVU167
+ 584 0032 FFF7FEFF 		bl	audio_play_melody
+ 585              	.LVL54:
+ 586              	.L90:
+ 365:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 587              		.loc 1 365 17 is_stmt 1 view .LVU168
+ 588 0036 0420     		movs	r0, #4
+ 589 0038 FFF7FEFF 		bl	layer_off
+ 590              	.LVL55:
+ 591 003c F2E7     		b	.L89
+ 592              	.LVL56:
+ 593              	.L85:
+ 365:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 594              		.loc 1 365 17 is_stmt 0 view .LVU169
+ 595              	.LBE2:
+ 373:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 muse_mode = true;
+ 596              		.loc 1 373 13 is_stmt 1 view .LVU170
+ 374:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 597              		.loc 1 374 27 is_stmt 0 view .LVU171
+ 598 003e 064B     		ldr	r3, .L98+12
+ 599 0040 0029     		cmp	r1, #0
+ 600 0042 18BF     		it	ne
+ 601 0044 0146     		movne	r1, r0
+ 602              	.LVL57:
+ 374:keyboards/planck/keymaps/LohseBoi/keymap.c ****             } else {
+ 603              		.loc 1 374 27 view .LVU172
+ 604 0046 1970     		strb	r1, [r3]
+ 605 0048 DFE7     		b	.L86
+ 606              	.L99:
+ 607 004a 00BF     		.align	2
+ 608              	.L98:
+ 609 004c 00000000 		.word	play_sound.0
+ 610 0050 00000000 		.word	plover_song
+ 611 0054 00000000 		.word	plover_gb_song
+ 612 0058 00000000 		.word	muse_mode
+ 613              		.cfi_endproc
+ 614              	.LFE344:
+ 616              		.section	.rodata.matrix_scan_user.str1.1,"aMS",%progbits,1
+ 617              	.LC4:
+ 618 0000 0101AE00 		.ascii	"\001\001\256\000"
+ 619              	.LC5:
+ 620 0004 0101AB00 		.ascii	"\001\001\253\000"
+ 621              	.LC6:
+ 622 0008 0101AC00 		.ascii	"\001\001\254\000"
+ 623              		.section	.text.matrix_scan_user,"ax",%progbits
+ 624              		.align	1
+ 625              		.global	matrix_scan_user
+ 626              		.syntax unified
+ 627              		.thumb
+ 628              		.thumb_func
+ 630              	matrix_scan_user:
+ 631              	.LFB345:
+ 381:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 382:keyboards/planck/keymaps/LohseBoi/keymap.c **** void matrix_scan_user(void) {
+ 632              		.loc 1 382 29 is_stmt 1 view -0
+ 633              		.cfi_startproc
+ 634              		@ args = 0, pretend = 0, frame = 40
+ 635              		@ frame_needed = 0, uses_anonymous_args = 0
+ 383:keyboards/planck/keymaps/LohseBoi/keymap.c ****     if (is_media_active) {  //If the media key has been pressed
+ 636              		.loc 1 383 5 view .LVU174
+ 382:keyboards/planck/keymaps/LohseBoi/keymap.c ****     if (is_media_active) {  //If the media key has been pressed
+ 637              		.loc 1 382 29 is_stmt 0 view .LVU175
+ 638 0000 70B5     		push	{r4, r5, r6, lr}
+ 639              		.cfi_def_cfa_offset 16
+ 640              		.cfi_offset 4, -16
+ 641              		.cfi_offset 5, -12
+ 642              		.cfi_offset 6, -8
+ 643              		.cfi_offset 14, -4
+ 644              		.loc 1 383 9 view .LVU176
+ 645 0002 2F4C     		ldr	r4, .L119
+ 646              		.loc 1 383 8 view .LVU177
+ 647 0004 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 382:keyboards/planck/keymaps/LohseBoi/keymap.c ****     if (is_media_active) {  //If the media key has been pressed
+ 648              		.loc 1 382 29 view .LVU178
+ 649 0006 8AB0     		sub	sp, sp, #40
+ 650              		.cfi_def_cfa_offset 56
+ 651              		.loc 1 383 8 view .LVU179
+ 652 0008 ABB1     		cbz	r3, .L102
+ 384:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (timer_elapsed(media_timer) > media_time) {  //If the time is up
+ 653              		.loc 1 384 9 is_stmt 1 view .LVU180
+ 654              		.loc 1 384 13 is_stmt 0 view .LVU181
+ 655 000a 2E4B     		ldr	r3, .L119+4
+ 656 000c 1888     		ldrh	r0, [r3]
+ 657 000e FFF7FEFF 		bl	timer_elapsed
+ 658              	.LVL58:
+ 659              		.loc 1 384 12 view .LVU182
+ 660 0012 40F2EE23 		movw	r3, #750
+ 661 0016 9842     		cmp	r0, r3
+ 662 0018 0DD9     		bls	.L102
+ 385:keyboards/planck/keymaps/LohseBoi/keymap.c ****             
+ 386:keyboards/planck/keymaps/LohseBoi/keymap.c ****             switch (media_counter) {  //Number of times pressed in given timeframe
+ 663              		.loc 1 386 13 is_stmt 1 view .LVU183
+ 664 001a 2B4D     		ldr	r5, .L119+8
+ 665 001c 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 666 001e 012B     		cmp	r3, #1
+ 667 0020 03D0     		beq	.L104
+ 668 0022 022B     		cmp	r3, #2
+ 669 0024 43D0     		beq	.L105
+ 387:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 case 1:
+ 388:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     SEND_STRING(SS_TAP(X_MPLY));  //Play/Pause
+ 389:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     break;
+ 390:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 case 2:
+ 391:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     SEND_STRING(SS_TAP(X_MNXT));  //Next track
+ 392:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     break;
+ 393:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 case 3: default:
+ 394:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     SEND_STRING(SS_TAP(X_MPRV));  //Previous track
+ 670              		.loc 1 394 21 view .LVU184
+ 671 0026 2948     		ldr	r0, .L119+12
+ 672 0028 00E0     		b	.L118
+ 673              	.L104:
+ 388:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     break;
+ 674              		.loc 1 388 21 view .LVU185
+ 675 002a 2948     		ldr	r0, .L119+16
+ 676              	.L118:
+ 677              		.loc 1 394 21 is_stmt 0 view .LVU186
+ 678 002c FFF7FEFF 		bl	send_string_P
+ 679              	.LVL59:
+ 395:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     break;
+ 680              		.loc 1 395 21 is_stmt 1 view .LVU187
+ 396:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 397:keyboards/planck/keymaps/LohseBoi/keymap.c ****             //Resets variables
+ 398:keyboards/planck/keymaps/LohseBoi/keymap.c ****             media_counter = 0;
+ 681              		.loc 1 398 13 view .LVU188
+ 682              		.loc 1 398 27 is_stmt 0 view .LVU189
+ 683 0030 0023     		movs	r3, #0
+ 684 0032 2B70     		strb	r3, [r5]
+ 399:keyboards/planck/keymaps/LohseBoi/keymap.c ****             is_media_active = false;
+ 685              		.loc 1 399 13 is_stmt 1 view .LVU190
+ 686              		.loc 1 399 29 is_stmt 0 view .LVU191
+ 687 0034 2370     		strb	r3, [r4]
+ 688              	.L102:
+ 400:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 401:keyboards/planck/keymaps/LohseBoi/keymap.c ****     }
+ 402:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 403:keyboards/planck/keymaps/LohseBoi/keymap.c ****     #ifdef AUDIO_ENABLE
+ 404:keyboards/planck/keymaps/LohseBoi/keymap.c ****     if (muse_mode) {
+ 689              		.loc 1 404 5 is_stmt 1 view .LVU192
+ 690              		.loc 1 404 9 is_stmt 0 view .LVU193
+ 691 0036 274A     		ldr	r2, .L119+20
+ 405:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (muse_counter == 0) {
+ 692              		.loc 1 405 26 view .LVU194
+ 693 0038 274D     		ldr	r5, .L119+24
+ 404:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (muse_counter == 0) {
+ 694              		.loc 1 404 8 view .LVU195
+ 695 003a 1478     		ldrb	r4, [r2]	@ zero_extendqisi2
+ 696              		.loc 1 405 26 view .LVU196
+ 697 003c 2B88     		ldrh	r3, [r5]
+ 404:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (muse_counter == 0) {
+ 698              		.loc 1 404 8 view .LVU197
+ 699 003e 002C     		cmp	r4, #0
+ 700 0040 37D0     		beq	.L108
+ 701              		.loc 1 405 9 is_stmt 1 view .LVU198
+ 702              		.loc 1 405 12 is_stmt 0 view .LVU199
+ 703 0042 4BBB     		cbnz	r3, .L109
+ 704              	.LBB3:
+ 406:keyboards/planck/keymaps/LohseBoi/keymap.c ****             uint8_t muse_note = muse_offset + SCALE[muse_clock_pulse()];
+ 705              		.loc 1 406 13 is_stmt 1 view .LVU200
+ 706              		.loc 1 406 47 is_stmt 0 view .LVU201
+ 707 0044 254B     		ldr	r3, .L119+28
+ 708 0046 01AA     		add	r2, sp, #4
+ 709 0048 03F12006 		add	r6, r3, #32
+ 710              	.L110:
+ 711 004c 1868     		ldr	r0, [r3]	@ unaligned
+ 712 004e 5968     		ldr	r1, [r3, #4]	@ unaligned
+ 713 0050 1446     		mov	r4, r2
+ 714 0052 03C4     		stmia	r4!, {r0, r1}
+ 715 0054 0833     		adds	r3, r3, #8
+ 716 0056 B342     		cmp	r3, r6
+ 717 0058 2246     		mov	r2, r4
+ 718 005a F7D1     		bne	.L110
+ 719 005c 1988     		ldrh	r1, [r3]	@ unaligned
+ 720 005e 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 721 0060 A370     		strb	r3, [r4, #2]
+ 722 0062 2180     		strh	r1, [r4]	@ unaligned
+ 723              		.loc 1 406 53 view .LVU202
+ 724 0064 FFF7FEFF 		bl	muse_clock_pulse
+ 725              	.LVL60:
+ 726              		.loc 1 406 52 view .LVU203
+ 727 0068 00F12803 		add	r3, r0, #40
+ 728 006c 0DEB0300 		add	r0, sp, r3
+ 729              		.loc 1 406 21 view .LVU204
+ 730 0070 1B4B     		ldr	r3, .L119+32
+ 731 0072 10F8244C 		ldrb	r4, [r0, #-36]	@ zero_extendqisi2
+ 732 0076 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 407:keyboards/planck/keymaps/LohseBoi/keymap.c ****             if (muse_note != last_muse_note) {
+ 733              		.loc 1 407 27 view .LVU205
+ 734 0078 1A4E     		ldr	r6, .L119+36
+ 406:keyboards/planck/keymaps/LohseBoi/keymap.c ****             uint8_t muse_note = muse_offset + SCALE[muse_clock_pulse()];
+ 735              		.loc 1 406 21 view .LVU206
+ 736 007a 1C44     		add	r4, r4, r3
+ 737              		.loc 1 407 27 view .LVU207
+ 738 007c 3078     		ldrb	r0, [r6]	@ zero_extendqisi2
+ 406:keyboards/planck/keymaps/LohseBoi/keymap.c ****             uint8_t muse_note = muse_offset + SCALE[muse_clock_pulse()];
+ 739              		.loc 1 406 21 view .LVU208
+ 740 007e E4B2     		uxtb	r4, r4
+ 741              	.LVL61:
+ 742              		.loc 1 407 13 is_stmt 1 view .LVU209
+ 743              		.loc 1 407 16 is_stmt 0 view .LVU210
+ 744 0080 A042     		cmp	r0, r4
+ 745 0082 09D0     		beq	.L109
+ 408:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 stop_note(compute_freq_for_midi_note(last_muse_note));
+ 746              		.loc 1 408 17 is_stmt 1 view .LVU211
+ 747 0084 FFF7FEFF 		bl	compute_freq_for_midi_note
+ 748              	.LVL62:
+ 749 0088 FFF7FEFF 		bl	audio_stop_tone
+ 750              	.LVL63:
+ 409:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 play_note(compute_freq_for_midi_note(muse_note), 0xF);
+ 751              		.loc 1 409 17 view .LVU212
+ 752 008c 2046     		mov	r0, r4
+ 753 008e FFF7FEFF 		bl	compute_freq_for_midi_note
+ 754              	.LVL64:
+ 755 0092 FFF7FEFF 		bl	audio_play_tone
+ 756              	.LVL65:
+ 410:keyboards/planck/keymaps/LohseBoi/keymap.c ****                 last_muse_note = muse_note;
+ 757              		.loc 1 410 17 view .LVU213
+ 758              		.loc 1 410 32 is_stmt 0 view .LVU214
+ 759 0096 3470     		strb	r4, [r6]
+ 760              	.LVL66:
+ 761              	.L109:
+ 762              		.loc 1 410 32 view .LVU215
+ 763              	.LBE3:
+ 411:keyboards/planck/keymaps/LohseBoi/keymap.c ****             }
+ 412:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 413:keyboards/planck/keymaps/LohseBoi/keymap.c ****         muse_counter = (muse_counter + 1) % muse_tempo;
+ 764              		.loc 1 413 9 is_stmt 1 view .LVU216
+ 765              		.loc 1 413 43 is_stmt 0 view .LVU217
+ 766 0098 134A     		ldr	r2, .L119+40
+ 767              		.loc 1 413 38 view .LVU218
+ 768 009a 2B88     		ldrh	r3, [r5]
+ 769              		.loc 1 413 43 view .LVU219
+ 770 009c 1288     		ldrh	r2, [r2]
+ 771              		.loc 1 413 38 view .LVU220
+ 772 009e 0133     		adds	r3, r3, #1
+ 773              		.loc 1 413 43 view .LVU221
+ 774 00a0 B3FBF2F1 		udiv	r1, r3, r2
+ 775 00a4 02FB1133 		mls	r3, r2, r1, r3
+ 776              		.loc 1 413 22 view .LVU222
+ 777 00a8 2B80     		strh	r3, [r5]	@ movhi
+ 778              	.L100:
+ 414:keyboards/planck/keymaps/LohseBoi/keymap.c ****     } else {
+ 415:keyboards/planck/keymaps/LohseBoi/keymap.c ****         if (muse_counter) {
+ 416:keyboards/planck/keymaps/LohseBoi/keymap.c ****             stop_all_notes();
+ 417:keyboards/planck/keymaps/LohseBoi/keymap.c ****             muse_counter = 0;
+ 418:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 419:keyboards/planck/keymaps/LohseBoi/keymap.c ****     }
+ 420:keyboards/planck/keymaps/LohseBoi/keymap.c ****     #endif
+ 421:keyboards/planck/keymaps/LohseBoi/keymap.c **** }
+ 779              		.loc 1 421 1 view .LVU223
+ 780 00aa 0AB0     		add	sp, sp, #40
+ 781              		.cfi_remember_state
+ 782              		.cfi_def_cfa_offset 16
+ 783              		@ sp needed
+ 784 00ac 70BD     		pop	{r4, r5, r6, pc}
+ 785              	.L105:
+ 786              		.cfi_restore_state
+ 391:keyboards/planck/keymaps/LohseBoi/keymap.c ****                     break;
+ 787              		.loc 1 391 21 is_stmt 1 view .LVU224
+ 788 00ae 0F48     		ldr	r0, .L119+44
+ 789 00b0 BCE7     		b	.L118
+ 790              	.L108:
+ 415:keyboards/planck/keymaps/LohseBoi/keymap.c ****             stop_all_notes();
+ 791              		.loc 1 415 9 view .LVU225
+ 415:keyboards/planck/keymaps/LohseBoi/keymap.c ****             stop_all_notes();
+ 792              		.loc 1 415 12 is_stmt 0 view .LVU226
+ 793 00b2 002B     		cmp	r3, #0
+ 794 00b4 F9D0     		beq	.L100
+ 416:keyboards/planck/keymaps/LohseBoi/keymap.c ****             muse_counter = 0;
+ 795              		.loc 1 416 13 is_stmt 1 view .LVU227
+ 796 00b6 FFF7FEFF 		bl	audio_stop_all
+ 797              	.LVL67:
+ 417:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 798              		.loc 1 417 13 view .LVU228
+ 417:keyboards/planck/keymaps/LohseBoi/keymap.c ****         }
+ 799              		.loc 1 417 26 is_stmt 0 view .LVU229
+ 800 00ba 2C80     		strh	r4, [r5]	@ movhi
+ 801              		.loc 1 421 1 view .LVU230
+ 802 00bc F5E7     		b	.L100
+ 803              	.L120:
+ 804 00be 00BF     		.align	2
+ 805              	.L119:
+ 806 00c0 00000000 		.word	is_media_active
+ 807 00c4 00000000 		.word	media_timer
+ 808 00c8 00000000 		.word	media_counter
+ 809 00cc 08000000 		.word	.LC6
+ 810 00d0 00000000 		.word	.LC4
+ 811 00d4 00000000 		.word	muse_mode
+ 812 00d8 00000000 		.word	muse_counter
+ 813 00dc 00000000 		.word	.LANCHOR0
+ 814 00e0 00000000 		.word	muse_offset
+ 815 00e4 00000000 		.word	last_muse_note
+ 816 00e8 00000000 		.word	muse_tempo
+ 817 00ec 04000000 		.word	.LC5
+ 818              		.cfi_endproc
+ 819              	.LFE345:
+ 821              		.section	.text.music_mask_user,"ax",%progbits
+ 822              		.align	1
+ 823              		.global	music_mask_user
+ 824              		.syntax unified
+ 825              		.thumb
+ 826              		.thumb_func
+ 828              	music_mask_user:
+ 829              	.LVL68:
+ 830              	.LFB346:
+ 422:keyboards/planck/keymaps/LohseBoi/keymap.c **** 
+ 423:keyboards/planck/keymaps/LohseBoi/keymap.c **** bool music_mask_user(uint16_t keycode) {
+ 831              		.loc 1 423 40 is_stmt 1 view -0
+ 832              		.cfi_startproc
+ 833              		@ args = 0, pretend = 0, frame = 0
+ 834              		@ frame_needed = 0, uses_anonymous_args = 0
+ 835              		@ link register save eliminated.
+ 424:keyboards/planck/keymaps/LohseBoi/keymap.c ****   switch (keycode) {
+ 836              		.loc 1 424 3 view .LVU232
+ 837 0000 A0F5A240 		sub	r0, r0, #20736
+ 838              	.LVL69:
+ 839              		.loc 1 424 3 is_stmt 0 view .LVU233
+ 840 0004 0238     		subs	r0, r0, #2
+ 425:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case RAISE:
+ 426:keyboards/planck/keymaps/LohseBoi/keymap.c ****     case LOWER:
+ 427:keyboards/planck/keymaps/LohseBoi/keymap.c ****       return false;
+ 428:keyboards/planck/keymaps/LohseBoi/keymap.c ****     default:
+ 429:keyboards/planck/keymaps/LohseBoi/keymap.c ****       return true;
+ 430:keyboards/planck/keymaps/LohseBoi/keymap.c ****   }
+ 431:keyboards/planck/keymaps/LohseBoi/keymap.c **** }
+ 841              		.loc 1 431 1 view .LVU234
+ 842 0006 0128     		cmp	r0, #1
+ 843 0008 94BF     		ite	ls
+ 844 000a 0020     		movls	r0, #0
+ 845 000c 0120     		movhi	r0, #1
+ 846 000e 7047     		bx	lr
+ 847              		.cfi_endproc
+ 848              	.LFE346:
+ 850              		.section	.bss.play_sound.0,"aw",%nobits
+ 853              	play_sound.0:
+ 854 0000 00       		.space	1
+ 855              		.global	muse_tempo
+ 856              		.section	.data.muse_tempo,"aw"
+ 857              		.align	1
+ 860              	muse_tempo:
+ 861 0000 3200     		.short	50
+ 862              		.global	muse_offset
+ 863              		.section	.data.muse_offset,"aw"
+ 866              	muse_offset:
+ 867 0000 46       		.byte	70
+ 868              		.global	muse_counter
+ 869              		.section	.bss.muse_counter,"aw",%nobits
+ 870              		.align	1
+ 873              	muse_counter:
+ 874 0000 0000     		.space	2
+ 875              		.global	last_muse_note
+ 876              		.section	.bss.last_muse_note,"aw",%nobits
+ 879              	last_muse_note:
+ 880 0000 00       		.space	1
+ 881              		.global	muse_mode
+ 882              		.section	.bss.muse_mode,"aw",%nobits
+ 885              	muse_mode:
+ 886 0000 00       		.space	1
+ 887              		.global	plover_gb_song
+ 888              		.section	.data.plover_gb_song,"aw"
+ 889              		.align	2
+ 892              	plover_gb_song:
+ 893 0000 0AA7CF44 		.word	1154459402
+ 894 0004 00000041 		.word	1090519040
+ 895 0008 0000DC44 		.word	1155268608
+ 896 000c 00000041 		.word	1090519040
+ 897 0010 00000000 		.word	0
+ 898 0014 00008040 		.word	1082130432
+ 899 0018 00005C45 		.word	1163657216
+ 900 001c 00004041 		.word	1094713344
+ 901 0020 00000000 		.word	0
+ 902 0024 00008040 		.word	1082130432
+ 903 0028 52D02445 		.word	1160040530
+ 904 002c 00004041 		.word	1094713344
+ 905              		.global	plover_song
+ 906              		.section	.data.plover_song,"aw"
+ 907              		.align	2
+ 910              	plover_song:
+ 911 0000 0AA7CF44 		.word	1154459402
+ 912 0004 00000041 		.word	1090519040
+ 913 0008 0000DC44 		.word	1155268608
+ 914 000c 00000041 		.word	1090519040
+ 915 0010 00000000 		.word	0
+ 916 0014 00008040 		.word	1082130432
+ 917 0018 52D02445 		.word	1160040530
+ 918 001c 00004041 		.word	1094713344
+ 919 0020 00000000 		.word	0
+ 920 0024 00008040 		.word	1082130432
+ 921 0028 00005C45 		.word	1163657216
+ 922 002c 00004041 		.word	1094713344
+ 923              		.global	keymaps
+ 924              		.section	.rodata.keymaps,"a"
+ 925              		.align	1
+ 928              	keymaps:
+ 929 0000 2D02     		.short	557
+ 930 0002 3300     		.short	51
+ 931 0004 3600     		.short	54
+ 932 0006 3700     		.short	55
+ 933 0008 1300     		.short	19
+ 934 000a 1C00     		.short	28
+ 935 000c 165C     		.short	23574
+ 936 000e 0400     		.short	4
+ 937 0010 1200     		.short	18
+ 938 0012 0800     		.short	8
+ 939 0014 1800     		.short	24
+ 940 0016 0C00     		.short	12
+ 941 0018 2B00     		.short	43
+ 942 001a 6E5D     		.short	23918
+ 943 001c 1400     		.short	20
+ 944 001e 0D00     		.short	13
+ 945 0020 0E00     		.short	14
+ 946 0022 1B00     		.short	27
+ 947 0024 E100     		.short	225
+ 948 0026 E200     		.short	226
+ 949 0028 E000     		.short	224
+ 950 002a 4C00     		.short	76
+ 951 002c 4600     		.short	70
+ 952 002e 2A00     		.short	42
+ 953 0030 0900     		.short	9
+ 954 0032 0A00     		.short	10
+ 955 0034 0600     		.short	6
+ 956 0036 1500     		.short	21
+ 957 0038 0F00     		.short	15
+ 958 003a 2E00     		.short	46
+ 959 003c 0700     		.short	7
+ 960 003e 0B00     		.short	11
+ 961 0040 1700     		.short	23
+ 962 0042 1100     		.short	17
+ 963 0044 1600     		.short	22
+ 964 0046 3800     		.short	56
+ 965 0048 0500     		.short	5
+ 966 004a 1000     		.short	16
+ 967 004c 1A00     		.short	26
+ 968 004e 1900     		.short	25
+ 969 0050 1D00     		.short	29
+ 970 0052 3100     		.short	49
+ 971 0054 2800     		.short	40
+ 972 0056 695D     		.short	23913
+ 973 0058 E600     		.short	230
+ 974 005a E300     		.short	227
+ 975 005c 685D     		.short	23912
+ 976 005e 2C00     		.short	44
+ 977 0060 2D02     		.short	557
+ 978 0062 1400     		.short	20
+ 979 0064 1A00     		.short	26
+ 980 0066 0800     		.short	8
+ 981 0068 1500     		.short	21
+ 982 006a 1700     		.short	23
+ 983 006c 165C     		.short	23574
+ 984 006e 0400     		.short	4
+ 985 0070 1600     		.short	22
+ 986 0072 0700     		.short	7
+ 987 0074 0900     		.short	9
+ 988 0076 0A00     		.short	10
+ 989 0078 2B00     		.short	43
+ 990 007a 1D00     		.short	29
+ 991 007c 1B00     		.short	27
+ 992 007e 0600     		.short	6
+ 993 0080 1900     		.short	25
+ 994 0082 0500     		.short	5
+ 995 0084 E100     		.short	225
+ 996 0086 E200     		.short	226
+ 997 0088 E000     		.short	224
+ 998 008a 4C00     		.short	76
+ 999 008c 4600     		.short	70
+ 1000 008e 2A00     		.short	42
+ 1001 0090 1C00     		.short	28
+ 1002 0092 1800     		.short	24
+ 1003 0094 0C00     		.short	12
+ 1004 0096 1200     		.short	18
+ 1005 0098 1300     		.short	19
+ 1006 009a 2E00     		.short	46
+ 1007 009c 0B00     		.short	11
+ 1008 009e 0D00     		.short	13
+ 1009 00a0 0E00     		.short	14
+ 1010 00a2 0F00     		.short	15
+ 1011 00a4 3300     		.short	51
+ 1012 00a6 3100     		.short	49
+ 1013 00a8 1100     		.short	17
+ 1014 00aa 1000     		.short	16
+ 1015 00ac 3600     		.short	54
+ 1016 00ae 3700     		.short	55
+ 1017 00b0 3800     		.short	56
+ 1018 00b2 3400     		.short	52
+ 1019 00b4 2800     		.short	40
+ 1020 00b6 695D     		.short	23913
+ 1021 00b8 E600     		.short	230
+ 1022 00ba E300     		.short	227
+ 1023 00bc 685D     		.short	23912
+ 1024 00be 2C00     		.short	44
+ 1025 00c0 2D00     		.short	45
+ 1026 00c2 2F02     		.short	559
+ 1027 00c4 2602     		.short	550
+ 1028 00c6 2402     		.short	548
+ 1029 00c8 1E02     		.short	542
+ 1030 00ca 2002     		.short	544
+ 1031 00cc 3500     		.short	53
+ 1032 00ce 2F00     		.short	47
+ 1033 00d0 0000     		.short	0
+ 1034 00d2 0000     		.short	0
+ 1035 00d4 0000     		.short	0
+ 1036 00d6 0000     		.short	0
+ 1037 00d8 2B00     		.short	43
+ 1038 00da 0000     		.short	0
+ 1039 00dc 0000     		.short	0
+ 1040 00de 0000     		.short	0
+ 1041 00e0 0000     		.short	0
+ 1042 00e2 0000     		.short	0
+ 1043 00e4 3962     		.short	25145
+ 1044 00e6 0100     		.short	1
+ 1045 00e8 0100     		.short	1
+ 1046 00ea 0100     		.short	1
+ 1047 00ec 0100     		.short	1
+ 1048 00ee 0100     		.short	1
+ 1049 00f0 2302     		.short	547
+ 1050 00f2 2202     		.short	546
+ 1051 00f4 2502     		.short	549
+ 1052 00f6 2702     		.short	551
+ 1053 00f8 3002     		.short	560
+ 1054 00fa 2E02     		.short	558
+ 1055 00fc 5000     		.short	80
+ 1056 00fe 5100     		.short	81
+ 1057 0100 5200     		.short	82
+ 1058 0102 4F00     		.short	79
+ 1059 0104 3000     		.short	48
+ 1060 0106 1F02     		.short	543
+ 1061 0108 AA00     		.short	170
+ 1062 010a A900     		.short	169
+ 1063 010c BE00     		.short	190
+ 1064 010e BD00     		.short	189
+ 1065 0110 A800     		.short	168
+ 1066 0112 2102     		.short	545
+ 1067 0114 0100     		.short	1
+ 1068 0116 0100     		.short	1
+ 1069 0118 0100     		.short	1
+ 1070 011a 0100     		.short	1
+ 1071 011c 0100     		.short	1
+ 1072 011e 0100     		.short	1
+ 1073 0120 2D00     		.short	45
+ 1074 0122 1E00     		.short	30
+ 1075 0124 1F00     		.short	31
+ 1076 0126 2000     		.short	32
+ 1077 0128 2100     		.short	33
+ 1078 012a 2200     		.short	34
+ 1079 012c 3A00     		.short	58
+ 1080 012e 3B00     		.short	59
+ 1081 0130 3C00     		.short	60
+ 1082 0132 3D00     		.short	61
+ 1083 0134 3E00     		.short	62
+ 1084 0136 3F00     		.short	63
+ 1085 0138 6B5D     		.short	23915
+ 1086 013a AC00     		.short	172
+ 1087 013c AE00     		.short	174
+ 1088 013e AB00     		.short	171
+ 1089 0140 0000     		.short	0
+ 1090 0142 0000     		.short	0
+ 1091 0144 0100     		.short	1
+ 1092 0146 0100     		.short	1
+ 1093 0148 0100     		.short	1
+ 1094 014a 0100     		.short	1
+ 1095 014c 0100     		.short	1
+ 1096 014e 0100     		.short	1
+ 1097 0150 2300     		.short	35
+ 1098 0152 2400     		.short	36
+ 1099 0154 2500     		.short	37
+ 1100 0156 2600     		.short	38
+ 1101 0158 2700     		.short	39
+ 1102 015a 2E02     		.short	558
+ 1103 015c 4000     		.short	64
+ 1104 015e 4100     		.short	65
+ 1105 0160 4200     		.short	66
+ 1106 0162 4300     		.short	67
+ 1107 0164 4400     		.short	68
+ 1108 0166 4500     		.short	69
+ 1109 0168 0000     		.short	0
+ 1110 016a 0000     		.short	0
+ 1111 016c 0000     		.short	0
+ 1112 016e 0000     		.short	0
+ 1113 0170 6C5D     		.short	23916
+ 1114 0172 6D5D     		.short	23917
+ 1115 0174 0100     		.short	1
+ 1116 0176 0100     		.short	1
+ 1117 0178 0100     		.short	1
+ 1118 017a 0100     		.short	1
+ 1119 017c 0100     		.short	1
+ 1120 017e 0100     		.short	1
+ 1121 0180 0000     		.short	0
+ 1122 0182 635D     		.short	23907
+ 1123 0184 645D     		.short	23908
+ 1124 0186 0000     		.short	0
+ 1125 0188 0000     		.short	0
+ 1126 018a 0000     		.short	0
+ 1127 018c 0000     		.short	0
+ 1128 018e 0000     		.short	0
+ 1129 0190 0000     		.short	0
+ 1130 0192 0000     		.short	0
+ 1131 0194 0000     		.short	0
+ 1132 0196 0000     		.short	0
+ 1133 0198 0000     		.short	0
+ 1134 019a 0000     		.short	0
+ 1135 019c 0000     		.short	0
+ 1136 019e 0000     		.short	0
+ 1137 01a0 0000     		.short	0
+ 1138 01a2 0000     		.short	0
+ 1139 01a4 0000     		.short	0
+ 1140 01a6 0000     		.short	0
+ 1141 01a8 0000     		.short	0
+ 1142 01aa 0000     		.short	0
+ 1143 01ac 0000     		.short	0
+ 1144 01ae 0000     		.short	0
+ 1145 01b0 0000     		.short	0
+ 1146 01b2 0000     		.short	0
+ 1147 01b4 0000     		.short	0
+ 1148 01b6 DF5C     		.short	23775
+ 1149 01b8 015C     		.short	23553
+ 1150 01ba 005C     		.short	23552
+ 1151 01bc 0000     		.short	0
+ 1152 01be 0000     		.short	0
+ 1153 01c0 0000     		.short	0
+ 1154 01c2 0000     		.short	0
+ 1155 01c4 0000     		.short	0
+ 1156 01c6 0000     		.short	0
+ 1157 01c8 0000     		.short	0
+ 1158 01ca 0000     		.short	0
+ 1159 01cc 0000     		.short	0
+ 1160 01ce 0000     		.short	0
+ 1161 01d0 0000     		.short	0
+ 1162 01d2 0000     		.short	0
+ 1163 01d4 0100     		.short	1
+ 1164 01d6 0100     		.short	1
+ 1165 01d8 0000     		.short	0
+ 1166 01da 0000     		.short	0
+ 1167 01dc 0100     		.short	1
+ 1168 01de 0100     		.short	1
+ 1169              		.global	media_counter
+ 1170              		.section	.bss.media_counter,"aw",%nobits
+ 1173              	media_counter:
+ 1174 0000 00       		.space	1
+ 1175              		.global	media_timer
+ 1176              		.section	.bss.media_timer,"aw",%nobits
+ 1177              		.align	1
+ 1180              	media_timer:
+ 1181 0000 0000     		.space	2
+ 1182              		.global	is_media_active
+ 1183              		.section	.bss.is_media_active,"aw",%nobits
+ 1186              	is_media_active:
+ 1187 0000 00       		.space	1
+ 1188              		.global	media_time
+ 1189              		.section	.rodata.media_time,"a"
+ 1190              		.align	1
+ 1193              	media_time:
+ 1194 0000 EE02     		.short	750
+ 1195              		.global	alttab_active
+ 1196              		.section	.bss.alttab_active,"aw",%nobits
+ 1199              	alttab_active:
+ 1200 0000 00       		.space	1
+ 1201              		.global	rse_tapped
+ 1202              		.section	.bss.rse_tapped,"aw",%nobits
+ 1205              	rse_tapped:
+ 1206 0000 00       		.space	1
+ 1207              		.global	rse_timer
+ 1208              		.section	.bss.rse_timer,"aw",%nobits
+ 1209              		.align	1
+ 1212              	rse_timer:
+ 1213 0000 0000     		.space	2
+ 1214              		.global	lwr_tapped
+ 1215              		.section	.bss.lwr_tapped,"aw",%nobits
+ 1218              	lwr_tapped:
+ 1219 0000 00       		.space	1
+ 1220              		.global	lwr_timer
+ 1221              		.section	.bss.lwr_timer,"aw",%nobits
+ 1222              		.align	1
+ 1225              	lwr_timer:
+ 1226 0000 0000     		.space	2
+ 1227              		.section	.rodata
+ 1228              		.set	.LANCHOR0,. + 0
+ 1229              	.LC0:
+ 1230 0000 00       		.byte	0
+ 1231 0001 02       		.byte	2
+ 1232 0002 04       		.byte	4
+ 1233 0003 05       		.byte	5
+ 1234 0004 07       		.byte	7
+ 1235 0005 09       		.byte	9
+ 1236 0006 0B       		.byte	11
+ 1237 0007 0C       		.byte	12
+ 1238 0008 0E       		.byte	14
+ 1239 0009 10       		.byte	16
+ 1240 000a 11       		.byte	17
+ 1241 000b 13       		.byte	19
+ 1242 000c 15       		.byte	21
+ 1243 000d 17       		.byte	23
+ 1244 000e 18       		.byte	24
+ 1245 000f 1A       		.byte	26
+ 1246 0010 1C       		.byte	28
+ 1247 0011 1D       		.byte	29
+ 1248 0012 1F       		.byte	31
+ 1249 0013 21       		.byte	33
+ 1250 0014 23       		.byte	35
+ 1251 0015 24       		.byte	36
+ 1252 0016 26       		.byte	38
+ 1253 0017 28       		.byte	40
+ 1254 0018 29       		.byte	41
+ 1255 0019 2B       		.byte	43
+ 1256 001a 2D       		.byte	45
+ 1257 001b 2F       		.byte	47
+ 1258 001c 30       		.byte	48
+ 1259 001d 32       		.byte	50
+ 1260 001e 34       		.byte	52
+ 1261 001f 35       		.byte	53
+ 1262 0020 37       		.byte	55
+ 1263 0021 39       		.byte	57
+ 1264 0022 3B       		.byte	59
+ 1265              		.text
+ 1266              	.Letext0:
+ 1267              		.file 2 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 1268              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1269              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1270              		.file 5 "quantum/keyboard.h"
+ 1271              		.file 6 "quantum/keycode.h"
+ 1272              		.file 7 "quantum/action_code.h"
+ 1273              		.file 8 "quantum/action.h"
+ 1274              		.file 9 "quantum/quantum_keycodes.h"
+ 1275              		.file 10 "quantum/action_layer.h"
+ 1276              		.file 11 "quantum/keymap.h"
+ 1277              		.file 12 "quantum/audio/audio.h"
+ 1278              		.file 13 "quantum/process_keycode/process_audio.h"
+ 1279              		.file 14 "quantum/audio/muse.h"
+ 1280              		.file 15 "quantum/action_util.h"
+ 1281              		.file 16 "tmk_core/common/timer.h"
+ 1282              		.file 17 "quantum/quantum.h"
+ 1283              		.file 18 "quantum/send_string.h"
+ 1284              		.file 19 "quantum/sequencer/sequencer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 keymap.c
+     /tmp/cci4jFJT.s:21     .text.layer_state_set_user:0000000000000000 $t
+     /tmp/cci4jFJT.s:27     .text.layer_state_set_user:0000000000000000 layer_state_set_user
+     /tmp/cci4jFJT.s:54     .text.process_record_user:0000000000000000 $t
+     /tmp/cci4jFJT.s:60     .text.process_record_user:0000000000000000 process_record_user
+     /tmp/cci4jFJT.s:82     .text.process_record_user:0000000000000010 $d
+     /tmp/cci4jFJT.s:94     .text.process_record_user:000000000000001c $t
+     /tmp/cci4jFJT.s:383    .text.process_record_user:000000000000014c $d
+     /tmp/cci4jFJT.s:1186   .bss.is_media_active:0000000000000000 is_media_active
+     /tmp/cci4jFJT.s:1180   .bss.media_timer:0000000000000000 media_timer
+     /tmp/cci4jFJT.s:1173   .bss.media_counter:0000000000000000 media_counter
+     /tmp/cci4jFJT.s:1225   .bss.lwr_timer:0000000000000000 lwr_timer
+     /tmp/cci4jFJT.s:1218   .bss.lwr_tapped:0000000000000000 lwr_tapped
+     /tmp/cci4jFJT.s:1212   .bss.rse_timer:0000000000000000 rse_timer
+     /tmp/cci4jFJT.s:1205   .bss.rse_tapped:0000000000000000 rse_tapped
+     /tmp/cci4jFJT.s:399    .text.encoder_update_user:0000000000000000 $t
+     /tmp/cci4jFJT.s:405    .text.encoder_update_user:0000000000000000 encoder_update_user
+     /tmp/cci4jFJT.s:500    .text.encoder_update_user:0000000000000044 $d
+     /tmp/cci4jFJT.s:885    .bss.muse_mode:0000000000000000 muse_mode
+     /tmp/cci4jFJT.s:866    .data.muse_offset:0000000000000000 muse_offset
+     /tmp/cci4jFJT.s:860    .data.muse_tempo:0000000000000000 muse_tempo
+     /tmp/cci4jFJT.s:507    .text.dip_switch_update_user:0000000000000000 $t
+     /tmp/cci4jFJT.s:513    .text.dip_switch_update_user:0000000000000000 dip_switch_update_user
+     /tmp/cci4jFJT.s:609    .text.dip_switch_update_user:000000000000004c $d
+     /tmp/cci4jFJT.s:853    .bss.play_sound.0:0000000000000000 play_sound.0
+     /tmp/cci4jFJT.s:910    .data.plover_song:0000000000000000 plover_song
+     /tmp/cci4jFJT.s:892    .data.plover_gb_song:0000000000000000 plover_gb_song
+     /tmp/cci4jFJT.s:624    .text.matrix_scan_user:0000000000000000 $t
+     /tmp/cci4jFJT.s:630    .text.matrix_scan_user:0000000000000000 matrix_scan_user
+     /tmp/cci4jFJT.s:806    .text.matrix_scan_user:00000000000000c0 $d
+     /tmp/cci4jFJT.s:873    .bss.muse_counter:0000000000000000 muse_counter
+     /tmp/cci4jFJT.s:879    .bss.last_muse_note:0000000000000000 last_muse_note
+     /tmp/cci4jFJT.s:822    .text.music_mask_user:0000000000000000 $t
+     /tmp/cci4jFJT.s:828    .text.music_mask_user:0000000000000000 music_mask_user
+     /tmp/cci4jFJT.s:854    .bss.play_sound.0:0000000000000000 $d
+     /tmp/cci4jFJT.s:857    .data.muse_tempo:0000000000000000 $d
+     /tmp/cci4jFJT.s:870    .bss.muse_counter:0000000000000000 $d
+     /tmp/cci4jFJT.s:880    .bss.last_muse_note:0000000000000000 $d
+     /tmp/cci4jFJT.s:886    .bss.muse_mode:0000000000000000 $d
+     /tmp/cci4jFJT.s:889    .data.plover_gb_song:0000000000000000 $d
+     /tmp/cci4jFJT.s:907    .data.plover_song:0000000000000000 $d
+     /tmp/cci4jFJT.s:928    .rodata.keymaps:0000000000000000 keymaps
+     /tmp/cci4jFJT.s:925    .rodata.keymaps:0000000000000000 $d
+     /tmp/cci4jFJT.s:1174   .bss.media_counter:0000000000000000 $d
+     /tmp/cci4jFJT.s:1177   .bss.media_timer:0000000000000000 $d
+     /tmp/cci4jFJT.s:1187   .bss.is_media_active:0000000000000000 $d
+     /tmp/cci4jFJT.s:1193   .rodata.media_time:0000000000000000 media_time
+     /tmp/cci4jFJT.s:1190   .rodata.media_time:0000000000000000 $d
+     /tmp/cci4jFJT.s:1199   .bss.alttab_active:0000000000000000 alttab_active
+     /tmp/cci4jFJT.s:1200   .bss.alttab_active:0000000000000000 $d
+     /tmp/cci4jFJT.s:1206   .bss.rse_tapped:0000000000000000 $d
+     /tmp/cci4jFJT.s:1209   .bss.rse_timer:0000000000000000 $d
+     /tmp/cci4jFJT.s:1219   .bss.lwr_tapped:0000000000000000 $d
+     /tmp/cci4jFJT.s:1222   .bss.lwr_timer:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+update_tri_layer_state
+set_single_persistent_default_layer
+register_code
+timer_read
+send_string_P
+layer_on
+update_tri_layer
+timer_elapsed
+layer_off
+unregister_code
+audio_play_tone
+audio_stop_tone
+get_mods
+layer_state_is
+tap_code
+audio_play_melody
+muse_clock_pulse
+compute_freq_for_midi_note
+audio_stop_all

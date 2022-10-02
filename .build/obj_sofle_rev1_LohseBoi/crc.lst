@@ -1,0 +1,199 @@
+   1               		.file	"crc.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.crc_init,"ax",@progbits
+  11               		.weak	crc_init
+  13               	crc_init:
+  14               	.LFB30:
+  15               		.file 1 "quantum/crc.c"
+   1:quantum/crc.c **** /* Copyright 2021 QMK
+   2:quantum/crc.c ****  *
+   3:quantum/crc.c ****  * This program is free software: you can redistribute it and/or modify
+   4:quantum/crc.c ****  * it under the terms of the GNU General Public License as published by
+   5:quantum/crc.c ****  * the Free Software Foundation, either version 2 of the License, or
+   6:quantum/crc.c ****  * (at your option) any later version.
+   7:quantum/crc.c ****  *
+   8:quantum/crc.c ****  * This program is distributed in the hope that it will be useful,
+   9:quantum/crc.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  10:quantum/crc.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  11:quantum/crc.c ****  * GNU General Public License for more details.
+  12:quantum/crc.c ****  *
+  13:quantum/crc.c ****  * You should have received a copy of the GNU General Public License
+  14:quantum/crc.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  15:quantum/crc.c ****  */
+  16:quantum/crc.c **** 
+  17:quantum/crc.c **** #include "crc.h"
+  18:quantum/crc.c **** 
+  19:quantum/crc.c **** __attribute__((weak)) void crc_init(void){
+  16               		.loc 1 19 42 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  20:quantum/crc.c ****     /* Software implementation nothing todo here. */
+  21:quantum/crc.c **** };
+  22               		.loc 1 21 1 view .LVU1
+  23               	/* epilogue start */
+  24 0000 0895      		ret
+  25               		.cfi_endproc
+  26               	.LFE30:
+  28               		.section	.text.crc8,"ax",@progbits
+  29               		.weak	crc8
+  31               	crc8:
+  32               	.LVL0:
+  33               	.LFB31:
+  22:quantum/crc.c **** 
+  23:quantum/crc.c **** #if defined(CRC8_USE_TABLE)
+  24:quantum/crc.c **** /**
+  25:quantum/crc.c ****  * Static table used for the table_driven implementation.
+  26:quantum/crc.c ****  */
+  27:quantum/crc.c **** static const crc_t crc_table[256] = {0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15, 0x38, 0x3f, 0x
+  28:quantum/crc.c ****                                      0x89, 0x8e, 0x87, 0x80, 0x95, 0x92, 0x9b, 0x9c, 0xb1, 0xb6, 0x
+  29:quantum/crc.c **** 
+  30:quantum/crc.c **** __attribute__((weak)) uint8_t crc8(const void *data, size_t data_len) {
+  31:quantum/crc.c ****     const uint8_t *d   = (const uint8_t *)data;
+  32:quantum/crc.c ****     crc_t          crc = 0xff;
+  33:quantum/crc.c ****     size_t         tbl_idx;
+  34:quantum/crc.c **** 
+  35:quantum/crc.c ****     while (data_len--) {
+  36:quantum/crc.c ****         tbl_idx = crc ^ *d;
+  37:quantum/crc.c ****         crc     = crc_table[tbl_idx] & 0xff;
+  38:quantum/crc.c ****         d++;
+  39:quantum/crc.c ****     }
+  40:quantum/crc.c ****     return crc & 0xff;
+  41:quantum/crc.c **** }
+  42:quantum/crc.c **** #else
+  43:quantum/crc.c **** __attribute__((weak)) uint8_t crc8(const void *data, size_t data_len) {
+  34               		.loc 1 43 71 view -0
+  35               		.cfi_startproc
+  36               	/* prologue: function */
+  37               	/* frame size = 0 */
+  38               	/* stack size = 0 */
+  39               	.L__stack_usage = 0
+  44:quantum/crc.c ****     const uint8_t *d   = (const uint8_t *)data;
+  40               		.loc 1 44 5 view .LVU3
+  45:quantum/crc.c ****     crc_t          crc = 0xff;
+  41               		.loc 1 45 5 view .LVU4
+  46:quantum/crc.c ****     size_t         i, j;
+  42               		.loc 1 46 5 view .LVU5
+  47:quantum/crc.c **** 
+  48:quantum/crc.c ****     for (i = 0; i < data_len; i++) {
+  43               		.loc 1 48 5 view .LVU6
+  44               		.loc 1 48 5 is_stmt 0 view .LVU7
+  45 0000 FC01      		movw r30,r24
+  46 0002 680F      		add r22,r24
+  47 0004 791F      		adc r23,r25
+  48               	.LVL1:
+  45:quantum/crc.c ****     size_t         i, j;
+  49               		.loc 1 45 20 view .LVU8
+  50 0006 8FEF      		ldi r24,lo8(-1)
+  51               	.LVL2:
+  49:quantum/crc.c ****         crc ^= d[i];
+  50:quantum/crc.c ****         for (j = 0; j < 8; j++) {
+  51:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  52:quantum/crc.c ****                 crc = (crc_t)((crc << 1) ^ 0x31);
+  52               		.loc 1 52 42 view .LVU9
+  53 0008 91E3      		ldi r25,lo8(49)
+  54               	.LVL3:
+  55               	.L3:
+  48:quantum/crc.c ****         crc ^= d[i];
+  56               		.loc 1 48 19 is_stmt 1 discriminator 1 view .LVU10
+  57 000a 6E17      		cp r22,r30
+  58 000c 7F07      		cpc r23,r31
+  59 000e 01F4      		brne .L7
+  53:quantum/crc.c ****             else
+  54:quantum/crc.c ****                 crc <<= 1;
+  55:quantum/crc.c ****         }
+  56:quantum/crc.c ****     }
+  57:quantum/crc.c ****     return crc;
+  60               		.loc 1 57 5 view .LVU11
+  61               	/* epilogue start */
+  58:quantum/crc.c **** }
+  62               		.loc 1 58 1 is_stmt 0 view .LVU12
+  63 0010 0895      		ret
+  64               	.L7:
+  49:quantum/crc.c ****         for (j = 0; j < 8; j++) {
+  65               		.loc 1 49 9 is_stmt 1 view .LVU13
+  49:quantum/crc.c ****         for (j = 0; j < 8; j++) {
+  66               		.loc 1 49 17 is_stmt 0 view .LVU14
+  67 0012 2191      		ld r18,Z+
+  68               	.LVL4:
+  49:quantum/crc.c ****         for (j = 0; j < 8; j++) {
+  69               		.loc 1 49 13 view .LVU15
+  70 0014 8227      		eor r24,r18
+  71               	.LVL5:
+  50:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  72               		.loc 1 50 9 is_stmt 1 view .LVU16
+  50:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  73               		.loc 1 50 23 view .LVU17
+  49:quantum/crc.c ****         for (j = 0; j < 8; j++) {
+  74               		.loc 1 49 13 is_stmt 0 view .LVU18
+  75 0016 28E0      		ldi r18,lo8(8)
+  76 0018 30E0      		ldi r19,0
+  77               	.LVL6:
+  78               	.L6:
+  51:quantum/crc.c ****                 crc = (crc_t)((crc << 1) ^ 0x31);
+  79               		.loc 1 51 13 is_stmt 1 view .LVU19
+  51:quantum/crc.c ****                 crc = (crc_t)((crc << 1) ^ 0x31);
+  80               		.loc 1 51 16 is_stmt 0 view .LVU20
+  81 001a 87FF      		sbrs r24,7
+  82 001c 00C0      		rjmp .L4
+  52:quantum/crc.c ****             else
+  83               		.loc 1 52 17 is_stmt 1 view .LVU21
+  52:quantum/crc.c ****             else
+  84               		.loc 1 52 36 is_stmt 0 view .LVU22
+  85 001e 880F      		lsl r24
+  86               	.LVL7:
+  52:quantum/crc.c ****             else
+  87               		.loc 1 52 42 view .LVU23
+  88 0020 8927      		eor r24,r25
+  89               	.LVL8:
+  90               	.L5:
+  50:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  91               		.loc 1 50 29 is_stmt 1 discriminator 2 view .LVU24
+  50:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  92               		.loc 1 50 23 discriminator 2 view .LVU25
+  93 0022 2150      		subi r18,1
+  94 0024 3109      		sbc r19,__zero_reg__
+  95               	.LVL9:
+  50:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  96               		.loc 1 50 23 is_stmt 0 discriminator 2 view .LVU26
+  97 0026 01F4      		brne .L6
+  50:quantum/crc.c ****             if ((crc & 0x80) != 0)
+  98               		.loc 1 50 23 discriminator 2 view .LVU27
+  99 0028 00C0      		rjmp .L3
+ 100               	.L4:
+  54:quantum/crc.c ****         }
+ 101               		.loc 1 54 17 is_stmt 1 view .LVU28
+  54:quantum/crc.c ****         }
+ 102               		.loc 1 54 21 is_stmt 0 view .LVU29
+ 103 002a 880F      		lsl r24
+ 104               	.LVL10:
+  54:quantum/crc.c ****         }
+ 105               		.loc 1 54 21 view .LVU30
+ 106 002c 00C0      		rjmp .L5
+ 107               		.cfi_endproc
+ 108               	.LFE31:
+ 110               		.text
+ 111               	.Letext0:
+ 112               		.file 2 "/usr/avr/include/stdint.h"
+ 113               		.file 3 "/usr/lib/gcc/avr/11.3.0/include/stddef.h"
+ 114               		.file 4 "quantum/crc.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 crc.c
+     /tmp/ccweJVx9.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccweJVx9.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccweJVx9.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccweJVx9.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccweJVx9.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccweJVx9.s:13     .text.crc_init:0000000000000000 crc_init
+     /tmp/ccweJVx9.s:31     .text.crc8:0000000000000000 crc8
+
+NO UNDEFINED SYMBOLS

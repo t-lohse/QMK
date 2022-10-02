@@ -1,0 +1,3222 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"audio.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/audio/audio.c"
+  20              		.section	.text.audio_is_on,"ax",%progbits
+  21              		.align	1
+  22              		.global	audio_is_on
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	audio_is_on:
+  28              	.LFB346:
+   1:quantum/audio/audio.c **** /* Copyright 2016-2020 Jack Humbert
+   2:quantum/audio/audio.c ****  * Copyright 2020 JohSchneider
+   3:quantum/audio/audio.c **** 
+   4:quantum/audio/audio.c ****  * This program is free software: you can redistribute it and/or modify
+   5:quantum/audio/audio.c ****  * it under the terms of the GNU General Public License as published by
+   6:quantum/audio/audio.c ****  * the Free Software Foundation, either version 2 of the License, or
+   7:quantum/audio/audio.c ****  * (at your option) any later version.
+   8:quantum/audio/audio.c ****  *
+   9:quantum/audio/audio.c ****  * This program is distributed in the hope that it will be useful,
+  10:quantum/audio/audio.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/audio/audio.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/audio/audio.c ****  * GNU General Public License for more details.
+  13:quantum/audio/audio.c ****  *
+  14:quantum/audio/audio.c ****  * You should have received a copy of the GNU General Public License
+  15:quantum/audio/audio.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/audio/audio.c ****  */
+  17:quantum/audio/audio.c **** #include "audio.h"
+  18:quantum/audio/audio.c **** #include "eeconfig.h"
+  19:quantum/audio/audio.c **** #include "timer.h"
+  20:quantum/audio/audio.c **** #include "wait.h"
+  21:quantum/audio/audio.c **** 
+  22:quantum/audio/audio.c **** /* audio system:
+  23:quantum/audio/audio.c ****  *
+  24:quantum/audio/audio.c ****  * audio.[ch] takes care of all overall state, tracking the actively playing
+  25:quantum/audio/audio.c ****  *            notes/tones; the notes a SONG consists of;
+  26:quantum/audio/audio.c ****  *            ...
+  27:quantum/audio/audio.c ****  *            = everything audio-related that is platform agnostic
+  28:quantum/audio/audio.c ****  *
+  29:quantum/audio/audio.c ****  * driver_[avr|chibios]_[dac|pwm] take care of the lower hardware dependent parts,
+  30:quantum/audio/audio.c ****  *            specific to each platform and the used subsystem/driver to drive
+  31:quantum/audio/audio.c ****  *            the output pins/channels with the calculated frequencies for each
+  32:quantum/audio/audio.c ****  *            active tone
+  33:quantum/audio/audio.c ****  *            as part of this, the driver has to trigger regular state updates by
+  34:quantum/audio/audio.c ****  *            calling 'audio_update_state' through some sort of timer - be it a
+  35:quantum/audio/audio.c ****  *            dedicated one or piggybacking on for example the timer used to
+  36:quantum/audio/audio.c ****  *            generate a pwm signal/clock.
+  37:quantum/audio/audio.c ****  *
+  38:quantum/audio/audio.c ****  *
+  39:quantum/audio/audio.c ****  * A Note on terminology:
+  40:quantum/audio/audio.c ****  * tone, pitch and frequency are used somewhat interchangeably, in a strict Wikipedia-sense:
+  41:quantum/audio/audio.c ****  *    "(Musical) tone, a sound characterized by its duration, pitch (=frequency),
+  42:quantum/audio/audio.c ****  *    intensity (=volume), and timbre"
+  43:quantum/audio/audio.c ****  * - intensity/volume is currently not handled at all, although the 'dac_additive' driver could do 
+  44:quantum/audio/audio.c ****  * - timbre is handled globally (TODO: only used with the pwm drivers at the moment)
+  45:quantum/audio/audio.c ****  *
+  46:quantum/audio/audio.c ****  * in musical_note.h a 'note' is the combination of a pitch and a duration
+  47:quantum/audio/audio.c ****  * these are used to create SONG arrays; during playback their frequencies
+  48:quantum/audio/audio.c ****  * are handled as single successive tones, while the durations are
+  49:quantum/audio/audio.c ****  * kept track of in 'audio_update_state'
+  50:quantum/audio/audio.c ****  *
+  51:quantum/audio/audio.c ****  * 'voice' as it is used here, equates to a sort of instrument with its own
+  52:quantum/audio/audio.c ****  * characteristics sound and effects
+  53:quantum/audio/audio.c ****  * the audio system as-is deals only with (possibly multiple) tones of one
+  54:quantum/audio/audio.c ****  * instrument/voice at a time (think: chords). since the number of tones that
+  55:quantum/audio/audio.c ****  * can be reproduced depends on the hardware/driver in use: pwm can only
+  56:quantum/audio/audio.c ****  * reproduce one tone per output/speaker; DACs can reproduce/mix multiple
+  57:quantum/audio/audio.c ****  * when doing additive synthesis.
+  58:quantum/audio/audio.c ****  *
+  59:quantum/audio/audio.c ****  * 'duration' can either be in the beats-per-minute related unit found in
+  60:quantum/audio/audio.c ****  * musical_notes.h, OR in ms; keyboards create SONGs with the former, while
+  61:quantum/audio/audio.c ****  * the internal state of the audio system does its calculations with the later - ms
+  62:quantum/audio/audio.c ****  */
+  63:quantum/audio/audio.c **** 
+  64:quantum/audio/audio.c **** #ifndef AUDIO_TONE_STACKSIZE
+  65:quantum/audio/audio.c **** #    define AUDIO_TONE_STACKSIZE 8
+  66:quantum/audio/audio.c **** #endif
+  67:quantum/audio/audio.c **** uint8_t        active_tones = 0;             // number of tones pushed onto the stack by audio_play
+  68:quantum/audio/audio.c **** musical_tone_t tones[AUDIO_TONE_STACKSIZE];  // stack of currently active tones
+  69:quantum/audio/audio.c **** 
+  70:quantum/audio/audio.c **** bool playing_melody = false;  // playing a SONG?
+  71:quantum/audio/audio.c **** bool playing_note   = false;  // or (possibly multiple simultaneous) tones
+  72:quantum/audio/audio.c **** bool state_changed  = false;  // global flag, which is set if anything changes with the active_tone
+  73:quantum/audio/audio.c **** 
+  74:quantum/audio/audio.c **** // melody/SONG related state variables
+  75:quantum/audio/audio.c **** float (*notes_pointer)[][2];                            // SONG, an array of MUSICAL_NOTEs
+  76:quantum/audio/audio.c **** uint16_t notes_count;                                   // length of the notes_pointer array
+  77:quantum/audio/audio.c **** bool     notes_repeat;                                  // PLAY_SONG or PLAY_LOOP?
+  78:quantum/audio/audio.c **** uint16_t melody_current_note_duration = 0;              // duration of the currently playing note f
+  79:quantum/audio/audio.c **** uint8_t  note_tempo                   = TEMPO_DEFAULT;  // beats-per-minute
+  80:quantum/audio/audio.c **** uint16_t current_note                 = 0;              // index into the array at notes_pointer
+  81:quantum/audio/audio.c **** bool     note_resting                 = false;          // if a short pause was introduced between 
+  82:quantum/audio/audio.c **** uint16_t last_timestamp               = 0;
+  83:quantum/audio/audio.c **** 
+  84:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+  85:quantum/audio/audio.c **** #    ifndef AUDIO_MAX_SIMULTANEOUS_TONES
+  86:quantum/audio/audio.c **** #        define AUDIO_MAX_SIMULTANEOUS_TONES 3
+  87:quantum/audio/audio.c **** #    endif
+  88:quantum/audio/audio.c **** uint16_t tone_multiplexing_rate        = AUDIO_TONE_MULTIPLEXING_RATE_DEFAULT;
+  89:quantum/audio/audio.c **** uint8_t  tone_multiplexing_index_shift = 0;  // offset used on active-tone array access
+  90:quantum/audio/audio.c **** #endif
+  91:quantum/audio/audio.c **** 
+  92:quantum/audio/audio.c **** // provided and used by voices.c
+  93:quantum/audio/audio.c **** extern uint8_t  note_timbre;
+  94:quantum/audio/audio.c **** extern bool     glissando;
+  95:quantum/audio/audio.c **** extern bool     vibrato;
+  96:quantum/audio/audio.c **** extern uint16_t voices_timer;
+  97:quantum/audio/audio.c **** 
+  98:quantum/audio/audio.c **** #ifndef STARTUP_SONG
+  99:quantum/audio/audio.c **** #    define STARTUP_SONG SONG(STARTUP_SOUND)
+ 100:quantum/audio/audio.c **** #endif
+ 101:quantum/audio/audio.c **** #ifndef AUDIO_ON_SONG
+ 102:quantum/audio/audio.c **** #    define AUDIO_ON_SONG SONG(AUDIO_ON_SOUND)
+ 103:quantum/audio/audio.c **** #endif
+ 104:quantum/audio/audio.c **** #ifndef AUDIO_OFF_SONG
+ 105:quantum/audio/audio.c **** #    define AUDIO_OFF_SONG SONG(AUDIO_OFF_SOUND)
+ 106:quantum/audio/audio.c **** #endif
+ 107:quantum/audio/audio.c **** float startup_song[][2]   = STARTUP_SONG;
+ 108:quantum/audio/audio.c **** float audio_on_song[][2]  = AUDIO_ON_SONG;
+ 109:quantum/audio/audio.c **** float audio_off_song[][2] = AUDIO_OFF_SONG;
+ 110:quantum/audio/audio.c **** 
+ 111:quantum/audio/audio.c **** static bool    audio_initialized    = false;
+ 112:quantum/audio/audio.c **** static bool    audio_driver_stopped = true;
+ 113:quantum/audio/audio.c **** audio_config_t audio_config;
+ 114:quantum/audio/audio.c **** 
+ 115:quantum/audio/audio.c **** void audio_init() {
+ 116:quantum/audio/audio.c ****     if (audio_initialized) {
+ 117:quantum/audio/audio.c ****         return;
+ 118:quantum/audio/audio.c ****     }
+ 119:quantum/audio/audio.c **** 
+ 120:quantum/audio/audio.c ****     // Check EEPROM
+ 121:quantum/audio/audio.c **** #ifdef EEPROM_ENABLE
+ 122:quantum/audio/audio.c ****     if (!eeconfig_is_enabled()) {
+ 123:quantum/audio/audio.c ****         eeconfig_init();
+ 124:quantum/audio/audio.c ****     }
+ 125:quantum/audio/audio.c ****     audio_config.raw = eeconfig_read_audio();
+ 126:quantum/audio/audio.c **** #else  // EEPROM settings
+ 127:quantum/audio/audio.c ****     audio_config.enable        = true;
+ 128:quantum/audio/audio.c **** #    ifdef AUDIO_CLICKY_ON
+ 129:quantum/audio/audio.c ****     audio_config.clicky_enable = true;
+ 130:quantum/audio/audio.c **** #    endif
+ 131:quantum/audio/audio.c **** #endif  // EEPROM settings
+ 132:quantum/audio/audio.c **** 
+ 133:quantum/audio/audio.c ****     for (uint8_t i = 0; i < AUDIO_TONE_STACKSIZE; i++) {
+ 134:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 135:quantum/audio/audio.c ****     }
+ 136:quantum/audio/audio.c **** 
+ 137:quantum/audio/audio.c ****     if (!audio_initialized) {
+ 138:quantum/audio/audio.c ****         audio_driver_initialize();
+ 139:quantum/audio/audio.c ****         audio_initialized = true;
+ 140:quantum/audio/audio.c ****     }
+ 141:quantum/audio/audio.c ****     stop_all_notes();
+ 142:quantum/audio/audio.c **** #ifndef AUDIO_INIT_DELAY
+ 143:quantum/audio/audio.c ****     audio_startup();
+ 144:quantum/audio/audio.c **** #endif
+ 145:quantum/audio/audio.c **** }
+ 146:quantum/audio/audio.c **** 
+ 147:quantum/audio/audio.c **** void audio_startup(void) {
+ 148:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 149:quantum/audio/audio.c ****         PLAY_SONG(startup_song);
+ 150:quantum/audio/audio.c ****     }
+ 151:quantum/audio/audio.c **** 
+ 152:quantum/audio/audio.c ****     last_timestamp = timer_read();
+ 153:quantum/audio/audio.c **** }
+ 154:quantum/audio/audio.c **** 
+ 155:quantum/audio/audio.c **** void audio_toggle(void) {
+ 156:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 157:quantum/audio/audio.c ****         stop_all_notes();
+ 158:quantum/audio/audio.c ****     }
+ 159:quantum/audio/audio.c ****     audio_config.enable ^= 1;
+ 160:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 161:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 162:quantum/audio/audio.c ****         audio_on_user();
+ 163:quantum/audio/audio.c ****     }
+ 164:quantum/audio/audio.c **** }
+ 165:quantum/audio/audio.c **** 
+ 166:quantum/audio/audio.c **** void audio_on(void) {
+ 167:quantum/audio/audio.c ****     audio_config.enable = 1;
+ 168:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 169:quantum/audio/audio.c ****     audio_on_user();
+ 170:quantum/audio/audio.c ****     PLAY_SONG(audio_on_song);
+ 171:quantum/audio/audio.c **** }
+ 172:quantum/audio/audio.c **** 
+ 173:quantum/audio/audio.c **** void audio_off(void) {
+ 174:quantum/audio/audio.c ****     PLAY_SONG(audio_off_song);
+ 175:quantum/audio/audio.c ****     wait_ms(100);
+ 176:quantum/audio/audio.c ****     audio_stop_all();
+ 177:quantum/audio/audio.c ****     audio_config.enable = 0;
+ 178:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 179:quantum/audio/audio.c **** }
+ 180:quantum/audio/audio.c **** 
+ 181:quantum/audio/audio.c **** bool audio_is_on(void) { return (audio_config.enable != 0); }
+  29              		.loc 1 181 24 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34              		.loc 1 181 26 view .LVU1
+  35              		.loc 1 181 54 is_stmt 0 view .LVU2
+  36 0000 024B     		ldr	r3, .L2
+  37 0002 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+  38              		.loc 1 181 61 view .LVU3
+  39 0004 00F00100 		and	r0, r0, #1
+  40 0008 7047     		bx	lr
+  41              	.L3:
+  42 000a 00BF     		.align	2
+  43              	.L2:
+  44 000c 00000000 		.word	audio_config
+  45              		.cfi_endproc
+  46              	.LFE346:
+  48              		.section	.text.audio_stop_all,"ax",%progbits
+  49              		.align	1
+  50              		.global	audio_stop_all
+  51              		.syntax unified
+  52              		.thumb
+  53              		.thumb_func
+  55              	audio_stop_all:
+  56              	.LFB347:
+ 182:quantum/audio/audio.c **** 
+ 183:quantum/audio/audio.c **** void audio_stop_all() {
+  57              		.loc 1 183 23 is_stmt 1 view -0
+  58              		.cfi_startproc
+  59              		@ args = 0, pretend = 0, frame = 0
+  60              		@ frame_needed = 0, uses_anonymous_args = 0
+ 184:quantum/audio/audio.c ****     if (audio_driver_stopped) {
+  61              		.loc 1 184 5 view .LVU5
+ 183:quantum/audio/audio.c ****     if (audio_driver_stopped) {
+  62              		.loc 1 183 23 is_stmt 0 view .LVU6
+  63 0000 38B5     		push	{r3, r4, r5, lr}
+  64              		.cfi_def_cfa_offset 16
+  65              		.cfi_offset 3, -16
+  66              		.cfi_offset 4, -12
+  67              		.cfi_offset 5, -8
+  68              		.cfi_offset 14, -4
+  69              		.loc 1 184 9 view .LVU7
+  70 0002 0D4D     		ldr	r5, .L8
+  71              		.loc 1 184 8 view .LVU8
+  72 0004 2C78     		ldrb	r4, [r5]	@ zero_extendqisi2
+  73 0006 B4B9     		cbnz	r4, .L4
+  74              	.LBB14:
+  75              	.LBI14:
+ 183:quantum/audio/audio.c ****     if (audio_driver_stopped) {
+  76              		.loc 1 183 6 is_stmt 1 view .LVU9
+  77              	.LBB15:
+ 185:quantum/audio/audio.c ****         return;
+ 186:quantum/audio/audio.c ****     }
+ 187:quantum/audio/audio.c **** 
+ 188:quantum/audio/audio.c ****     active_tones = 0;
+  78              		.loc 1 188 5 view .LVU10
+  79              		.loc 1 188 18 is_stmt 0 view .LVU11
+  80 0008 0C4B     		ldr	r3, .L8+4
+  81 000a 1C70     		strb	r4, [r3]
+ 189:quantum/audio/audio.c **** 
+ 190:quantum/audio/audio.c ****     audio_driver_stop();
+  82              		.loc 1 190 5 is_stmt 1 view .LVU12
+  83 000c FFF7FEFF 		bl	audio_driver_stop
+  84              	.LVL0:
+ 191:quantum/audio/audio.c **** 
+ 192:quantum/audio/audio.c ****     playing_melody = false;
+  85              		.loc 1 192 5 view .LVU13
+  86              		.loc 1 192 20 is_stmt 0 view .LVU14
+  87 0010 0B4B     		ldr	r3, .L8+8
+  88              	.LBB16:
+  89              	.LBB17:
+ 193:quantum/audio/audio.c ****     playing_note   = false;
+ 194:quantum/audio/audio.c **** 
+ 195:quantum/audio/audio.c ****     melody_current_note_duration = 0;
+ 196:quantum/audio/audio.c **** 
+ 197:quantum/audio/audio.c ****     for (uint8_t i = 0; i < AUDIO_TONE_STACKSIZE; i++) {
+ 198:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+  90              		.loc 1 198 18 view .LVU15
+  91 0012 0C49     		ldr	r1, .L8+12
+  92              	.LBE17:
+  93              	.LBE16:
+ 192:quantum/audio/audio.c ****     playing_note   = false;
+  94              		.loc 1 192 20 view .LVU16
+  95 0014 1C70     		strb	r4, [r3]
+ 193:quantum/audio/audio.c ****     playing_note   = false;
+  96              		.loc 1 193 5 is_stmt 1 view .LVU17
+ 193:quantum/audio/audio.c ****     playing_note   = false;
+  97              		.loc 1 193 20 is_stmt 0 view .LVU18
+  98 0016 0C4B     		ldr	r3, .L8+16
+  99 0018 1C70     		strb	r4, [r3]
+ 195:quantum/audio/audio.c **** 
+ 100              		.loc 1 195 5 is_stmt 1 view .LVU19
+ 195:quantum/audio/audio.c **** 
+ 101              		.loc 1 195 34 is_stmt 0 view .LVU20
+ 102 001a 0C4B     		ldr	r3, .L8+20
+ 103 001c 1C80     		strh	r4, [r3]	@ movhi
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 104              		.loc 1 197 5 is_stmt 1 view .LVU21
+ 105              	.LBB20:
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 106              		.loc 1 197 10 view .LVU22
+ 107              	.LVL1:
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 108              		.loc 1 197 27 view .LVU23
+ 109 001e 0C4B     		ldr	r3, .L8+24
+ 110              	.LBB18:
+ 111              		.loc 1 198 18 is_stmt 0 view .LVU24
+ 112 0020 2246     		mov	r2, r4
+ 113              	.LVL2:
+ 114              	.L6:
+ 115              		.loc 1 198 9 is_stmt 1 view .LVU25
+ 116              	.LBE18:
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 117              		.loc 1 197 27 is_stmt 0 view .LVU26
+ 118 0022 0634     		adds	r4, r4, #6
+ 119              	.LVL3:
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 120              		.loc 1 197 27 view .LVU27
+ 121 0024 302C     		cmp	r4, #48
+ 122              	.LBB19:
+ 123              		.loc 1 198 18 view .LVU28
+ 124 0026 1A80     		strh	r2, [r3]	@ movhi
+ 125 0028 5960     		str	r1, [r3, #4]	@ float
+ 126 002a 1A81     		strh	r2, [r3, #8]	@ movhi
+ 127              	.LBE19:
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 128              		.loc 1 197 52 is_stmt 1 view .LVU29
+ 129              	.LVL4:
+ 197:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 130              		.loc 1 197 27 view .LVU30
+ 131 002c 03F10C03 		add	r3, r3, #12
+ 132 0030 F7D1     		bne	.L6
+ 133              	.LBE20:
+ 199:quantum/audio/audio.c ****     }
+ 200:quantum/audio/audio.c **** 
+ 201:quantum/audio/audio.c ****     audio_driver_stopped = true;
+ 134              		.loc 1 201 5 view .LVU31
+ 135              		.loc 1 201 26 is_stmt 0 view .LVU32
+ 136 0032 0123     		movs	r3, #1
+ 137 0034 2B70     		strb	r3, [r5]
+ 138              	.L4:
+ 139              	.LBE15:
+ 140              	.LBE14:
+ 202:quantum/audio/audio.c **** }
+ 141              		.loc 1 202 1 view .LVU33
+ 142 0036 38BD     		pop	{r3, r4, r5, pc}
+ 143              	.L9:
+ 144              		.align	2
+ 145              	.L8:
+ 146 0038 00000000 		.word	audio_driver_stopped
+ 147 003c 00000000 		.word	active_tones
+ 148 0040 00000000 		.word	playing_melody
+ 149 0044 000080BF 		.word	-1082130432
+ 150 0048 00000000 		.word	playing_note
+ 151 004c 00000000 		.word	melody_current_note_duration
+ 152 0050 00000000 		.word	tones
+ 153              		.cfi_endproc
+ 154              	.LFE347:
+ 156              		.section	.text.audio_toggle,"ax",%progbits
+ 157              		.align	1
+ 158              		.global	audio_toggle
+ 159              		.syntax unified
+ 160              		.thumb
+ 161              		.thumb_func
+ 163              	audio_toggle:
+ 164              	.LFB343:
+ 155:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 165              		.loc 1 155 25 is_stmt 1 view -0
+ 166              		.cfi_startproc
+ 167              		@ args = 0, pretend = 0, frame = 0
+ 168              		@ frame_needed = 0, uses_anonymous_args = 0
+ 156:quantum/audio/audio.c ****         stop_all_notes();
+ 169              		.loc 1 156 5 view .LVU35
+ 155:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 170              		.loc 1 155 25 is_stmt 0 view .LVU36
+ 171 0000 10B5     		push	{r4, lr}
+ 172              		.cfi_def_cfa_offset 8
+ 173              		.cfi_offset 4, -8
+ 174              		.cfi_offset 14, -4
+ 156:quantum/audio/audio.c ****         stop_all_notes();
+ 175              		.loc 1 156 9 view .LVU37
+ 176 0002 0C4C     		ldr	r4, .L16
+ 177 0004 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 156:quantum/audio/audio.c ****         stop_all_notes();
+ 178              		.loc 1 156 8 view .LVU38
+ 179 0006 DA07     		lsls	r2, r3, #31
+ 180 0008 01D5     		bpl	.L11
+ 157:quantum/audio/audio.c ****     }
+ 181              		.loc 1 157 9 is_stmt 1 view .LVU39
+ 182 000a FFF7FEFF 		bl	audio_stop_all
+ 183              	.LVL5:
+ 184              	.L11:
+ 159:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 185              		.loc 1 159 5 view .LVU40
+ 159:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 186              		.loc 1 159 17 is_stmt 0 view .LVU41
+ 187 000e 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 188 0010 C0F30003 		ubfx	r3, r0, #0, #1
+ 159:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 189              		.loc 1 159 25 view .LVU42
+ 190 0014 83F00103 		eor	r3, r3, #1
+ 191 0018 63F30000 		bfi	r0, r3, #0, #1
+ 192 001c 2070     		strb	r0, [r4]
+ 160:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 193              		.loc 1 160 5 is_stmt 1 view .LVU43
+ 194 001e C0B2     		uxtb	r0, r0
+ 195 0020 FFF7FEFF 		bl	eeconfig_update_audio
+ 196              	.LVL6:
+ 161:quantum/audio/audio.c ****         audio_on_user();
+ 197              		.loc 1 161 5 view .LVU44
+ 161:quantum/audio/audio.c ****         audio_on_user();
+ 198              		.loc 1 161 9 is_stmt 0 view .LVU45
+ 199 0024 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 161:quantum/audio/audio.c ****         audio_on_user();
+ 200              		.loc 1 161 8 view .LVU46
+ 201 0026 DB07     		lsls	r3, r3, #31
+ 202 0028 03D5     		bpl	.L10
+ 162:quantum/audio/audio.c ****     }
+ 203              		.loc 1 162 9 is_stmt 1 view .LVU47
+ 164:quantum/audio/audio.c **** 
+ 204              		.loc 1 164 1 is_stmt 0 view .LVU48
+ 205 002a BDE81040 		pop	{r4, lr}
+ 206              		.cfi_remember_state
+ 207              		.cfi_restore 14
+ 208              		.cfi_restore 4
+ 209              		.cfi_def_cfa_offset 0
+ 162:quantum/audio/audio.c ****     }
+ 210              		.loc 1 162 9 view .LVU49
+ 211 002e FFF7FEBF 		b	audio_on_user
+ 212              	.LVL7:
+ 213              	.L10:
+ 214              		.cfi_restore_state
+ 164:quantum/audio/audio.c **** 
+ 215              		.loc 1 164 1 view .LVU50
+ 216 0032 10BD     		pop	{r4, pc}
+ 217              	.L17:
+ 218              		.align	2
+ 219              	.L16:
+ 220 0034 00000000 		.word	audio_config
+ 221              		.cfi_endproc
+ 222              	.LFE343:
+ 224              		.section	.text.audio_is_playing_note,"ax",%progbits
+ 225              		.align	1
+ 226              		.global	audio_is_playing_note
+ 227              		.syntax unified
+ 228              		.thumb
+ 229              		.thumb_func
+ 231              	audio_is_playing_note:
+ 232              	.LFB353:
+ 203:quantum/audio/audio.c **** 
+ 204:quantum/audio/audio.c **** void audio_stop_tone(float pitch) {
+ 205:quantum/audio/audio.c ****     if (pitch < 0.0f) {
+ 206:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 207:quantum/audio/audio.c ****     }
+ 208:quantum/audio/audio.c **** 
+ 209:quantum/audio/audio.c ****     if (playing_note) {
+ 210:quantum/audio/audio.c ****         if (!audio_initialized) {
+ 211:quantum/audio/audio.c ****             audio_init();
+ 212:quantum/audio/audio.c ****         }
+ 213:quantum/audio/audio.c ****         bool found = false;
+ 214:quantum/audio/audio.c ****         for (int i = AUDIO_TONE_STACKSIZE - 1; i >= 0; i--) {
+ 215:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 216:quantum/audio/audio.c ****             if (found) {
+ 217:quantum/audio/audio.c ****                 tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 218:quantum/audio/audio.c ****                 for (int j = i; (j < AUDIO_TONE_STACKSIZE - 1); j++) {
+ 219:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 220:quantum/audio/audio.c ****                     tones[j + 1] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 
+ 221:quantum/audio/audio.c ****                 }
+ 222:quantum/audio/audio.c ****                 break;
+ 223:quantum/audio/audio.c ****             }
+ 224:quantum/audio/audio.c ****         }
+ 225:quantum/audio/audio.c ****         if (!found) {
+ 226:quantum/audio/audio.c ****             return;
+ 227:quantum/audio/audio.c ****         }
+ 228:quantum/audio/audio.c **** 
+ 229:quantum/audio/audio.c ****         state_changed = true;
+ 230:quantum/audio/audio.c ****         active_tones--;
+ 231:quantum/audio/audio.c ****         if (active_tones < 0) active_tones = 0;
+ 232:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 233:quantum/audio/audio.c ****         if (tone_multiplexing_index_shift >= active_tones) {
+ 234:quantum/audio/audio.c ****             tone_multiplexing_index_shift = 0;
+ 235:quantum/audio/audio.c ****         }
+ 236:quantum/audio/audio.c **** #endif
+ 237:quantum/audio/audio.c ****         if (active_tones == 0) {
+ 238:quantum/audio/audio.c ****             audio_driver_stop();
+ 239:quantum/audio/audio.c ****             audio_driver_stopped = true;
+ 240:quantum/audio/audio.c ****             playing_note         = false;
+ 241:quantum/audio/audio.c ****         }
+ 242:quantum/audio/audio.c ****     }
+ 243:quantum/audio/audio.c **** }
+ 244:quantum/audio/audio.c **** 
+ 245:quantum/audio/audio.c **** void audio_play_note(float pitch, uint16_t duration) {
+ 246:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 247:quantum/audio/audio.c ****         return;
+ 248:quantum/audio/audio.c ****     }
+ 249:quantum/audio/audio.c **** 
+ 250:quantum/audio/audio.c ****     if (!audio_initialized) {
+ 251:quantum/audio/audio.c ****         audio_init();
+ 252:quantum/audio/audio.c ****     }
+ 253:quantum/audio/audio.c **** 
+ 254:quantum/audio/audio.c ****     if (pitch < 0.0f) {
+ 255:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 256:quantum/audio/audio.c ****     }
+ 257:quantum/audio/audio.c **** 
+ 258:quantum/audio/audio.c ****     // round-robin: shifting out old tones, keeping only unique ones
+ 259:quantum/audio/audio.c ****     // if the new frequency is already amongst the active tones, shift it to the top of the stack
+ 260:quantum/audio/audio.c ****     bool found = false;
+ 261:quantum/audio/audio.c ****     for (int i = active_tones - 1; i >= 0; i--) {
+ 262:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 263:quantum/audio/audio.c ****         if (found) {
+ 264:quantum/audio/audio.c ****             for (int j = i; (j < active_tones - 1); j++) {
+ 265:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 266:quantum/audio/audio.c ****                 tones[j + 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .dura
+ 267:quantum/audio/audio.c ****             }
+ 268:quantum/audio/audio.c ****             return;  // since this frequency played already, the hardware was already started
+ 269:quantum/audio/audio.c ****         }
+ 270:quantum/audio/audio.c ****     }
+ 271:quantum/audio/audio.c **** 
+ 272:quantum/audio/audio.c ****     // frequency/tone is actually new, so we put it on the top of the stack
+ 273:quantum/audio/audio.c ****     active_tones++;
+ 274:quantum/audio/audio.c ****     if (active_tones > AUDIO_TONE_STACKSIZE) {
+ 275:quantum/audio/audio.c ****         active_tones = AUDIO_TONE_STACKSIZE;
+ 276:quantum/audio/audio.c ****         // shift out the oldest tone to make room
+ 277:quantum/audio/audio.c ****         for (int i = 0; i < active_tones - 1; i++) {
+ 278:quantum/audio/audio.c ****             tones[i] = tones[i + 1];
+ 279:quantum/audio/audio.c ****         }
+ 280:quantum/audio/audio.c ****     }
+ 281:quantum/audio/audio.c ****     state_changed           = true;
+ 282:quantum/audio/audio.c ****     playing_note            = true;
+ 283:quantum/audio/audio.c ****     tones[active_tones - 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .durat
+ 284:quantum/audio/audio.c **** 
+ 285:quantum/audio/audio.c ****     // TODO: needs to be handled per note/tone -> use its timestamp instead?
+ 286:quantum/audio/audio.c ****     voices_timer = timer_read();  // reset to zero, for the effects added by voices.c
+ 287:quantum/audio/audio.c **** 
+ 288:quantum/audio/audio.c ****     if (audio_driver_stopped) {
+ 289:quantum/audio/audio.c ****         audio_driver_start();
+ 290:quantum/audio/audio.c ****         audio_driver_stopped = false;
+ 291:quantum/audio/audio.c ****     }
+ 292:quantum/audio/audio.c **** }
+ 293:quantum/audio/audio.c **** 
+ 294:quantum/audio/audio.c **** void audio_play_tone(float pitch) { audio_play_note(pitch, 0xffff); }
+ 295:quantum/audio/audio.c **** 
+ 296:quantum/audio/audio.c **** void audio_play_melody(float (*np)[][2], uint16_t n_count, bool n_repeat) {
+ 297:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 298:quantum/audio/audio.c ****         audio_stop_all();
+ 299:quantum/audio/audio.c ****         return;
+ 300:quantum/audio/audio.c ****     }
+ 301:quantum/audio/audio.c **** 
+ 302:quantum/audio/audio.c ****     if (!audio_initialized) {
+ 303:quantum/audio/audio.c ****         audio_init();
+ 304:quantum/audio/audio.c ****     }
+ 305:quantum/audio/audio.c **** 
+ 306:quantum/audio/audio.c ****     // Cancel note if a note is playing
+ 307:quantum/audio/audio.c ****     if (playing_note) audio_stop_all();
+ 308:quantum/audio/audio.c **** 
+ 309:quantum/audio/audio.c ****     playing_melody = true;
+ 310:quantum/audio/audio.c ****     note_resting   = false;
+ 311:quantum/audio/audio.c **** 
+ 312:quantum/audio/audio.c ****     notes_pointer = np;
+ 313:quantum/audio/audio.c ****     notes_count   = n_count;
+ 314:quantum/audio/audio.c ****     notes_repeat  = n_repeat;
+ 315:quantum/audio/audio.c **** 
+ 316:quantum/audio/audio.c ****     current_note = 0;  // note in the melody-array/list at note_pointer
+ 317:quantum/audio/audio.c **** 
+ 318:quantum/audio/audio.c ****     // start first note manually, which also starts the audio_driver
+ 319:quantum/audio/audio.c ****     // all following/remaining notes are played by 'audio_update_state'
+ 320:quantum/audio/audio.c ****     audio_play_note((*notes_pointer)[current_note][0], audio_duration_to_ms((*notes_pointer)[curren
+ 321:quantum/audio/audio.c ****     last_timestamp               = timer_read();
+ 322:quantum/audio/audio.c ****     melody_current_note_duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 323:quantum/audio/audio.c **** }
+ 324:quantum/audio/audio.c **** 
+ 325:quantum/audio/audio.c **** float click[2][2];
+ 326:quantum/audio/audio.c **** void  audio_play_click(uint16_t delay, float pitch, uint16_t duration) {
+ 327:quantum/audio/audio.c ****     uint16_t duration_tone  = audio_ms_to_duration(duration);
+ 328:quantum/audio/audio.c ****     uint16_t duration_delay = audio_ms_to_duration(delay);
+ 329:quantum/audio/audio.c **** 
+ 330:quantum/audio/audio.c ****     if (delay <= 0.0f) {
+ 331:quantum/audio/audio.c ****         click[0][0] = pitch;
+ 332:quantum/audio/audio.c ****         click[0][1] = duration_tone;
+ 333:quantum/audio/audio.c ****         click[1][0] = 0.0f;
+ 334:quantum/audio/audio.c ****         click[1][1] = 0.0f;
+ 335:quantum/audio/audio.c ****         audio_play_melody(&click, 1, false);
+ 336:quantum/audio/audio.c ****     } else {
+ 337:quantum/audio/audio.c ****         // first note is a rest/pause
+ 338:quantum/audio/audio.c ****         click[0][0] = 0.0f;
+ 339:quantum/audio/audio.c ****         click[0][1] = duration_delay;
+ 340:quantum/audio/audio.c ****         // second note is the actual click
+ 341:quantum/audio/audio.c ****         click[1][0] = pitch;
+ 342:quantum/audio/audio.c ****         click[1][1] = duration_tone;
+ 343:quantum/audio/audio.c ****         audio_play_melody(&click, 2, false);
+ 344:quantum/audio/audio.c ****     }
+ 345:quantum/audio/audio.c **** }
+ 346:quantum/audio/audio.c **** 
+ 347:quantum/audio/audio.c **** bool audio_is_playing_note(void) { return playing_note; }
+ 233              		.loc 1 347 34 is_stmt 1 view -0
+ 234              		.cfi_startproc
+ 235              		@ args = 0, pretend = 0, frame = 0
+ 236              		@ frame_needed = 0, uses_anonymous_args = 0
+ 237              		@ link register save eliminated.
+ 238              		.loc 1 347 36 view .LVU52
+ 239              		.loc 1 347 57 is_stmt 0 view .LVU53
+ 240 0000 014B     		ldr	r3, .L19
+ 241 0002 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 242 0004 7047     		bx	lr
+ 243              	.L20:
+ 244 0006 00BF     		.align	2
+ 245              	.L19:
+ 246 0008 00000000 		.word	playing_note
+ 247              		.cfi_endproc
+ 248              	.LFE353:
+ 250              		.section	.text.audio_is_playing_melody,"ax",%progbits
+ 251              		.align	1
+ 252              		.global	audio_is_playing_melody
+ 253              		.syntax unified
+ 254              		.thumb
+ 255              		.thumb_func
+ 257              	audio_is_playing_melody:
+ 258              	.LFB354:
+ 348:quantum/audio/audio.c **** 
+ 349:quantum/audio/audio.c **** bool audio_is_playing_melody(void) { return playing_melody; }
+ 259              		.loc 1 349 36 is_stmt 1 view -0
+ 260              		.cfi_startproc
+ 261              		@ args = 0, pretend = 0, frame = 0
+ 262              		@ frame_needed = 0, uses_anonymous_args = 0
+ 263              		@ link register save eliminated.
+ 264              		.loc 1 349 38 view .LVU55
+ 265              		.loc 1 349 61 is_stmt 0 view .LVU56
+ 266 0000 014B     		ldr	r3, .L22
+ 267 0002 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 268 0004 7047     		bx	lr
+ 269              	.L23:
+ 270 0006 00BF     		.align	2
+ 271              	.L22:
+ 272 0008 00000000 		.word	playing_melody
+ 273              		.cfi_endproc
+ 274              	.LFE354:
+ 276              		.section	.text.audio_get_number_of_active_tones,"ax",%progbits
+ 277              		.align	1
+ 278              		.global	audio_get_number_of_active_tones
+ 279              		.syntax unified
+ 280              		.thumb
+ 281              		.thumb_func
+ 283              	audio_get_number_of_active_tones:
+ 284              	.LFB355:
+ 350:quantum/audio/audio.c **** 
+ 351:quantum/audio/audio.c **** uint8_t audio_get_number_of_active_tones(void) { return active_tones; }
+ 285              		.loc 1 351 48 is_stmt 1 view -0
+ 286              		.cfi_startproc
+ 287              		@ args = 0, pretend = 0, frame = 0
+ 288              		@ frame_needed = 0, uses_anonymous_args = 0
+ 289              		@ link register save eliminated.
+ 290              		.loc 1 351 50 view .LVU58
+ 291              		.loc 1 351 71 is_stmt 0 view .LVU59
+ 292 0000 014B     		ldr	r3, .L25
+ 293 0002 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 294 0004 7047     		bx	lr
+ 295              	.L26:
+ 296 0006 00BF     		.align	2
+ 297              	.L25:
+ 298 0008 00000000 		.word	active_tones
+ 299              		.cfi_endproc
+ 300              	.LFE355:
+ 302              		.section	.text.audio_get_frequency,"ax",%progbits
+ 303              		.align	1
+ 304              		.global	audio_get_frequency
+ 305              		.syntax unified
+ 306              		.thumb
+ 307              		.thumb_func
+ 309              	audio_get_frequency:
+ 310              	.LVL8:
+ 311              	.LFB356:
+ 352:quantum/audio/audio.c **** 
+ 353:quantum/audio/audio.c **** float audio_get_frequency(uint8_t tone_index) {
+ 312              		.loc 1 353 47 is_stmt 1 view -0
+ 313              		.cfi_startproc
+ 314              		@ args = 0, pretend = 0, frame = 0
+ 315              		@ frame_needed = 0, uses_anonymous_args = 0
+ 316              		@ link register save eliminated.
+ 354:quantum/audio/audio.c ****     if (tone_index >= active_tones) {
+ 317              		.loc 1 354 5 view .LVU61
+ 318              		.loc 1 354 20 is_stmt 0 view .LVU62
+ 319 0000 084B     		ldr	r3, .L30
+ 320 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 321              		.loc 1 354 8 view .LVU63
+ 322 0004 8342     		cmp	r3, r0
+ 355:quantum/audio/audio.c ****         return 0.0f;
+ 356:quantum/audio/audio.c ****     }
+ 357:quantum/audio/audio.c ****     return tones[active_tones - tone_index - 1].pitch;
+ 323              		.loc 1 357 5 is_stmt 1 view .LVU64
+ 324              		.loc 1 357 31 is_stmt 0 view .LVU65
+ 325 0006 81BF     		itttt	hi
+ 326 0008 1B1A     		subhi	r3, r3, r0
+ 327              		.loc 1 357 48 view .LVU66
+ 328 000a 074A     		ldrhi	r2, .L30+4
+ 329 000c 03F1FF33 		addhi	r3, r3, #-1
+ 330 0010 0C21     		movhi	r1, #12
+ 331 0012 86BF     		itte	hi
+ 332 0014 01FB0323 		mlahi	r3, r1, r3, r2
+ 333 0018 93ED010A 		vldrhi.32	s0, [r3, #4]
+ 355:quantum/audio/audio.c ****         return 0.0f;
+ 334              		.loc 1 355 16 view .LVU67
+ 335 001c 9FED030A 		vldrls.32	s0, .L30+8
+ 358:quantum/audio/audio.c **** }
+ 336              		.loc 1 358 1 view .LVU68
+ 337 0020 7047     		bx	lr
+ 338              	.L31:
+ 339 0022 00BF     		.align	2
+ 340              	.L30:
+ 341 0024 00000000 		.word	active_tones
+ 342 0028 00000000 		.word	tones
+ 343 002c 00000000 		.word	0
+ 344              		.cfi_endproc
+ 345              	.LFE356:
+ 347              		.section	.text.audio_get_processed_frequency,"ax",%progbits
+ 348              		.align	1
+ 349              		.global	audio_get_processed_frequency
+ 350              		.syntax unified
+ 351              		.thumb
+ 352              		.thumb_func
+ 354              	audio_get_processed_frequency:
+ 355              	.LVL9:
+ 356              	.LFB357:
+ 359:quantum/audio/audio.c **** 
+ 360:quantum/audio/audio.c **** float audio_get_processed_frequency(uint8_t tone_index) {
+ 357              		.loc 1 360 57 is_stmt 1 view -0
+ 358              		.cfi_startproc
+ 359              		@ args = 0, pretend = 0, frame = 0
+ 360              		@ frame_needed = 0, uses_anonymous_args = 0
+ 361              		@ link register save eliminated.
+ 361:quantum/audio/audio.c ****     if (tone_index >= active_tones) {
+ 362              		.loc 1 361 5 view .LVU70
+ 363              		.loc 1 361 20 is_stmt 0 view .LVU71
+ 364 0000 0B4B     		ldr	r3, .L36
+ 365 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 366              		.loc 1 361 8 view .LVU72
+ 367 0004 8342     		cmp	r3, r0
+ 368 0006 0FD9     		bls	.L32
+ 362:quantum/audio/audio.c ****         return 0.0f;
+ 363:quantum/audio/audio.c ****     }
+ 364:quantum/audio/audio.c **** 
+ 365:quantum/audio/audio.c ****     int8_t index = active_tones - tone_index - 1;
+ 369              		.loc 1 365 5 is_stmt 1 view .LVU73
+ 370              	.LVL10:
+ 366:quantum/audio/audio.c ****     // new tones are stacked on top (= appended at the end), so the most recent/current is MAX-1
+ 367:quantum/audio/audio.c **** 
+ 368:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 369:quantum/audio/audio.c ****     index = index - tone_multiplexing_index_shift;
+ 370:quantum/audio/audio.c ****     if (index < 0)  // wrap around
+ 371:quantum/audio/audio.c ****         index += active_tones;
+ 372:quantum/audio/audio.c **** #endif
+ 373:quantum/audio/audio.c **** 
+ 374:quantum/audio/audio.c ****     if (tones[index].pitch <= 0.0f) {
+ 371              		.loc 1 374 5 view .LVU74
+ 365:quantum/audio/audio.c ****     // new tones are stacked on top (= appended at the end), so the most recent/current is MAX-1
+ 372              		.loc 1 365 46 is_stmt 0 view .LVU75
+ 373 0008 013B     		subs	r3, r3, #1
+ 374              	.LVL11:
+ 375              		.loc 1 374 21 view .LVU76
+ 376 000a 0A4A     		ldr	r2, .L36+4
+ 365:quantum/audio/audio.c ****     // new tones are stacked on top (= appended at the end), so the most recent/current is MAX-1
+ 377              		.loc 1 365 46 view .LVU77
+ 378 000c 1B1A     		subs	r3, r3, r0
+ 379              	.LVL12:
+ 380              		.loc 1 374 21 view .LVU78
+ 381 000e 5BB2     		sxtb	r3, r3
+ 382 0010 0C21     		movs	r1, #12
+ 383 0012 01FB0323 		mla	r3, r1, r3, r2
+ 384 0016 93ED010A 		vldr.32	s0, [r3, #4]
+ 385              		.loc 1 374 8 view .LVU79
+ 386 001a B5EEC00A 		vcmpe.f32	s0, #0
+ 387 001e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 388 0022 01D9     		bls	.L32
+ 375:quantum/audio/audio.c ****         return 0.0f;
+ 376:quantum/audio/audio.c ****     }
+ 377:quantum/audio/audio.c **** 
+ 378:quantum/audio/audio.c ****     return voice_envelope(tones[index].pitch);
+ 389              		.loc 1 378 5 is_stmt 1 view .LVU80
+ 390              		.loc 1 378 12 is_stmt 0 view .LVU81
+ 391 0024 FFF7FEBF 		b	voice_envelope
+ 392              	.LVL13:
+ 393              	.L32:
+ 379:quantum/audio/audio.c **** }
+ 394              		.loc 1 379 1 view .LVU82
+ 395 0028 9FED030A 		vldr.32	s0, .L36+8
+ 396 002c 7047     		bx	lr
+ 397              	.L37:
+ 398 002e 00BF     		.align	2
+ 399              	.L36:
+ 400 0030 00000000 		.word	active_tones
+ 401 0034 00000000 		.word	tones
+ 402 0038 00000000 		.word	0
+ 403              		.cfi_endproc
+ 404              	.LFE357:
+ 406              		.section	.text.audio_set_tempo,"ax",%progbits
+ 407              		.align	1
+ 408              		.global	audio_set_tempo
+ 409              		.syntax unified
+ 410              		.thumb
+ 411              		.thumb_func
+ 413              	audio_set_tempo:
+ 414              	.LVL14:
+ 415              	.LFB359:
+ 380:quantum/audio/audio.c **** 
+ 381:quantum/audio/audio.c **** bool audio_update_state(void) {
+ 382:quantum/audio/audio.c ****     if (!playing_note && !playing_melody) {
+ 383:quantum/audio/audio.c ****         return false;
+ 384:quantum/audio/audio.c ****     }
+ 385:quantum/audio/audio.c **** 
+ 386:quantum/audio/audio.c ****     bool     goto_next_note = false;
+ 387:quantum/audio/audio.c ****     uint16_t current_time   = timer_read();
+ 388:quantum/audio/audio.c **** 
+ 389:quantum/audio/audio.c ****     if (playing_melody) {
+ 390:quantum/audio/audio.c ****         goto_next_note = timer_elapsed(last_timestamp) >= melody_current_note_duration;
+ 391:quantum/audio/audio.c ****         if (goto_next_note) {
+ 392:quantum/audio/audio.c ****             uint16_t delta         = timer_elapsed(last_timestamp) - melody_current_note_duration;
+ 393:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 394:quantum/audio/audio.c ****             uint16_t previous_note = current_note;
+ 395:quantum/audio/audio.c ****             current_note++;
+ 396:quantum/audio/audio.c ****             voices_timer = timer_read();  // reset to zero, for the effects added by voices.c
+ 397:quantum/audio/audio.c **** 
+ 398:quantum/audio/audio.c ****             if (current_note >= notes_count) {
+ 399:quantum/audio/audio.c ****                 if (notes_repeat) {
+ 400:quantum/audio/audio.c ****                     current_note = 0;
+ 401:quantum/audio/audio.c ****                 } else {
+ 402:quantum/audio/audio.c ****                     audio_stop_all();
+ 403:quantum/audio/audio.c ****                     return false;
+ 404:quantum/audio/audio.c ****                 }
+ 405:quantum/audio/audio.c ****             }
+ 406:quantum/audio/audio.c **** 
+ 407:quantum/audio/audio.c ****             if (!note_resting && (*notes_pointer)[previous_note][0] == (*notes_pointer)[current_not
+ 408:quantum/audio/audio.c ****                 note_resting = true;
+ 409:quantum/audio/audio.c **** 
+ 410:quantum/audio/audio.c ****                 // special handling for successive notes of the same frequency:
+ 411:quantum/audio/audio.c ****                 // insert a short pause to separate them audibly
+ 412:quantum/audio/audio.c ****                 audio_play_note(0.0f, audio_duration_to_ms(2));
+ 413:quantum/audio/audio.c ****                 current_note                 = previous_note;
+ 414:quantum/audio/audio.c ****                 melody_current_note_duration = audio_duration_to_ms(2);
+ 415:quantum/audio/audio.c **** 
+ 416:quantum/audio/audio.c ****             } else {
+ 417:quantum/audio/audio.c ****                 note_resting = false;
+ 418:quantum/audio/audio.c **** 
+ 419:quantum/audio/audio.c ****                 // TODO: handle glissando here (or remember previous and current tone)
+ 420:quantum/audio/audio.c ****                 /* there would need to be a freq(here we are) -> freq(next note)
+ 421:quantum/audio/audio.c ****                  * and do slide/glissando in between problem here is to know which
+ 422:quantum/audio/audio.c ****                  * frequency on the stack relates to what other? e.g. a melody starts
+ 423:quantum/audio/audio.c ****                  * tones in a sequence, and stops expiring one, so the most recently
+ 424:quantum/audio/audio.c ****                  * stopped is the starting point for a glissando to the most recently started?
+ 425:quantum/audio/audio.c ****                  * how to detect and preserve this relation?
+ 426:quantum/audio/audio.c ****                  * and what about user input, chords, ...?
+ 427:quantum/audio/audio.c ****                  */
+ 428:quantum/audio/audio.c **** 
+ 429:quantum/audio/audio.c ****                 // '- delta': Skip forward in the next note's length if we've over shot
+ 430:quantum/audio/audio.c ****                 //            the last, so the overall length of the song is the same
+ 431:quantum/audio/audio.c ****                 uint16_t duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 432:quantum/audio/audio.c **** 
+ 433:quantum/audio/audio.c ****                 // Skip forward past any completely missed notes
+ 434:quantum/audio/audio.c ****                 while (delta > duration && current_note < notes_count - 1) {
+ 435:quantum/audio/audio.c ****                     delta -= duration;
+ 436:quantum/audio/audio.c ****                     current_note++;
+ 437:quantum/audio/audio.c ****                     duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 438:quantum/audio/audio.c ****                 }
+ 439:quantum/audio/audio.c **** 
+ 440:quantum/audio/audio.c ****                 if (delta < duration) {
+ 441:quantum/audio/audio.c ****                     duration -= delta;
+ 442:quantum/audio/audio.c ****                 } else {
+ 443:quantum/audio/audio.c ****                     // Only way to get here is if it is the last note and
+ 444:quantum/audio/audio.c ****                     // we have completely missed it. Play it for 1ms...
+ 445:quantum/audio/audio.c ****                     duration = 1;
+ 446:quantum/audio/audio.c ****                 }
+ 447:quantum/audio/audio.c **** 
+ 448:quantum/audio/audio.c ****                 audio_play_note((*notes_pointer)[current_note][0], duration);
+ 449:quantum/audio/audio.c ****                 melody_current_note_duration = duration;
+ 450:quantum/audio/audio.c ****             }
+ 451:quantum/audio/audio.c ****         }
+ 452:quantum/audio/audio.c ****     }
+ 453:quantum/audio/audio.c **** 
+ 454:quantum/audio/audio.c ****     if (playing_note) {
+ 455:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 456:quantum/audio/audio.c ****         tone_multiplexing_index_shift = (int)(current_time / tone_multiplexing_rate) % MIN(AUDIO_MA
+ 457:quantum/audio/audio.c ****         goto_next_note                = true;
+ 458:quantum/audio/audio.c **** #endif
+ 459:quantum/audio/audio.c ****         if (vibrato || glissando) {
+ 460:quantum/audio/audio.c ****             // force update on each cycle, since vibrato shifts the frequency slightly
+ 461:quantum/audio/audio.c ****             goto_next_note = true;
+ 462:quantum/audio/audio.c ****         }
+ 463:quantum/audio/audio.c **** 
+ 464:quantum/audio/audio.c ****         // housekeeping: stop notes that have no playtime left
+ 465:quantum/audio/audio.c ****         for (int i = 0; i < active_tones; i++) {
+ 466:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 467:quantum/audio/audio.c ****                 && (tones[i].duration != 0)    // 'uninitialized'
+ 468:quantum/audio/audio.c ****             ) {
+ 469:quantum/audio/audio.c ****                 if (timer_elapsed(tones[i].time_started) >= tones[i].duration) {
+ 470:quantum/audio/audio.c ****                     audio_stop_tone(tones[i].pitch);  // also sets 'state_changed=true'
+ 471:quantum/audio/audio.c ****                 }
+ 472:quantum/audio/audio.c ****             }
+ 473:quantum/audio/audio.c ****         }
+ 474:quantum/audio/audio.c ****     }
+ 475:quantum/audio/audio.c **** 
+ 476:quantum/audio/audio.c ****     // state-changes have a higher priority, always triggering the hardware to update
+ 477:quantum/audio/audio.c ****     if (state_changed) {
+ 478:quantum/audio/audio.c ****         state_changed = false;
+ 479:quantum/audio/audio.c ****         return true;
+ 480:quantum/audio/audio.c ****     }
+ 481:quantum/audio/audio.c **** 
+ 482:quantum/audio/audio.c ****     return goto_next_note;
+ 483:quantum/audio/audio.c **** }
+ 484:quantum/audio/audio.c **** 
+ 485:quantum/audio/audio.c **** // Tone-multiplexing functions
+ 486:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 487:quantum/audio/audio.c **** void audio_set_tone_multiplexing_rate(uint16_t rate) { tone_multiplexing_rate = rate; }
+ 488:quantum/audio/audio.c **** void audio_enable_tone_multiplexing(void) { tone_multiplexing_rate = AUDIO_TONE_MULTIPLEXING_RATE_D
+ 489:quantum/audio/audio.c **** void audio_disable_tone_multiplexing(void) { tone_multiplexing_rate = 0; }
+ 490:quantum/audio/audio.c **** void audio_increase_tone_multiplexing_rate(uint16_t change) {
+ 491:quantum/audio/audio.c ****     if ((0xffff - change) > tone_multiplexing_rate) {
+ 492:quantum/audio/audio.c ****         tone_multiplexing_rate += change;
+ 493:quantum/audio/audio.c ****     }
+ 494:quantum/audio/audio.c **** }
+ 495:quantum/audio/audio.c **** void audio_decrease_tone_multiplexing_rate(uint16_t change) {
+ 496:quantum/audio/audio.c ****     if (change <= tone_multiplexing_rate) {
+ 497:quantum/audio/audio.c ****         tone_multiplexing_rate -= change;
+ 498:quantum/audio/audio.c ****     }
+ 499:quantum/audio/audio.c **** }
+ 500:quantum/audio/audio.c **** #endif
+ 501:quantum/audio/audio.c **** 
+ 502:quantum/audio/audio.c **** // Tempo functions
+ 503:quantum/audio/audio.c **** 
+ 504:quantum/audio/audio.c **** void audio_set_tempo(uint8_t tempo) {
+ 416              		.loc 1 504 37 is_stmt 1 view -0
+ 417              		.cfi_startproc
+ 418              		@ args = 0, pretend = 0, frame = 0
+ 419              		@ frame_needed = 0, uses_anonymous_args = 0
+ 420              		@ link register save eliminated.
+ 505:quantum/audio/audio.c ****     if (tempo < 10) note_tempo = 10;
+ 421              		.loc 1 505 5 view .LVU84
+ 422 0000 024B     		ldr	r3, .L39
+ 423              		.loc 1 505 8 is_stmt 0 view .LVU85
+ 424 0002 0A28     		cmp	r0, #10
+ 425 0004 38BF     		it	cc
+ 426 0006 0A20     		movcc	r0, #10
+ 427              	.LVL15:
+ 428              		.loc 1 505 8 view .LVU86
+ 429 0008 1870     		strb	r0, [r3]
+ 506:quantum/audio/audio.c ****     //  else if (tempo > 250)
+ 507:quantum/audio/audio.c ****     //      note_tempo = 250;
+ 508:quantum/audio/audio.c ****     else
+ 509:quantum/audio/audio.c ****         note_tempo = tempo;
+ 510:quantum/audio/audio.c **** }
+ 430              		.loc 1 510 1 view .LVU87
+ 431 000a 7047     		bx	lr
+ 432              	.L40:
+ 433              		.align	2
+ 434              	.L39:
+ 435 000c 00000000 		.word	note_tempo
+ 436              		.cfi_endproc
+ 437              	.LFE359:
+ 439              		.section	.text.audio_increase_tempo,"ax",%progbits
+ 440              		.align	1
+ 441              		.global	audio_increase_tempo
+ 442              		.syntax unified
+ 443              		.thumb
+ 444              		.thumb_func
+ 446              	audio_increase_tempo:
+ 447              	.LVL16:
+ 448              	.LFB360:
+ 511:quantum/audio/audio.c **** 
+ 512:quantum/audio/audio.c **** void audio_increase_tempo(uint8_t tempo_change) {
+ 449              		.loc 1 512 49 is_stmt 1 view -0
+ 450              		.cfi_startproc
+ 451              		@ args = 0, pretend = 0, frame = 0
+ 452              		@ frame_needed = 0, uses_anonymous_args = 0
+ 453              		@ link register save eliminated.
+ 513:quantum/audio/audio.c ****     if (tempo_change > 255 - note_tempo)
+ 454              		.loc 1 513 5 view .LVU89
+ 455              		.loc 1 513 28 is_stmt 0 view .LVU90
+ 456 0000 054A     		ldr	r2, .L44
+ 457 0002 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 458 0004 C3F1FF01 		rsb	r1, r3, #255
+ 459              		.loc 1 513 8 view .LVU91
+ 460 0008 8842     		cmp	r0, r1
+ 514:quantum/audio/audio.c ****         note_tempo = 255;
+ 515:quantum/audio/audio.c ****     else
+ 516:quantum/audio/audio.c ****         note_tempo += tempo_change;
+ 461              		.loc 1 516 9 is_stmt 1 view .LVU92
+ 462              		.loc 1 516 20 is_stmt 0 view .LVU93
+ 463 000a DABF     		itte	le
+ 464 000c C018     		addle	r0, r0, r3
+ 465              	.LVL17:
+ 466              		.loc 1 516 20 view .LVU94
+ 467 000e C0B2     		uxtble	r0, r0
+ 514:quantum/audio/audio.c ****         note_tempo = 255;
+ 468              		.loc 1 514 20 view .LVU95
+ 469 0010 FF20     		movgt	r0, #255
+ 470 0012 1070     		strb	r0, [r2]
+ 517:quantum/audio/audio.c **** }
+ 471              		.loc 1 517 1 view .LVU96
+ 472 0014 7047     		bx	lr
+ 473              	.L45:
+ 474 0016 00BF     		.align	2
+ 475              	.L44:
+ 476 0018 00000000 		.word	note_tempo
+ 477              		.cfi_endproc
+ 478              	.LFE360:
+ 480              		.section	.text.audio_decrease_tempo,"ax",%progbits
+ 481              		.align	1
+ 482              		.global	audio_decrease_tempo
+ 483              		.syntax unified
+ 484              		.thumb
+ 485              		.thumb_func
+ 487              	audio_decrease_tempo:
+ 488              	.LVL18:
+ 489              	.LFB361:
+ 518:quantum/audio/audio.c **** 
+ 519:quantum/audio/audio.c **** void audio_decrease_tempo(uint8_t tempo_change) {
+ 490              		.loc 1 519 49 is_stmt 1 view -0
+ 491              		.cfi_startproc
+ 492              		@ args = 0, pretend = 0, frame = 0
+ 493              		@ frame_needed = 0, uses_anonymous_args = 0
+ 494              		@ link register save eliminated.
+ 520:quantum/audio/audio.c ****     if (tempo_change >= note_tempo - 10)
+ 495              		.loc 1 520 5 view .LVU98
+ 496              		.loc 1 520 36 is_stmt 0 view .LVU99
+ 497 0000 054A     		ldr	r2, .L49
+ 498 0002 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 499 0004 A3F10A01 		sub	r1, r3, #10
+ 500              		.loc 1 520 8 view .LVU100
+ 501 0008 8842     		cmp	r0, r1
+ 521:quantum/audio/audio.c ****         note_tempo = 10;
+ 522:quantum/audio/audio.c ****     else
+ 523:quantum/audio/audio.c ****         note_tempo -= tempo_change;
+ 502              		.loc 1 523 9 is_stmt 1 view .LVU101
+ 503              		.loc 1 523 20 is_stmt 0 view .LVU102
+ 504 000a BABF     		itte	lt
+ 505 000c 181A     		sublt	r0, r3, r0
+ 506              	.LVL19:
+ 507              		.loc 1 523 20 view .LVU103
+ 508 000e C0B2     		uxtblt	r0, r0
+ 521:quantum/audio/audio.c ****         note_tempo = 10;
+ 509              		.loc 1 521 20 view .LVU104
+ 510 0010 0A20     		movge	r0, #10
+ 511 0012 1070     		strb	r0, [r2]
+ 524:quantum/audio/audio.c **** }
+ 512              		.loc 1 524 1 view .LVU105
+ 513 0014 7047     		bx	lr
+ 514              	.L50:
+ 515 0016 00BF     		.align	2
+ 516              	.L49:
+ 517 0018 00000000 		.word	note_tempo
+ 518              		.cfi_endproc
+ 519              	.LFE361:
+ 521              		.section	.text.audio_duration_to_ms,"ax",%progbits
+ 522              		.align	1
+ 523              		.global	audio_duration_to_ms
+ 524              		.syntax unified
+ 525              		.thumb
+ 526              		.thumb_func
+ 528              	audio_duration_to_ms:
+ 529              	.LVL20:
+ 530              	.LFB362:
+ 525:quantum/audio/audio.c **** 
+ 526:quantum/audio/audio.c **** // TODO in the int-math version are some bugs; songs sometimes abruptly end - maybe an issue with t
+ 527:quantum/audio/audio.c **** uint16_t audio_duration_to_ms(uint16_t duration_bpm) {
+ 531              		.loc 1 527 54 is_stmt 1 view -0
+ 532              		.cfi_startproc
+ 533              		@ args = 0, pretend = 0, frame = 0
+ 534              		@ frame_needed = 0, uses_anonymous_args = 0
+ 535              		@ link register save eliminated.
+ 528:quantum/audio/audio.c **** #if defined(__AVR__)
+ 529:quantum/audio/audio.c ****     // doing int-math saves us some bytes in the overall firmware size, but the intermediate result
+ 530:quantum/audio/audio.c ****     return ((uint32_t)duration_bpm * 60 * 1000) / (64 * note_tempo);
+ 531:quantum/audio/audio.c ****     // NOTE: beware of uint16_t overflows when note_tempo is low and/or the duration is long
+ 532:quantum/audio/audio.c **** #else
+ 533:quantum/audio/audio.c ****     return ((float)duration_bpm * 60) / (64 * note_tempo) * 1000;
+ 536              		.loc 1 533 5 view .LVU107
+ 537              		.loc 1 533 45 is_stmt 0 view .LVU108
+ 538 0000 0D4B     		ldr	r3, .L52
+ 539              		.loc 1 533 33 view .LVU109
+ 540 0002 DFED0E7A 		vldr.32	s15, .L52+4
+ 541              		.loc 1 533 45 view .LVU110
+ 542 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 527:quantum/audio/audio.c **** #if defined(__AVR__)
+ 543              		.loc 1 527 54 view .LVU111
+ 544 0008 06EE900A 		vmov	s13, r0	@ int
+ 545              		.loc 1 533 13 view .LVU112
+ 546 000c F8EE666A 		vcvt.f32.u32	s13, s13
+ 547              		.loc 1 533 45 view .LVU113
+ 548 0010 9B01     		lsls	r3, r3, #6
+ 549              		.loc 1 533 33 view .LVU114
+ 550 0012 66EEA76A 		vmul.f32	s13, s13, s15
+ 551              		.loc 1 533 39 view .LVU115
+ 552 0016 07EE903A 		vmov	s15, r3	@ int
+ 553 001a B8EEE77A 		vcvt.f32.s32	s14, s15
+ 554 001e C6EE877A 		vdiv.f32	s15, s13, s14
+ 555              		.loc 1 533 59 view .LVU116
+ 556 0022 9FED077A 		vldr.32	s14, .L52+8
+ 557 0026 67EE877A 		vmul.f32	s15, s15, s14
+ 558 002a FCEEE77A 		vcvt.u32.f32	s15, s15
+ 534:quantum/audio/audio.c **** #endif
+ 535:quantum/audio/audio.c **** }
+ 559              		.loc 1 535 1 view .LVU117
+ 560 002e 17EE903A 		vmov	r3, s15	@ int
+ 561 0032 98B2     		uxth	r0, r3
+ 562              	.LVL21:
+ 563              		.loc 1 535 1 view .LVU118
+ 564 0034 7047     		bx	lr
+ 565              	.L53:
+ 566 0036 00BF     		.align	2
+ 567              	.L52:
+ 568 0038 00000000 		.word	note_tempo
+ 569 003c 00007042 		.word	1114636288
+ 570 0040 00007A44 		.word	1148846080
+ 571              		.cfi_endproc
+ 572              	.LFE362:
+ 574              		.section	.text.audio_play_melody,"ax",%progbits
+ 575              		.align	1
+ 576              		.global	audio_play_melody
+ 577              		.syntax unified
+ 578              		.thumb
+ 579              		.thumb_func
+ 581              	audio_play_melody:
+ 582              	.LVL22:
+ 583              	.LFB351:
+ 296:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 584              		.loc 1 296 75 is_stmt 1 view -0
+ 585              		.cfi_startproc
+ 586              		@ args = 0, pretend = 0, frame = 0
+ 587              		@ frame_needed = 0, uses_anonymous_args = 0
+ 297:quantum/audio/audio.c ****         audio_stop_all();
+ 588              		.loc 1 297 5 view .LVU120
+ 296:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 589              		.loc 1 296 75 is_stmt 0 view .LVU121
+ 590 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 591              		.cfi_def_cfa_offset 24
+ 592              		.cfi_offset 3, -24
+ 593              		.cfi_offset 4, -20
+ 594              		.cfi_offset 5, -16
+ 595              		.cfi_offset 6, -12
+ 596              		.cfi_offset 7, -8
+ 597              		.cfi_offset 14, -4
+ 297:quantum/audio/audio.c ****         audio_stop_all();
+ 598              		.loc 1 297 22 view .LVU122
+ 599 0002 224B     		ldr	r3, .L61
+ 600 0004 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 297:quantum/audio/audio.c ****         audio_stop_all();
+ 601              		.loc 1 297 8 view .LVU123
+ 602 0006 DB07     		lsls	r3, r3, #31
+ 296:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 603              		.loc 1 296 75 view .LVU124
+ 604 0008 0446     		mov	r4, r0
+ 605 000a 0E46     		mov	r6, r1
+ 606 000c 1546     		mov	r5, r2
+ 297:quantum/audio/audio.c ****         audio_stop_all();
+ 607              		.loc 1 297 8 view .LVU125
+ 608 000e 03D4     		bmi	.L55
+ 298:quantum/audio/audio.c ****         return;
+ 609              		.loc 1 298 9 is_stmt 1 view .LVU126
+ 323:quantum/audio/audio.c **** 
+ 610              		.loc 1 323 1 is_stmt 0 view .LVU127
+ 611 0010 BDE8F840 		pop	{r3, r4, r5, r6, r7, lr}
+ 612              		.cfi_remember_state
+ 613              		.cfi_restore 14
+ 614              		.cfi_restore 7
+ 615              		.cfi_restore 6
+ 616              		.cfi_restore 5
+ 617              		.cfi_restore 4
+ 618              		.cfi_restore 3
+ 619              		.cfi_def_cfa_offset 0
+ 298:quantum/audio/audio.c ****         return;
+ 620              		.loc 1 298 9 view .LVU128
+ 621 0014 FFF7FEBF 		b	audio_stop_all
+ 622              	.LVL23:
+ 623              	.L55:
+ 624              		.cfi_restore_state
+ 302:quantum/audio/audio.c ****         audio_init();
+ 625              		.loc 1 302 5 is_stmt 1 view .LVU129
+ 302:quantum/audio/audio.c ****         audio_init();
+ 626              		.loc 1 302 9 is_stmt 0 view .LVU130
+ 627 0018 1D4B     		ldr	r3, .L61+4
+ 302:quantum/audio/audio.c ****         audio_init();
+ 628              		.loc 1 302 8 view .LVU131
+ 629 001a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 630 001c 0BB9     		cbnz	r3, .L56
+ 303:quantum/audio/audio.c ****     }
+ 631              		.loc 1 303 9 is_stmt 1 view .LVU132
+ 632 001e FFF7FEFF 		bl	audio_init
+ 633              	.LVL24:
+ 634              	.L56:
+ 307:quantum/audio/audio.c **** 
+ 635              		.loc 1 307 5 view .LVU133
+ 307:quantum/audio/audio.c **** 
+ 636              		.loc 1 307 9 is_stmt 0 view .LVU134
+ 637 0022 1C4B     		ldr	r3, .L61+8
+ 307:quantum/audio/audio.c **** 
+ 638              		.loc 1 307 8 view .LVU135
+ 639 0024 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 640 0026 0BB1     		cbz	r3, .L57
+ 307:quantum/audio/audio.c **** 
+ 641              		.loc 1 307 23 is_stmt 1 discriminator 1 view .LVU136
+ 642 0028 FFF7FEFF 		bl	audio_stop_all
+ 643              	.LVL25:
+ 644              	.L57:
+ 309:quantum/audio/audio.c ****     note_resting   = false;
+ 645              		.loc 1 309 5 view .LVU137
+ 309:quantum/audio/audio.c ****     note_resting   = false;
+ 646              		.loc 1 309 20 is_stmt 0 view .LVU138
+ 647 002c 1A4B     		ldr	r3, .L61+12
+ 320:quantum/audio/audio.c ****     last_timestamp               = timer_read();
+ 648              		.loc 1 320 5 view .LVU139
+ 649 002e D4ED017A 		vldr.32	s15, [r4, #4]
+ 312:quantum/audio/audio.c ****     notes_count   = n_count;
+ 650              		.loc 1 312 19 view .LVU140
+ 651 0032 1A4F     		ldr	r7, .L61+16
+ 320:quantum/audio/audio.c ****     last_timestamp               = timer_read();
+ 652              		.loc 1 320 5 view .LVU141
+ 653 0034 94ED000A 		vldr.32	s0, [r4]
+ 312:quantum/audio/audio.c ****     notes_count   = n_count;
+ 654              		.loc 1 312 19 view .LVU142
+ 655 0038 3C60     		str	r4, [r7]
+ 309:quantum/audio/audio.c ****     note_resting   = false;
+ 656              		.loc 1 309 20 view .LVU143
+ 657 003a 0122     		movs	r2, #1
+ 658 003c 1A70     		strb	r2, [r3]
+ 310:quantum/audio/audio.c **** 
+ 659              		.loc 1 310 5 is_stmt 1 view .LVU144
+ 310:quantum/audio/audio.c **** 
+ 660              		.loc 1 310 20 is_stmt 0 view .LVU145
+ 661 003e 184A     		ldr	r2, .L61+20
+ 662 0040 0023     		movs	r3, #0
+ 663 0042 1370     		strb	r3, [r2]
+ 312:quantum/audio/audio.c ****     notes_count   = n_count;
+ 664              		.loc 1 312 5 is_stmt 1 view .LVU146
+ 313:quantum/audio/audio.c ****     notes_repeat  = n_repeat;
+ 665              		.loc 1 313 5 view .LVU147
+ 313:quantum/audio/audio.c ****     notes_repeat  = n_repeat;
+ 666              		.loc 1 313 19 is_stmt 0 view .LVU148
+ 667 0044 174A     		ldr	r2, .L61+24
+ 668 0046 1680     		strh	r6, [r2]	@ movhi
+ 314:quantum/audio/audio.c **** 
+ 669              		.loc 1 314 5 is_stmt 1 view .LVU149
+ 314:quantum/audio/audio.c **** 
+ 670              		.loc 1 314 19 is_stmt 0 view .LVU150
+ 671 0048 174A     		ldr	r2, .L61+28
+ 320:quantum/audio/audio.c ****     last_timestamp               = timer_read();
+ 672              		.loc 1 320 5 view .LVU151
+ 673 004a FCEEE77A 		vcvt.u32.f32	s15, s15
+ 314:quantum/audio/audio.c **** 
+ 674              		.loc 1 314 19 view .LVU152
+ 675 004e 1570     		strb	r5, [r2]
+ 316:quantum/audio/audio.c **** 
+ 676              		.loc 1 316 5 is_stmt 1 view .LVU153
+ 316:quantum/audio/audio.c **** 
+ 677              		.loc 1 316 18 is_stmt 0 view .LVU154
+ 678 0050 164D     		ldr	r5, .L61+32
+ 679 0052 2B80     		strh	r3, [r5]	@ movhi
+ 320:quantum/audio/audio.c ****     last_timestamp               = timer_read();
+ 680              		.loc 1 320 5 is_stmt 1 view .LVU155
+ 681 0054 17EE903A 		vmov	r3, s15	@ int
+ 682 0058 98B2     		uxth	r0, r3
+ 683 005a FFF7FEFF 		bl	audio_duration_to_ms
+ 684              	.LVL26:
+ 685 005e FFF7FEFF 		bl	audio_play_note
+ 686              	.LVL27:
+ 321:quantum/audio/audio.c ****     melody_current_note_duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 687              		.loc 1 321 5 view .LVU156
+ 321:quantum/audio/audio.c ****     melody_current_note_duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 688              		.loc 1 321 36 is_stmt 0 view .LVU157
+ 689 0062 FFF7FEFF 		bl	timer_read
+ 690              	.LVL28:
+ 321:quantum/audio/audio.c ****     melody_current_note_duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 691              		.loc 1 321 34 view .LVU158
+ 692 0066 124B     		ldr	r3, .L61+36
+ 322:quantum/audio/audio.c **** }
+ 693              		.loc 1 322 87 view .LVU159
+ 694 0068 2A88     		ldrh	r2, [r5]
+ 321:quantum/audio/audio.c ****     melody_current_note_duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 695              		.loc 1 321 34 view .LVU160
+ 696 006a 1880     		strh	r0, [r3]	@ movhi
+ 322:quantum/audio/audio.c **** }
+ 697              		.loc 1 322 5 is_stmt 1 view .LVU161
+ 322:quantum/audio/audio.c **** }
+ 698              		.loc 1 322 87 is_stmt 0 view .LVU162
+ 699 006c 3B68     		ldr	r3, [r7]
+ 700 006e 03EBC203 		add	r3, r3, r2, lsl #3
+ 322:quantum/audio/audio.c **** }
+ 701              		.loc 1 322 36 view .LVU163
+ 702 0072 D3ED017A 		vldr.32	s15, [r3, #4]
+ 703 0076 FCEEE77A 		vcvt.u32.f32	s15, s15
+ 704 007a 17EE903A 		vmov	r3, s15	@ int
+ 705 007e 98B2     		uxth	r0, r3
+ 706 0080 FFF7FEFF 		bl	audio_duration_to_ms
+ 707              	.LVL29:
+ 322:quantum/audio/audio.c **** }
+ 708              		.loc 1 322 34 view .LVU164
+ 709 0084 0B4B     		ldr	r3, .L61+40
+ 710 0086 1880     		strh	r0, [r3]	@ movhi
+ 323:quantum/audio/audio.c **** 
+ 711              		.loc 1 323 1 view .LVU165
+ 712 0088 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 713              	.LVL30:
+ 714              	.L62:
+ 323:quantum/audio/audio.c **** 
+ 715              		.loc 1 323 1 view .LVU166
+ 716 008a 00BF     		.align	2
+ 717              	.L61:
+ 718 008c 00000000 		.word	audio_config
+ 719 0090 00000000 		.word	audio_initialized
+ 720 0094 00000000 		.word	playing_note
+ 721 0098 00000000 		.word	playing_melody
+ 722 009c 00000000 		.word	notes_pointer
+ 723 00a0 00000000 		.word	note_resting
+ 724 00a4 00000000 		.word	notes_count
+ 725 00a8 00000000 		.word	notes_repeat
+ 726 00ac 00000000 		.word	current_note
+ 727 00b0 00000000 		.word	last_timestamp
+ 728 00b4 00000000 		.word	melody_current_note_duration
+ 729              		.cfi_endproc
+ 730              	.LFE351:
+ 732              		.section	.text.audio_startup,"ax",%progbits
+ 733              		.align	1
+ 734              		.global	audio_startup
+ 735              		.syntax unified
+ 736              		.thumb
+ 737              		.thumb_func
+ 739              	audio_startup:
+ 740              	.LFB342:
+ 147:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 741              		.loc 1 147 26 is_stmt 1 view -0
+ 742              		.cfi_startproc
+ 743              		@ args = 0, pretend = 0, frame = 0
+ 744              		@ frame_needed = 0, uses_anonymous_args = 0
+ 148:quantum/audio/audio.c ****         PLAY_SONG(startup_song);
+ 745              		.loc 1 148 5 view .LVU168
+ 147:quantum/audio/audio.c ****     if (audio_config.enable) {
+ 746              		.loc 1 147 26 is_stmt 0 view .LVU169
+ 747 0000 08B5     		push	{r3, lr}
+ 748              		.cfi_def_cfa_offset 8
+ 749              		.cfi_offset 3, -8
+ 750              		.cfi_offset 14, -4
+ 148:quantum/audio/audio.c ****         PLAY_SONG(startup_song);
+ 751              		.loc 1 148 9 view .LVU170
+ 752 0002 074B     		ldr	r3, .L68
+ 753 0004 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 148:quantum/audio/audio.c ****         PLAY_SONG(startup_song);
+ 754              		.loc 1 148 8 view .LVU171
+ 755 0006 DB07     		lsls	r3, r3, #31
+ 756 0008 04D5     		bpl	.L64
+ 149:quantum/audio/audio.c ****     }
+ 757              		.loc 1 149 9 is_stmt 1 view .LVU172
+ 758 000a 0022     		movs	r2, #0
+ 759 000c 0548     		ldr	r0, .L68+4
+ 760 000e 1146     		mov	r1, r2
+ 761 0010 FFF7FEFF 		bl	audio_play_melody
+ 762              	.LVL31:
+ 763              	.L64:
+ 152:quantum/audio/audio.c **** }
+ 764              		.loc 1 152 5 view .LVU173
+ 152:quantum/audio/audio.c **** }
+ 765              		.loc 1 152 22 is_stmt 0 view .LVU174
+ 766 0014 FFF7FEFF 		bl	timer_read
+ 767              	.LVL32:
+ 152:quantum/audio/audio.c **** }
+ 768              		.loc 1 152 20 view .LVU175
+ 769 0018 034B     		ldr	r3, .L68+8
+ 770 001a 1880     		strh	r0, [r3]	@ movhi
+ 153:quantum/audio/audio.c **** 
+ 771              		.loc 1 153 1 view .LVU176
+ 772 001c 08BD     		pop	{r3, pc}
+ 773              	.L69:
+ 774 001e 00BF     		.align	2
+ 775              	.L68:
+ 776 0020 00000000 		.word	audio_config
+ 777 0024 00000000 		.word	startup_song
+ 778 0028 00000000 		.word	last_timestamp
+ 779              		.cfi_endproc
+ 780              	.LFE342:
+ 782              		.section	.text.audio_init,"ax",%progbits
+ 783              		.align	1
+ 784              		.global	audio_init
+ 785              		.syntax unified
+ 786              		.thumb
+ 787              		.thumb_func
+ 789              	audio_init:
+ 790              	.LFB341:
+ 115:quantum/audio/audio.c ****     if (audio_initialized) {
+ 791              		.loc 1 115 19 is_stmt 1 view -0
+ 792              		.cfi_startproc
+ 793              		@ args = 0, pretend = 0, frame = 0
+ 794              		@ frame_needed = 0, uses_anonymous_args = 0
+ 116:quantum/audio/audio.c ****         return;
+ 795              		.loc 1 116 5 view .LVU178
+ 115:quantum/audio/audio.c ****     if (audio_initialized) {
+ 796              		.loc 1 115 19 is_stmt 0 view .LVU179
+ 797 0000 10B5     		push	{r4, lr}
+ 798              		.cfi_def_cfa_offset 8
+ 799              		.cfi_offset 4, -8
+ 800              		.cfi_offset 14, -4
+ 116:quantum/audio/audio.c ****         return;
+ 801              		.loc 1 116 9 view .LVU180
+ 802 0002 124C     		ldr	r4, .L76
+ 116:quantum/audio/audio.c ****         return;
+ 803              		.loc 1 116 8 view .LVU181
+ 804 0004 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 805 0006 03BB     		cbnz	r3, .L70
+ 806              	.LBB25:
+ 807              	.LBI25:
+ 115:quantum/audio/audio.c ****     if (audio_initialized) {
+ 808              		.loc 1 115 6 is_stmt 1 view .LVU182
+ 809              	.LBB26:
+ 122:quantum/audio/audio.c ****         eeconfig_init();
+ 810              		.loc 1 122 5 view .LVU183
+ 122:quantum/audio/audio.c ****         eeconfig_init();
+ 811              		.loc 1 122 10 is_stmt 0 view .LVU184
+ 812 0008 FFF7FEFF 		bl	eeconfig_is_enabled
+ 813              	.LVL33:
+ 122:quantum/audio/audio.c ****         eeconfig_init();
+ 814              		.loc 1 122 8 view .LVU185
+ 815 000c 08B9     		cbnz	r0, .L72
+ 123:quantum/audio/audio.c ****     }
+ 816              		.loc 1 123 9 is_stmt 1 view .LVU186
+ 817 000e FFF7FEFF 		bl	eeconfig_init
+ 818              	.LVL34:
+ 819              	.L72:
+ 125:quantum/audio/audio.c **** #else  // EEPROM settings
+ 820              		.loc 1 125 5 view .LVU187
+ 125:quantum/audio/audio.c **** #else  // EEPROM settings
+ 821              		.loc 1 125 24 is_stmt 0 view .LVU188
+ 822 0012 FFF7FEFF 		bl	eeconfig_read_audio
+ 823              	.LVL35:
+ 125:quantum/audio/audio.c **** #else  // EEPROM settings
+ 824              		.loc 1 125 22 view .LVU189
+ 825 0016 0E4B     		ldr	r3, .L76+4
+ 826 0018 0022     		movs	r2, #0
+ 827 001a 1870     		strb	r0, [r3]
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 828              		.loc 1 133 5 is_stmt 1 view .LVU190
+ 829              	.LBB27:
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 830              		.loc 1 133 10 view .LVU191
+ 831              	.LVL36:
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 832              		.loc 1 133 27 view .LVU192
+ 833 001c 0D4B     		ldr	r3, .L76+8
+ 834              	.LBB28:
+ 134:quantum/audio/audio.c ****     }
+ 835              		.loc 1 134 18 is_stmt 0 view .LVU193
+ 836 001e 0E48     		ldr	r0, .L76+12
+ 837 0020 1146     		mov	r1, r2
+ 838              	.LVL37:
+ 839              	.L73:
+ 134:quantum/audio/audio.c ****     }
+ 840              		.loc 1 134 9 is_stmt 1 view .LVU194
+ 841              	.LBE28:
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 842              		.loc 1 133 27 is_stmt 0 view .LVU195
+ 843 0022 0632     		adds	r2, r2, #6
+ 844              	.LVL38:
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 845              		.loc 1 133 27 view .LVU196
+ 846 0024 302A     		cmp	r2, #48
+ 847              	.LBB29:
+ 134:quantum/audio/audio.c ****     }
+ 848              		.loc 1 134 18 view .LVU197
+ 849 0026 1980     		strh	r1, [r3]	@ movhi
+ 850 0028 5860     		str	r0, [r3, #4]	@ float
+ 851 002a 1981     		strh	r1, [r3, #8]	@ movhi
+ 852              	.LBE29:
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 853              		.loc 1 133 52 is_stmt 1 view .LVU198
+ 854              	.LVL39:
+ 133:quantum/audio/audio.c ****         tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 855              		.loc 1 133 27 view .LVU199
+ 856 002c 03F10C03 		add	r3, r3, #12
+ 857 0030 F7D1     		bne	.L73
+ 858              	.LBE27:
+ 137:quantum/audio/audio.c ****         audio_driver_initialize();
+ 859              		.loc 1 137 5 view .LVU200
+ 137:quantum/audio/audio.c ****         audio_driver_initialize();
+ 860              		.loc 1 137 8 is_stmt 0 view .LVU201
+ 861 0032 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 862 0034 1BB9     		cbnz	r3, .L74
+ 138:quantum/audio/audio.c ****         audio_initialized = true;
+ 863              		.loc 1 138 9 is_stmt 1 view .LVU202
+ 864 0036 FFF7FEFF 		bl	audio_driver_initialize
+ 865              	.LVL40:
+ 139:quantum/audio/audio.c ****     }
+ 866              		.loc 1 139 9 view .LVU203
+ 139:quantum/audio/audio.c ****     }
+ 867              		.loc 1 139 27 is_stmt 0 view .LVU204
+ 868 003a 0123     		movs	r3, #1
+ 869 003c 2370     		strb	r3, [r4]
+ 870              	.L74:
+ 141:quantum/audio/audio.c **** #ifndef AUDIO_INIT_DELAY
+ 871              		.loc 1 141 5 is_stmt 1 view .LVU205
+ 872 003e FFF7FEFF 		bl	audio_stop_all
+ 873              	.LVL41:
+ 143:quantum/audio/audio.c **** #endif
+ 874              		.loc 1 143 5 view .LVU206
+ 875              	.LBE26:
+ 876              	.LBE25:
+ 145:quantum/audio/audio.c **** 
+ 877              		.loc 1 145 1 is_stmt 0 view .LVU207
+ 878 0042 BDE81040 		pop	{r4, lr}
+ 879              		.cfi_remember_state
+ 880              		.cfi_restore 14
+ 881              		.cfi_restore 4
+ 882              		.cfi_def_cfa_offset 0
+ 883              	.LBB31:
+ 884              	.LBB30:
+ 143:quantum/audio/audio.c **** #endif
+ 885              		.loc 1 143 5 view .LVU208
+ 886 0046 FFF7FEBF 		b	audio_startup
+ 887              	.LVL42:
+ 888              	.L70:
+ 889              		.cfi_restore_state
+ 890              	.LBE30:
+ 891              	.LBE31:
+ 145:quantum/audio/audio.c **** 
+ 892              		.loc 1 145 1 view .LVU209
+ 893 004a 10BD     		pop	{r4, pc}
+ 894              	.L77:
+ 895              		.align	2
+ 896              	.L76:
+ 897 004c 00000000 		.word	audio_initialized
+ 898 0050 00000000 		.word	audio_config
+ 899 0054 00000000 		.word	tones
+ 900 0058 000080BF 		.word	-1082130432
+ 901              		.cfi_endproc
+ 902              	.LFE341:
+ 904              		.section	.text.audio_stop_tone,"ax",%progbits
+ 905              		.align	1
+ 906              		.global	audio_stop_tone
+ 907              		.syntax unified
+ 908              		.thumb
+ 909              		.thumb_func
+ 911              	audio_stop_tone:
+ 912              	.LVL43:
+ 913              	.LFB348:
+ 204:quantum/audio/audio.c ****     if (pitch < 0.0f) {
+ 914              		.loc 1 204 35 is_stmt 1 view -0
+ 915              		.cfi_startproc
+ 916              		@ args = 0, pretend = 0, frame = 0
+ 917              		@ frame_needed = 0, uses_anonymous_args = 0
+ 205:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 918              		.loc 1 205 5 view .LVU211
+ 204:quantum/audio/audio.c ****     if (pitch < 0.0f) {
+ 919              		.loc 1 204 35 is_stmt 0 view .LVU212
+ 920 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 921              		.cfi_def_cfa_offset 24
+ 922              		.cfi_offset 3, -24
+ 923              		.cfi_offset 4, -20
+ 924              		.cfi_offset 5, -16
+ 925              		.cfi_offset 6, -12
+ 926              		.cfi_offset 7, -8
+ 927              		.cfi_offset 14, -4
+ 209:quantum/audio/audio.c ****         if (!audio_initialized) {
+ 928              		.loc 1 209 9 view .LVU213
+ 929 0002 274D     		ldr	r5, .L94
+ 205:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 930              		.loc 1 205 8 view .LVU214
+ 931 0004 B5EEC00A 		vcmpe.f32	s0, #0
+ 209:quantum/audio/audio.c ****         if (!audio_initialized) {
+ 932              		.loc 1 209 8 view .LVU215
+ 933 0008 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 205:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 934              		.loc 1 205 8 view .LVU216
+ 935 000a F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 206:quantum/audio/audio.c ****     }
+ 936              		.loc 1 206 9 is_stmt 1 view .LVU217
+ 204:quantum/audio/audio.c ****     if (pitch < 0.0f) {
+ 937              		.loc 1 204 35 is_stmt 0 view .LVU218
+ 938 000e 2DED028B 		vpush.64	{d8}
+ 939              		.cfi_def_cfa_offset 32
+ 940              		.cfi_offset 80, -32
+ 941              		.cfi_offset 81, -28
+ 204:quantum/audio/audio.c ****     if (pitch < 0.0f) {
+ 942              		.loc 1 204 35 view .LVU219
+ 943 0012 B0EE408A 		vmov.f32	s16, s0
+ 206:quantum/audio/audio.c ****     }
+ 944              		.loc 1 206 15 view .LVU220
+ 945 0016 48BF     		it	mi
+ 946 0018 B1EE408A 		vnegmi.f32	s16, s0
+ 947              	.LVL44:
+ 209:quantum/audio/audio.c ****         if (!audio_initialized) {
+ 948              		.loc 1 209 5 is_stmt 1 view .LVU221
+ 209:quantum/audio/audio.c ****         if (!audio_initialized) {
+ 949              		.loc 1 209 8 is_stmt 0 view .LVU222
+ 950 001c 002B     		cmp	r3, #0
+ 951 001e 3BD0     		beq	.L78
+ 952              	.LBB32:
+ 210:quantum/audio/audio.c ****             audio_init();
+ 953              		.loc 1 210 9 is_stmt 1 view .LVU223
+ 210:quantum/audio/audio.c ****             audio_init();
+ 954              		.loc 1 210 13 is_stmt 0 view .LVU224
+ 955 0020 204B     		ldr	r3, .L94+4
+ 210:quantum/audio/audio.c ****             audio_init();
+ 956              		.loc 1 210 12 view .LVU225
+ 957 0022 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 958 0024 0BB9     		cbnz	r3, .L83
+ 211:quantum/audio/audio.c ****         }
+ 959              		.loc 1 211 13 is_stmt 1 view .LVU226
+ 960 0026 FFF7FEFF 		bl	audio_init
+ 961              	.LVL45:
+ 962              	.L83:
+ 213:quantum/audio/audio.c ****         for (int i = AUDIO_TONE_STACKSIZE - 1; i >= 0; i--) {
+ 963              		.loc 1 213 9 view .LVU227
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 964              		.loc 1 214 9 view .LVU228
+ 965              	.LBB33:
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 966              		.loc 1 214 14 view .LVU229
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 967              		.loc 1 214 50 view .LVU230
+ 968 002a 1F4B     		ldr	r3, .L94+8
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 969              		.loc 1 214 18 is_stmt 0 view .LVU231
+ 970 002c 0724     		movs	r4, #7
+ 971 002e 1946     		mov	r1, r3
+ 972              	.LVL46:
+ 973              	.L88:
+ 215:quantum/audio/audio.c ****             if (found) {
+ 974              		.loc 1 215 13 is_stmt 1 view .LVU232
+ 216:quantum/audio/audio.c ****                 tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 975              		.loc 1 216 13 view .LVU233
+ 216:quantum/audio/audio.c ****                 tones[i] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 0};
+ 976              		.loc 1 216 16 is_stmt 0 view .LVU234
+ 977 0030 D3ED167A 		vldr.32	s15, [r3, #88]
+ 978 0034 F4EE487A 		vcmp.f32	s15, s16
+ 979 0038 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 980 003c 27D1     		bne	.L84
+ 981              	.LBB34:
+ 217:quantum/audio/audio.c ****                 for (int j = i; (j < AUDIO_TONE_STACKSIZE - 1); j++) {
+ 982              		.loc 1 217 17 is_stmt 1 view .LVU235
+ 217:quantum/audio/audio.c ****                 for (int j = i; (j < AUDIO_TONE_STACKSIZE - 1); j++) {
+ 983              		.loc 1 217 26 is_stmt 0 view .LVU236
+ 984 003e 0C22     		movs	r2, #12
+ 985 0040 6243     		muls	r2, r4, r2
+ 986 0042 8B18     		adds	r3, r1, r2
+ 987              	.LVL47:
+ 217:quantum/audio/audio.c ****                 for (int j = i; (j < AUDIO_TONE_STACKSIZE - 1); j++) {
+ 988              		.loc 1 217 26 view .LVU237
+ 989 0044 0026     		movs	r6, #0
+ 990 0046 DFF870C0 		ldr	ip, .L94+24
+ 991 004a 8E52     		strh	r6, [r1, r2]	@ movhi
+ 992 004c C3F804C0 		str	ip, [r3, #4]	@ float
+ 993 0050 1E81     		strh	r6, [r3, #8]	@ movhi
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 994              		.loc 1 218 17 is_stmt 1 view .LVU238
+ 995              	.LBB35:
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 996              		.loc 1 218 22 view .LVU239
+ 997              	.LVL48:
+ 998              	.L85:
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 999              		.loc 1 218 36 discriminator 1 view .LVU240
+ 1000 0052 072C     		cmp	r4, #7
+ 1001 0054 0ED1     		bne	.L86
+ 1002              	.LVL49:
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 1003              		.loc 1 218 36 is_stmt 0 discriminator 1 view .LVU241
+ 1004              	.LBE35:
+ 1005              	.LBE34:
+ 1006              	.LBE33:
+ 225:quantum/audio/audio.c ****             return;
+ 1007              		.loc 1 225 9 is_stmt 1 view .LVU242
+ 229:quantum/audio/audio.c ****         active_tones--;
+ 1008              		.loc 1 229 9 view .LVU243
+ 229:quantum/audio/audio.c ****         active_tones--;
+ 1009              		.loc 1 229 23 is_stmt 0 view .LVU244
+ 1010 0056 154B     		ldr	r3, .L94+12
+ 1011 0058 0126     		movs	r6, #1
+ 1012 005a 1E70     		strb	r6, [r3]
+ 230:quantum/audio/audio.c ****         if (active_tones < 0) active_tones = 0;
+ 1013              		.loc 1 230 9 is_stmt 1 view .LVU245
+ 230:quantum/audio/audio.c ****         if (active_tones < 0) active_tones = 0;
+ 1014              		.loc 1 230 21 is_stmt 0 view .LVU246
+ 1015 005c 144B     		ldr	r3, .L94+16
+ 1016 005e 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 1017              	.LVL50:
+ 230:quantum/audio/audio.c ****         if (active_tones < 0) active_tones = 0;
+ 1018              		.loc 1 230 21 view .LVU247
+ 1019 0060 013C     		subs	r4, r4, #1
+ 1020 0062 E4B2     		uxtb	r4, r4
+ 1021 0064 1C70     		strb	r4, [r3]
+ 231:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 1022              		.loc 1 231 9 is_stmt 1 view .LVU248
+ 237:quantum/audio/audio.c ****             audio_driver_stop();
+ 1023              		.loc 1 237 9 view .LVU249
+ 237:quantum/audio/audio.c ****             audio_driver_stop();
+ 1024              		.loc 1 237 12 is_stmt 0 view .LVU250
+ 1025 0066 BCB9     		cbnz	r4, .L78
+ 238:quantum/audio/audio.c ****             audio_driver_stopped = true;
+ 1026              		.loc 1 238 13 is_stmt 1 view .LVU251
+ 1027 0068 FFF7FEFF 		bl	audio_driver_stop
+ 1028              	.LVL51:
+ 239:quantum/audio/audio.c ****             playing_note         = false;
+ 1029              		.loc 1 239 13 view .LVU252
+ 239:quantum/audio/audio.c ****             playing_note         = false;
+ 1030              		.loc 1 239 34 is_stmt 0 view .LVU253
+ 1031 006c 114B     		ldr	r3, .L94+20
+ 240:quantum/audio/audio.c ****         }
+ 1032              		.loc 1 240 34 view .LVU254
+ 1033 006e 2C70     		strb	r4, [r5]
+ 239:quantum/audio/audio.c ****             playing_note         = false;
+ 1034              		.loc 1 239 34 view .LVU255
+ 1035 0070 1E70     		strb	r6, [r3]
+ 240:quantum/audio/audio.c ****         }
+ 1036              		.loc 1 240 13 is_stmt 1 view .LVU256
+ 1037 0072 11E0     		b	.L78
+ 1038              	.LVL52:
+ 1039              	.L86:
+ 1040              	.LBB39:
+ 1041              	.LBB38:
+ 1042              	.LBB37:
+ 1043              	.LBB36:
+ 219:quantum/audio/audio.c ****                     tones[j + 1] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 
+ 1044              		.loc 1 219 21 discriminator 3 view .LVU257
+ 219:quantum/audio/audio.c ****                     tones[j + 1] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 
+ 1045              		.loc 1 219 34 is_stmt 0 discriminator 3 view .LVU258
+ 1046 0074 03F10C07 		add	r7, r3, #12
+ 1047 0078 97E80700 		ldm	r7, {r0, r1, r2}
+ 219:quantum/audio/audio.c ****                     tones[j + 1] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 
+ 1048              		.loc 1 219 44 discriminator 3 view .LVU259
+ 1049 007c 0134     		adds	r4, r4, #1
+ 1050              	.LVL53:
+ 219:quantum/audio/audio.c ****                     tones[j + 1] = (musical_tone_t){.time_started = 0, .pitch = -1.0f, .duration = 
+ 1051              		.loc 1 219 34 discriminator 3 view .LVU260
+ 1052 007e 83E80700 		stm	r3, {r0, r1, r2}
+ 220:quantum/audio/audio.c ****                 }
+ 1053              		.loc 1 220 21 is_stmt 1 discriminator 3 view .LVU261
+ 220:quantum/audio/audio.c ****                 }
+ 1054              		.loc 1 220 34 is_stmt 0 discriminator 3 view .LVU262
+ 1055 0082 9E81     		strh	r6, [r3, #12]	@ movhi
+ 1056 0084 C3F810C0 		str	ip, [r3, #16]	@ float
+ 1057 0088 9E82     		strh	r6, [r3, #20]	@ movhi
+ 1058              	.LBE36:
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 1059              		.loc 1 218 66 is_stmt 1 discriminator 3 view .LVU263
+ 1060              	.LVL54:
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 1061              		.loc 1 218 66 is_stmt 0 discriminator 3 view .LVU264
+ 1062 008a 3B46     		mov	r3, r7
+ 1063 008c E1E7     		b	.L85
+ 1064              	.LVL55:
+ 1065              	.L84:
+ 218:quantum/audio/audio.c ****                     tones[j]     = tones[j + 1];
+ 1066              		.loc 1 218 66 discriminator 3 view .LVU265
+ 1067              	.LBE37:
+ 1068              	.LBE38:
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 1069              		.loc 1 214 57 is_stmt 1 discriminator 2 view .LVU266
+ 1070 008e 013C     		subs	r4, r4, #1
+ 1071              	.LVL56:
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 1072              		.loc 1 214 50 discriminator 2 view .LVU267
+ 1073 0090 621C     		adds	r2, r4, #1
+ 1074 0092 A3F10C03 		sub	r3, r3, #12
+ 1075 0096 CBD1     		bne	.L88
+ 1076              	.LVL57:
+ 1077              	.L78:
+ 214:quantum/audio/audio.c ****             found = (tones[i].pitch == pitch);
+ 1078              		.loc 1 214 50 is_stmt 0 discriminator 2 view .LVU268
+ 1079              	.LBE39:
+ 1080              	.LBE32:
+ 243:quantum/audio/audio.c **** 
+ 1081              		.loc 1 243 1 view .LVU269
+ 1082 0098 BDEC028B 		vldm	sp!, {d8}
+ 1083              		.cfi_restore 80
+ 1084              		.cfi_restore 81
+ 1085              		.cfi_def_cfa_offset 24
+ 1086              	.LVL58:
+ 243:quantum/audio/audio.c **** 
+ 1087              		.loc 1 243 1 view .LVU270
+ 1088 009c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 1089              	.L95:
+ 1090 009e 00BF     		.align	2
+ 1091              	.L94:
+ 1092 00a0 00000000 		.word	playing_note
+ 1093 00a4 00000000 		.word	audio_initialized
+ 1094 00a8 00000000 		.word	tones
+ 1095 00ac 00000000 		.word	state_changed
+ 1096 00b0 00000000 		.word	active_tones
+ 1097 00b4 00000000 		.word	audio_driver_stopped
+ 1098 00b8 000080BF 		.word	-1082130432
+ 1099              		.cfi_endproc
+ 1100              	.LFE348:
+ 1102              		.section	.text.audio_play_note,"ax",%progbits
+ 1103              		.align	1
+ 1104              		.global	audio_play_note
+ 1105              		.syntax unified
+ 1106              		.thumb
+ 1107              		.thumb_func
+ 1109              	audio_play_note:
+ 1110              	.LVL59:
+ 1111              	.LFB349:
+ 245:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 1112              		.loc 1 245 54 is_stmt 1 view -0
+ 1113              		.cfi_startproc
+ 1114              		@ args = 0, pretend = 0, frame = 0
+ 1115              		@ frame_needed = 0, uses_anonymous_args = 0
+ 246:quantum/audio/audio.c ****         return;
+ 1116              		.loc 1 246 5 view .LVU272
+ 245:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 1117              		.loc 1 245 54 is_stmt 0 view .LVU273
+ 1118 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 1119              		.cfi_def_cfa_offset 24
+ 1120              		.cfi_offset 4, -24
+ 1121              		.cfi_offset 5, -20
+ 1122              		.cfi_offset 6, -16
+ 1123              		.cfi_offset 7, -12
+ 1124              		.cfi_offset 8, -8
+ 1125              		.cfi_offset 14, -4
+ 246:quantum/audio/audio.c ****         return;
+ 1126              		.loc 1 246 22 view .LVU274
+ 1127 0004 364B     		ldr	r3, .L114
+ 1128 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 245:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 1129              		.loc 1 245 54 view .LVU275
+ 1130 0008 0646     		mov	r6, r0
+ 246:quantum/audio/audio.c ****         return;
+ 1131              		.loc 1 246 8 view .LVU276
+ 1132 000a D807     		lsls	r0, r3, #31
+ 1133              	.LVL60:
+ 245:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 1134              		.loc 1 245 54 view .LVU277
+ 1135 000c 2DED028B 		vpush.64	{d8}
+ 1136              		.cfi_def_cfa_offset 32
+ 1137              		.cfi_offset 80, -32
+ 1138              		.cfi_offset 81, -28
+ 245:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 1139              		.loc 1 245 54 view .LVU278
+ 1140 0010 B0EE408A 		vmov.f32	s16, s0
+ 246:quantum/audio/audio.c ****         return;
+ 1141              		.loc 1 246 8 view .LVU279
+ 1142 0014 4CD5     		bpl	.L96
+ 1143              	.LVL61:
+ 1144              	.LBB46:
+ 1145              	.LBI46:
+ 245:quantum/audio/audio.c ****     if (!audio_config.enable) {
+ 1146              		.loc 1 245 6 is_stmt 1 view .LVU280
+ 1147              	.LBB47:
+ 250:quantum/audio/audio.c ****         audio_init();
+ 1148              		.loc 1 250 5 view .LVU281
+ 250:quantum/audio/audio.c ****         audio_init();
+ 1149              		.loc 1 250 9 is_stmt 0 view .LVU282
+ 1150 0016 334B     		ldr	r3, .L114+4
+ 250:quantum/audio/audio.c ****         audio_init();
+ 1151              		.loc 1 250 8 view .LVU283
+ 1152 0018 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1153 001a 0BB9     		cbnz	r3, .L99
+ 251:quantum/audio/audio.c ****     }
+ 1154              		.loc 1 251 9 is_stmt 1 view .LVU284
+ 1155 001c FFF7FEFF 		bl	audio_init
+ 1156              	.LVL62:
+ 1157              	.L99:
+ 254:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 1158              		.loc 1 254 5 view .LVU285
+ 1159              	.LBB48:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1160              		.loc 1 261 31 is_stmt 0 view .LVU286
+ 1161 0020 DFF8DC80 		ldr	r8, .L114+32
+ 1162 0024 304F     		ldr	r7, .L114+8
+ 1163 0026 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+ 1164              	.LBE48:
+ 254:quantum/audio/audio.c ****         pitch = -1 * pitch;
+ 1165              		.loc 1 254 8 view .LVU287
+ 1166 002a B5EEC08A 		vcmpe.f32	s16, #0
+ 1167 002e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 255:quantum/audio/audio.c ****     }
+ 1168              		.loc 1 255 9 is_stmt 1 view .LVU288
+ 255:quantum/audio/audio.c ****     }
+ 1169              		.loc 1 255 15 is_stmt 0 view .LVU289
+ 1170 0032 48BF     		it	mi
+ 1171 0034 B1EE488A 		vnegmi.f32	s16, s16
+ 1172              	.LVL63:
+ 260:quantum/audio/audio.c ****     for (int i = active_tones - 1; i >= 0; i--) {
+ 1173              		.loc 1 260 5 is_stmt 1 view .LVU290
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1174              		.loc 1 261 5 view .LVU291
+ 1175              	.LBB52:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1176              		.loc 1 261 10 view .LVU292
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1177              		.loc 1 261 14 is_stmt 0 view .LVU293
+ 1178 0038 5D1E     		subs	r5, r3, #1
+ 1179              	.LVL64:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1180              		.loc 1 261 14 view .LVU294
+ 1181 003a 0C22     		movs	r2, #12
+ 1182              	.LVL65:
+ 1183              	.L102:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1184              		.loc 1 261 38 is_stmt 1 view .LVU295
+ 1185 003c 691C     		adds	r1, r5, #1
+ 1186 003e 29D1     		bne	.L107
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1187              		.loc 1 261 38 is_stmt 0 view .LVU296
+ 1188              	.LBE52:
+ 273:quantum/audio/audio.c ****     if (active_tones > AUDIO_TONE_STACKSIZE) {
+ 1189              		.loc 1 273 5 is_stmt 1 view .LVU297
+ 273:quantum/audio/audio.c ****     if (active_tones > AUDIO_TONE_STACKSIZE) {
+ 1190              		.loc 1 273 17 is_stmt 0 view .LVU298
+ 1191 0040 0133     		adds	r3, r3, #1
+ 1192 0042 DBB2     		uxtb	r3, r3
+ 274:quantum/audio/audio.c ****         active_tones = AUDIO_TONE_STACKSIZE;
+ 1193              		.loc 1 274 5 is_stmt 1 view .LVU299
+ 274:quantum/audio/audio.c ****         active_tones = AUDIO_TONE_STACKSIZE;
+ 1194              		.loc 1 274 8 is_stmt 0 view .LVU300
+ 1195 0044 082B     		cmp	r3, #8
+ 1196 0046 48D9     		bls	.L108
+ 275:quantum/audio/audio.c ****         // shift out the oldest tone to make room
+ 1197              		.loc 1 275 9 is_stmt 1 view .LVU301
+ 1198              	.LBB53:
+ 278:quantum/audio/audio.c ****         }
+ 1199              		.loc 1 278 22 is_stmt 0 view .LVU302
+ 1200 0048 2849     		ldr	r1, .L114+12
+ 1201              	.LBE53:
+ 275:quantum/audio/audio.c ****         // shift out the oldest tone to make room
+ 1202              		.loc 1 275 22 view .LVU303
+ 1203 004a 0823     		movs	r3, #8
+ 1204              	.LBB54:
+ 278:quantum/audio/audio.c ****         }
+ 1205              		.loc 1 278 22 view .LVU304
+ 1206 004c 5422     		movs	r2, #84
+ 1207 004e A1F10C00 		sub	r0, r1, #12
+ 1208              	.LBE54:
+ 275:quantum/audio/audio.c ****         // shift out the oldest tone to make room
+ 1209              		.loc 1 275 22 view .LVU305
+ 1210 0052 88F80030 		strb	r3, [r8]
+ 277:quantum/audio/audio.c ****             tones[i] = tones[i + 1];
+ 1211              		.loc 1 277 9 is_stmt 1 view .LVU306
+ 1212              	.LBB55:
+ 277:quantum/audio/audio.c ****             tones[i] = tones[i + 1];
+ 1213              		.loc 1 277 14 view .LVU307
+ 1214              	.LVL66:
+ 277:quantum/audio/audio.c ****             tones[i] = tones[i + 1];
+ 1215              		.loc 1 277 27 view .LVU308
+ 278:quantum/audio/audio.c ****         }
+ 1216              		.loc 1 278 22 is_stmt 0 view .LVU309
+ 1217 0056 FFF7FEFF 		bl	memmove
+ 1218              	.LVL67:
+ 1219              	.L109:
+ 278:quantum/audio/audio.c ****         }
+ 1220              		.loc 1 278 22 view .LVU310
+ 1221              	.LBE55:
+ 281:quantum/audio/audio.c ****     playing_note            = true;
+ 1222              		.loc 1 281 5 is_stmt 1 view .LVU311
+ 281:quantum/audio/audio.c ****     playing_note            = true;
+ 1223              		.loc 1 281 29 is_stmt 0 view .LVU312
+ 1224 005a 254A     		ldr	r2, .L114+16
+ 1225 005c 0123     		movs	r3, #1
+ 1226 005e 1370     		strb	r3, [r2]
+ 282:quantum/audio/audio.c ****     tones[active_tones - 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .durat
+ 1227              		.loc 1 282 5 is_stmt 1 view .LVU313
+ 282:quantum/audio/audio.c ****     tones[active_tones - 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .durat
+ 1228              		.loc 1 282 29 is_stmt 0 view .LVU314
+ 1229 0060 244A     		ldr	r2, .L114+20
+ 1230 0062 1370     		strb	r3, [r2]
+ 283:quantum/audio/audio.c **** 
+ 1231              		.loc 1 283 5 is_stmt 1 view .LVU315
+ 283:quantum/audio/audio.c **** 
+ 1232              		.loc 1 283 24 is_stmt 0 view .LVU316
+ 1233 0064 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+ 1234 0068 5C1E     		subs	r4, r3, #1
+ 283:quantum/audio/audio.c **** 
+ 1235              		.loc 1 283 64 view .LVU317
+ 1236 006a FFF7FEFF 		bl	timer_read
+ 1237              	.LVL68:
+ 283:quantum/audio/audio.c **** 
+ 1238              		.loc 1 283 29 view .LVU318
+ 1239 006e 0C23     		movs	r3, #12
+ 1240 0070 6343     		muls	r3, r4, r3
+ 1241 0072 FA18     		adds	r2, r7, r3
+ 1242 0074 F852     		strh	r0, [r7, r3]	@ movhi
+ 1243 0076 82ED018A 		vstr.32	s16, [r2, #4]
+ 1244 007a 1681     		strh	r6, [r2, #8]	@ movhi
+ 286:quantum/audio/audio.c **** 
+ 1245              		.loc 1 286 5 is_stmt 1 view .LVU319
+ 286:quantum/audio/audio.c **** 
+ 1246              		.loc 1 286 20 is_stmt 0 view .LVU320
+ 1247 007c FFF7FEFF 		bl	timer_read
+ 1248              	.LVL69:
+ 288:quantum/audio/audio.c ****         audio_driver_start();
+ 1249              		.loc 1 288 9 view .LVU321
+ 1250 0080 1D4C     		ldr	r4, .L114+24
+ 286:quantum/audio/audio.c **** 
+ 1251              		.loc 1 286 18 view .LVU322
+ 1252 0082 1E4B     		ldr	r3, .L114+28
+ 1253 0084 1880     		strh	r0, [r3]	@ movhi
+ 288:quantum/audio/audio.c ****         audio_driver_start();
+ 1254              		.loc 1 288 5 is_stmt 1 view .LVU323
+ 288:quantum/audio/audio.c ****         audio_driver_start();
+ 1255              		.loc 1 288 8 is_stmt 0 view .LVU324
+ 1256 0086 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1257 0088 93B1     		cbz	r3, .L96
+ 289:quantum/audio/audio.c ****         audio_driver_stopped = false;
+ 1258              		.loc 1 289 9 is_stmt 1 view .LVU325
+ 1259 008a FFF7FEFF 		bl	audio_driver_start
+ 1260              	.LVL70:
+ 290:quantum/audio/audio.c ****     }
+ 1261              		.loc 1 290 9 view .LVU326
+ 290:quantum/audio/audio.c ****     }
+ 1262              		.loc 1 290 30 is_stmt 0 view .LVU327
+ 1263 008e 0023     		movs	r3, #0
+ 1264 0090 2370     		strb	r3, [r4]
+ 1265              	.LVL71:
+ 290:quantum/audio/audio.c ****     }
+ 1266              		.loc 1 290 30 view .LVU328
+ 1267 0092 0DE0     		b	.L96
+ 1268              	.LVL72:
+ 1269              	.L107:
+ 1270              	.LBB56:
+ 262:quantum/audio/audio.c ****         if (found) {
+ 1271              		.loc 1 262 9 is_stmt 1 view .LVU329
+ 1272 0094 02FB0574 		mla	r4, r2, r5, r7
+ 1273              	.LVL73:
+ 263:quantum/audio/audio.c ****             for (int j = i; (j < active_tones - 1); j++) {
+ 1274              		.loc 1 263 9 view .LVU330
+ 263:quantum/audio/audio.c ****             for (int j = i; (j < active_tones - 1); j++) {
+ 1275              		.loc 1 263 12 is_stmt 0 view .LVU331
+ 1276 0098 D4ED017A 		vldr.32	s15, [r4, #4]
+ 1277 009c F4EE487A 		vcmp.f32	s15, s16
+ 1278 00a0 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 1279 00a4 17D1     		bne	.L103
+ 1280              	.LVL74:
+ 1281              	.L104:
+ 1282              	.LBB49:
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1283              		.loc 1 264 32 is_stmt 1 view .LVU332
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1284              		.loc 1 264 47 is_stmt 0 view .LVU333
+ 1285 00a6 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+ 1286 00aa 013B     		subs	r3, r3, #1
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1287              		.loc 1 264 32 view .LVU334
+ 1288 00ac 9D42     		cmp	r5, r3
+ 1289 00ae 03DB     		blt	.L105
+ 1290              	.LVL75:
+ 1291              	.L96:
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1292              		.loc 1 264 32 view .LVU335
+ 1293              	.LBE49:
+ 1294              	.LBE56:
+ 1295              	.LBE47:
+ 1296              	.LBE46:
+ 292:quantum/audio/audio.c **** 
+ 1297              		.loc 1 292 1 view .LVU336
+ 1298 00b0 BDEC028B 		vldm	sp!, {d8}
+ 1299              		.cfi_remember_state
+ 1300              		.cfi_restore 80
+ 1301              		.cfi_restore 81
+ 1302              		.cfi_def_cfa_offset 24
+ 1303 00b4 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 1304              	.LVL76:
+ 1305              	.L105:
+ 1306              		.cfi_restore_state
+ 1307              	.LBB59:
+ 1308              	.LBB58:
+ 1309              	.LBB57:
+ 1310              	.LBB51:
+ 1311              	.LBB50:
+ 265:quantum/audio/audio.c ****                 tones[j + 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .dura
+ 1312              		.loc 1 265 17 is_stmt 1 view .LVU337
+ 265:quantum/audio/audio.c ****                 tones[j + 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .dura
+ 1313              		.loc 1 265 30 is_stmt 0 view .LVU338
+ 1314 00b8 04F10C07 		add	r7, r4, #12
+ 1315 00bc 97E80700 		ldm	r7, {r0, r1, r2}
+ 1316 00c0 84E80700 		stm	r4, {r0, r1, r2}
+ 266:quantum/audio/audio.c ****             }
+ 1317              		.loc 1 266 17 is_stmt 1 view .LVU339
+ 266:quantum/audio/audio.c ****             }
+ 1318              		.loc 1 266 65 is_stmt 0 view .LVU340
+ 1319 00c4 FFF7FEFF 		bl	timer_read
+ 1320              	.LVL77:
+ 265:quantum/audio/audio.c ****                 tones[j + 1] = (musical_tone_t){.time_started = timer_read(), .pitch = pitch, .dura
+ 1321              		.loc 1 265 40 view .LVU341
+ 1322 00c8 0135     		adds	r5, r5, #1
+ 1323              	.LVL78:
+ 266:quantum/audio/audio.c ****             }
+ 1324              		.loc 1 266 30 view .LVU342
+ 1325 00ca A081     		strh	r0, [r4, #12]	@ movhi
+ 1326 00cc 84ED048A 		vstr.32	s16, [r4, #16]
+ 1327 00d0 A682     		strh	r6, [r4, #20]	@ movhi
+ 1328              	.LBE50:
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1329              		.loc 1 264 54 is_stmt 1 view .LVU343
+ 1330              	.LVL79:
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1331              		.loc 1 264 54 is_stmt 0 view .LVU344
+ 1332 00d2 3C46     		mov	r4, r7
+ 1333 00d4 E7E7     		b	.L104
+ 1334              	.LVL80:
+ 1335              	.L103:
+ 264:quantum/audio/audio.c ****                 tones[j]     = tones[j + 1];
+ 1336              		.loc 1 264 54 view .LVU345
+ 1337              	.LBE51:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1338              		.loc 1 261 45 is_stmt 1 view .LVU346
+ 1339 00d6 013D     		subs	r5, r5, #1
+ 1340              	.LVL81:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1341              		.loc 1 261 45 is_stmt 0 view .LVU347
+ 1342 00d8 B0E7     		b	.L102
+ 1343              	.LVL82:
+ 1344              	.L108:
+ 261:quantum/audio/audio.c ****         found = (tones[i].pitch == pitch);
+ 1345              		.loc 1 261 45 view .LVU348
+ 1346              	.LBE57:
+ 273:quantum/audio/audio.c ****     if (active_tones > AUDIO_TONE_STACKSIZE) {
+ 1347              		.loc 1 273 17 view .LVU349
+ 1348 00da 88F80030 		strb	r3, [r8]
+ 1349 00de BCE7     		b	.L109
+ 1350              	.L115:
+ 1351              		.align	2
+ 1352              	.L114:
+ 1353 00e0 00000000 		.word	audio_config
+ 1354 00e4 00000000 		.word	audio_initialized
+ 1355 00e8 00000000 		.word	tones
+ 1356 00ec 0C000000 		.word	tones+12
+ 1357 00f0 00000000 		.word	state_changed
+ 1358 00f4 00000000 		.word	playing_note
+ 1359 00f8 00000000 		.word	audio_driver_stopped
+ 1360 00fc 00000000 		.word	voices_timer
+ 1361 0100 00000000 		.word	active_tones
+ 1362              	.LBE58:
+ 1363              	.LBE59:
+ 1364              		.cfi_endproc
+ 1365              	.LFE349:
+ 1367              		.section	.text.audio_play_tone,"ax",%progbits
+ 1368              		.align	1
+ 1369              		.global	audio_play_tone
+ 1370              		.syntax unified
+ 1371              		.thumb
+ 1372              		.thumb_func
+ 1374              	audio_play_tone:
+ 1375              	.LVL83:
+ 1376              	.LFB350:
+ 294:quantum/audio/audio.c **** 
+ 1377              		.loc 1 294 35 is_stmt 1 view -0
+ 1378              		.cfi_startproc
+ 1379              		@ args = 0, pretend = 0, frame = 0
+ 1380              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1381              		@ link register save eliminated.
+ 294:quantum/audio/audio.c **** 
+ 1382              		.loc 1 294 37 view .LVU351
+ 1383 0000 4FF6FF70 		movw	r0, #65535
+ 1384 0004 FFF7FEBF 		b	audio_play_note
+ 1385              	.LVL84:
+ 294:quantum/audio/audio.c **** 
+ 1386              		.loc 1 294 37 is_stmt 0 view .LVU352
+ 1387              		.cfi_endproc
+ 1388              	.LFE350:
+ 1390              		.section	.text.audio_on,"ax",%progbits
+ 1391              		.align	1
+ 1392              		.global	audio_on
+ 1393              		.syntax unified
+ 1394              		.thumb
+ 1395              		.thumb_func
+ 1397              	audio_on:
+ 1398              	.LFB344:
+ 166:quantum/audio/audio.c ****     audio_config.enable = 1;
+ 1399              		.loc 1 166 21 is_stmt 1 view -0
+ 1400              		.cfi_startproc
+ 1401              		@ args = 0, pretend = 0, frame = 0
+ 1402              		@ frame_needed = 0, uses_anonymous_args = 0
+ 167:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 1403              		.loc 1 167 5 view .LVU354
+ 166:quantum/audio/audio.c ****     audio_config.enable = 1;
+ 1404              		.loc 1 166 21 is_stmt 0 view .LVU355
+ 1405 0000 08B5     		push	{r3, lr}
+ 1406              		.cfi_def_cfa_offset 8
+ 1407              		.cfi_offset 3, -8
+ 1408              		.cfi_offset 14, -4
+ 167:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 1409              		.loc 1 167 25 view .LVU356
+ 1410 0002 084B     		ldr	r3, .L118
+ 1411 0004 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 1412 0006 40F00100 		orr	r0, r0, #1
+ 1413 000a 1870     		strb	r0, [r3]
+ 168:quantum/audio/audio.c ****     audio_on_user();
+ 1414              		.loc 1 168 5 is_stmt 1 view .LVU357
+ 1415 000c FFF7FEFF 		bl	eeconfig_update_audio
+ 1416              	.LVL85:
+ 169:quantum/audio/audio.c ****     PLAY_SONG(audio_on_song);
+ 1417              		.loc 1 169 5 view .LVU358
+ 1418 0010 FFF7FEFF 		bl	audio_on_user
+ 1419              	.LVL86:
+ 170:quantum/audio/audio.c **** }
+ 1420              		.loc 1 170 5 view .LVU359
+ 171:quantum/audio/audio.c **** 
+ 1421              		.loc 1 171 1 is_stmt 0 view .LVU360
+ 1422 0014 BDE80840 		pop	{r3, lr}
+ 1423              		.cfi_restore 14
+ 1424              		.cfi_restore 3
+ 1425              		.cfi_def_cfa_offset 0
+ 170:quantum/audio/audio.c **** }
+ 1426              		.loc 1 170 5 view .LVU361
+ 1427 0018 0348     		ldr	r0, .L118+4
+ 1428 001a 0022     		movs	r2, #0
+ 1429 001c 0221     		movs	r1, #2
+ 1430 001e FFF7FEBF 		b	audio_play_melody
+ 1431              	.LVL87:
+ 1432              	.L119:
+ 1433 0022 00BF     		.align	2
+ 1434              	.L118:
+ 1435 0024 00000000 		.word	audio_config
+ 1436 0028 00000000 		.word	audio_on_song
+ 1437              		.cfi_endproc
+ 1438              	.LFE344:
+ 1440              		.section	.text.audio_off,"ax",%progbits
+ 1441              		.align	1
+ 1442              		.global	audio_off
+ 1443              		.syntax unified
+ 1444              		.thumb
+ 1445              		.thumb_func
+ 1447              	audio_off:
+ 1448              	.LFB345:
+ 173:quantum/audio/audio.c ****     PLAY_SONG(audio_off_song);
+ 1449              		.loc 1 173 22 is_stmt 1 view -0
+ 1450              		.cfi_startproc
+ 1451              		@ args = 0, pretend = 0, frame = 0
+ 1452              		@ frame_needed = 0, uses_anonymous_args = 0
+ 174:quantum/audio/audio.c ****     wait_ms(100);
+ 1453              		.loc 1 174 5 view .LVU363
+ 173:quantum/audio/audio.c ****     PLAY_SONG(audio_off_song);
+ 1454              		.loc 1 173 22 is_stmt 0 view .LVU364
+ 1455 0000 08B5     		push	{r3, lr}
+ 1456              		.cfi_def_cfa_offset 8
+ 1457              		.cfi_offset 3, -8
+ 1458              		.cfi_offset 14, -4
+ 174:quantum/audio/audio.c ****     wait_ms(100);
+ 1459              		.loc 1 174 5 view .LVU365
+ 1460 0002 0022     		movs	r2, #0
+ 1461 0004 0221     		movs	r1, #2
+ 1462 0006 0948     		ldr	r0, .L121
+ 1463 0008 FFF7FEFF 		bl	audio_play_melody
+ 1464              	.LVL88:
+ 175:quantum/audio/audio.c ****     audio_stop_all();
+ 1465              		.loc 1 175 5 is_stmt 1 view .LVU366
+ 175:quantum/audio/audio.c ****     audio_stop_all();
+ 1466              		.loc 1 175 5 view .LVU367
+ 175:quantum/audio/audio.c ****     audio_stop_all();
+ 1467              		.loc 1 175 5 view .LVU368
+ 1468 000c 4FF47A70 		mov	r0, #1000
+ 1469 0010 FFF7FEFF 		bl	chThdSleep
+ 1470              	.LVL89:
+ 175:quantum/audio/audio.c ****     audio_stop_all();
+ 1471              		.loc 1 175 5 view .LVU369
+ 176:quantum/audio/audio.c ****     audio_config.enable = 0;
+ 1472              		.loc 1 176 5 view .LVU370
+ 1473 0014 FFF7FEFF 		bl	audio_stop_all
+ 1474              	.LVL90:
+ 177:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 1475              		.loc 1 177 5 view .LVU371
+ 177:quantum/audio/audio.c ****     eeconfig_update_audio(audio_config.raw);
+ 1476              		.loc 1 177 25 is_stmt 0 view .LVU372
+ 1477 0018 054B     		ldr	r3, .L121+4
+ 1478 001a 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 1479 001c 6FF30000 		bfc	r0, #0, #1
+ 1480 0020 1870     		strb	r0, [r3]
+ 178:quantum/audio/audio.c **** }
+ 1481              		.loc 1 178 5 is_stmt 1 view .LVU373
+ 179:quantum/audio/audio.c **** 
+ 1482              		.loc 1 179 1 is_stmt 0 view .LVU374
+ 1483 0022 BDE80840 		pop	{r3, lr}
+ 1484              		.cfi_restore 14
+ 1485              		.cfi_restore 3
+ 1486              		.cfi_def_cfa_offset 0
+ 178:quantum/audio/audio.c **** }
+ 1487              		.loc 1 178 5 view .LVU375
+ 1488 0026 C0B2     		uxtb	r0, r0
+ 1489 0028 FFF7FEBF 		b	eeconfig_update_audio
+ 1490              	.LVL91:
+ 1491              	.L122:
+ 1492              		.align	2
+ 1493              	.L121:
+ 1494 002c 00000000 		.word	audio_off_song
+ 1495 0030 00000000 		.word	audio_config
+ 1496              		.cfi_endproc
+ 1497              	.LFE345:
+ 1499              		.section	.text.audio_update_state,"ax",%progbits
+ 1500              		.align	1
+ 1501              		.global	audio_update_state
+ 1502              		.syntax unified
+ 1503              		.thumb
+ 1504              		.thumb_func
+ 1506              	audio_update_state:
+ 1507              	.LFB358:
+ 381:quantum/audio/audio.c ****     if (!playing_note && !playing_melody) {
+ 1508              		.loc 1 381 31 is_stmt 1 view -0
+ 1509              		.cfi_startproc
+ 1510              		@ args = 0, pretend = 0, frame = 0
+ 1511              		@ frame_needed = 0, uses_anonymous_args = 0
+ 382:quantum/audio/audio.c ****         return false;
+ 1512              		.loc 1 382 5 view .LVU377
+ 381:quantum/audio/audio.c ****     if (!playing_note && !playing_melody) {
+ 1513              		.loc 1 381 31 is_stmt 0 view .LVU378
+ 1514 0000 2DE9F843 		push	{r3, r4, r5, r6, r7, r8, r9, lr}
+ 1515              		.cfi_def_cfa_offset 32
+ 1516              		.cfi_offset 3, -32
+ 1517              		.cfi_offset 4, -28
+ 1518              		.cfi_offset 5, -24
+ 1519              		.cfi_offset 6, -20
+ 1520              		.cfi_offset 7, -16
+ 1521              		.cfi_offset 8, -12
+ 1522              		.cfi_offset 9, -8
+ 1523              		.cfi_offset 14, -4
+ 382:quantum/audio/audio.c ****         return false;
+ 1524              		.loc 1 382 9 view .LVU379
+ 1525 0004 654F     		ldr	r7, .L154
+ 1526 0006 664C     		ldr	r4, .L154+4
+ 382:quantum/audio/audio.c ****         return false;
+ 1527              		.loc 1 382 8 view .LVU380
+ 1528 0008 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1529 000a 13B9     		cbnz	r3, .L124
+ 382:quantum/audio/audio.c ****         return false;
+ 1530              		.loc 1 382 23 discriminator 1 view .LVU381
+ 1531 000c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1532 000e 002B     		cmp	r3, #0
+ 1533 0010 78D0     		beq	.L125
+ 1534              	.L124:
+ 386:quantum/audio/audio.c ****     uint16_t current_time   = timer_read();
+ 1535              		.loc 1 386 5 is_stmt 1 view .LVU382
+ 1536              	.LVL92:
+ 387:quantum/audio/audio.c **** 
+ 1537              		.loc 1 387 5 view .LVU383
+ 387:quantum/audio/audio.c **** 
+ 1538              		.loc 1 387 31 is_stmt 0 view .LVU384
+ 1539 0012 FFF7FEFF 		bl	timer_read
+ 1540              	.LVL93:
+ 389:quantum/audio/audio.c ****         goto_next_note = timer_elapsed(last_timestamp) >= melody_current_note_duration;
+ 1541              		.loc 1 389 9 view .LVU385
+ 1542 0016 2578     		ldrb	r5, [r4]	@ zero_extendqisi2
+ 387:quantum/audio/audio.c **** 
+ 1543              		.loc 1 387 31 view .LVU386
+ 1544 0018 8146     		mov	r9, r0
+ 1545              	.LVL94:
+ 389:quantum/audio/audio.c ****         goto_next_note = timer_elapsed(last_timestamp) >= melody_current_note_duration;
+ 1546              		.loc 1 389 5 is_stmt 1 view .LVU387
+ 389:quantum/audio/audio.c ****         goto_next_note = timer_elapsed(last_timestamp) >= melody_current_note_duration;
+ 1547              		.loc 1 389 8 is_stmt 0 view .LVU388
+ 1548 001a EDB9     		cbnz	r5, .L126
+ 1549              	.LVL95:
+ 1550              	.L128:
+ 386:quantum/audio/audio.c ****     uint16_t current_time   = timer_read();
+ 1551              		.loc 1 386 14 view .LVU389
+ 1552 001c 0025     		movs	r5, #0
+ 1553              	.LVL96:
+ 1554              	.L127:
+ 454:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 1555              		.loc 1 454 5 is_stmt 1 view .LVU390
+ 454:quantum/audio/audio.c **** #ifdef AUDIO_ENABLE_TONE_MULTIPLEXING
+ 1556              		.loc 1 454 8 is_stmt 0 view .LVU391
+ 1557 001e 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1558 0020 002B     		cmp	r3, #0
+ 1559 0022 00F0B980 		beq	.L146
+ 459:quantum/audio/audio.c ****             // force update on each cycle, since vibrato shifts the frequency slightly
+ 1560              		.loc 1 459 9 is_stmt 1 view .LVU392
+ 459:quantum/audio/audio.c ****             // force update on each cycle, since vibrato shifts the frequency slightly
+ 1561              		.loc 1 459 13 is_stmt 0 view .LVU393
+ 1562 0026 5F4B     		ldr	r3, .L154+8
+ 1563 0028 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 459:quantum/audio/audio.c ****             // force update on each cycle, since vibrato shifts the frequency slightly
+ 1564              		.loc 1 459 12 view .LVU394
+ 1565 002a 24B9     		cbnz	r4, .L139
+ 459:quantum/audio/audio.c ****             // force update on each cycle, since vibrato shifts the frequency slightly
+ 1566              		.loc 1 459 21 discriminator 1 view .LVU395
+ 1567 002c 5E4B     		ldr	r3, .L154+12
+ 1568 002e 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 1569 0030 002C     		cmp	r4, #0
+ 1570 0032 08BF     		it	eq
+ 1571 0034 2C46     		moveq	r4, r5
+ 1572              	.L139:
+ 1573              	.LVL97:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1574              		.loc 1 465 9 is_stmt 1 view .LVU396
+ 1575              	.LBB60:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1576              		.loc 1 465 14 view .LVU397
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1577              		.loc 1 465 14 is_stmt 0 view .LVU398
+ 1578 0036 5D4D     		ldr	r5, .L154+16
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1579              		.loc 1 465 27 view .LVU399
+ 1580 0038 5D4F     		ldr	r7, .L154+20
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1581              		.loc 1 465 18 view .LVU400
+ 1582 003a 0026     		movs	r6, #0
+ 466:quantum/audio/audio.c ****                 && (tones[i].duration != 0)    // 'uninitialized'
+ 1583              		.loc 1 466 16 view .LVU401
+ 1584 003c 4FF6FD78 		movw	r8, #65533
+ 1585              	.LVL98:
+ 1586              	.L140:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1587              		.loc 1 465 27 is_stmt 1 discriminator 1 view .LVU402
+ 1588 0040 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1589 0042 B342     		cmp	r3, r6
+ 1590 0044 00F39680 		bgt	.L144
+ 1591              	.LVL99:
+ 1592              	.L138:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1593              		.loc 1 465 27 is_stmt 0 discriminator 1 view .LVU403
+ 1594              	.LBE60:
+ 477:quantum/audio/audio.c ****         state_changed = false;
+ 1595              		.loc 1 477 5 is_stmt 1 view .LVU404
+ 477:quantum/audio/audio.c ****         state_changed = false;
+ 1596              		.loc 1 477 9 is_stmt 0 view .LVU405
+ 1597 0048 5A4A     		ldr	r2, .L154+24
+ 1598 004a 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 477:quantum/audio/audio.c ****         state_changed = false;
+ 1599              		.loc 1 477 8 view .LVU406
+ 1600 004c 002B     		cmp	r3, #0
+ 1601 004e 5AD0     		beq	.L131
+ 478:quantum/audio/audio.c ****         return true;
+ 1602              		.loc 1 478 9 is_stmt 1 view .LVU407
+ 478:quantum/audio/audio.c ****         return true;
+ 1603              		.loc 1 478 23 is_stmt 0 view .LVU408
+ 1604 0050 0021     		movs	r1, #0
+ 1605 0052 1170     		strb	r1, [r2]
+ 479:quantum/audio/audio.c ****     }
+ 1606              		.loc 1 479 9 is_stmt 1 view .LVU409
+ 479:quantum/audio/audio.c ****     }
+ 1607              		.loc 1 479 16 is_stmt 0 view .LVU410
+ 1608 0054 1C46     		mov	r4, r3
+ 1609              	.LVL100:
+ 479:quantum/audio/audio.c ****     }
+ 1610              		.loc 1 479 16 view .LVU411
+ 1611 0056 56E0     		b	.L131
+ 1612              	.LVL101:
+ 1613              	.L126:
+ 390:quantum/audio/audio.c ****         if (goto_next_note) {
+ 1614              		.loc 1 390 9 is_stmt 1 view .LVU412
+ 390:quantum/audio/audio.c ****         if (goto_next_note) {
+ 1615              		.loc 1 390 26 is_stmt 0 view .LVU413
+ 1616 0058 DFF87881 		ldr	r8, .L154+56
+ 390:quantum/audio/audio.c ****         if (goto_next_note) {
+ 1617              		.loc 1 390 56 view .LVU414
+ 1618 005c 564E     		ldr	r6, .L154+28
+ 390:quantum/audio/audio.c ****         if (goto_next_note) {
+ 1619              		.loc 1 390 26 view .LVU415
+ 1620 005e B8F80000 		ldrh	r0, [r8]
+ 1621 0062 FFF7FEFF 		bl	timer_elapsed
+ 1622              	.LVL102:
+ 391:quantum/audio/audio.c ****             uint16_t delta         = timer_elapsed(last_timestamp) - melody_current_note_duration;
+ 1623              		.loc 1 391 9 is_stmt 1 view .LVU416
+ 391:quantum/audio/audio.c ****             uint16_t delta         = timer_elapsed(last_timestamp) - melody_current_note_duration;
+ 1624              		.loc 1 391 12 is_stmt 0 view .LVU417
+ 1625 0066 3388     		ldrh	r3, [r6]
+ 1626 0068 8342     		cmp	r3, r0
+ 1627 006a D7D8     		bhi	.L128
+ 1628              	.LBB61:
+ 392:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 1629              		.loc 1 392 13 is_stmt 1 view .LVU418
+ 392:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 1630              		.loc 1 392 38 is_stmt 0 view .LVU419
+ 1631 006c B8F80000 		ldrh	r0, [r8]
+ 1632              	.LVL103:
+ 392:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 1633              		.loc 1 392 38 view .LVU420
+ 1634 0070 FFF7FEFF 		bl	timer_elapsed
+ 1635              	.LVL104:
+ 393:quantum/audio/audio.c ****             uint16_t previous_note = current_note;
+ 1636              		.loc 1 393 36 view .LVU421
+ 1637 0074 A8F80090 		strh	r9, [r8]	@ movhi
+ 394:quantum/audio/audio.c ****             current_note++;
+ 1638              		.loc 1 394 22 view .LVU422
+ 1639 0078 DFF85C81 		ldr	r8, .L154+60
+ 392:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 1640              		.loc 1 392 22 view .LVU423
+ 1641 007c 3388     		ldrh	r3, [r6]
+ 394:quantum/audio/audio.c ****             current_note++;
+ 1642              		.loc 1 394 22 view .LVU424
+ 1643 007e B8F80090 		ldrh	r9, [r8]
+ 1644              	.LVL105:
+ 392:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 1645              		.loc 1 392 22 view .LVU425
+ 1646 0082 C41A     		subs	r4, r0, r3
+ 395:quantum/audio/audio.c ****             voices_timer = timer_read();  // reset to zero, for the effects added by voices.c
+ 1647              		.loc 1 395 25 view .LVU426
+ 1648 0084 09F10103 		add	r3, r9, #1
+ 1649 0088 A8F80030 		strh	r3, [r8]	@ movhi
+ 396:quantum/audio/audio.c **** 
+ 1650              		.loc 1 396 28 view .LVU427
+ 1651 008c FFF7FEFF 		bl	timer_read
+ 1652              	.LVL106:
+ 396:quantum/audio/audio.c **** 
+ 1653              		.loc 1 396 26 view .LVU428
+ 1654 0090 4A4B     		ldr	r3, .L154+32
+ 1655 0092 1880     		strh	r0, [r3]	@ movhi
+ 398:quantum/audio/audio.c ****                 if (notes_repeat) {
+ 1656              		.loc 1 398 30 view .LVU429
+ 1657 0094 4A4B     		ldr	r3, .L154+36
+ 1658 0096 1988     		ldrh	r1, [r3]
+ 398:quantum/audio/audio.c ****                 if (notes_repeat) {
+ 1659              		.loc 1 398 16 view .LVU430
+ 1660 0098 B8F80030 		ldrh	r3, [r8]
+ 1661 009c 8B42     		cmp	r3, r1
+ 392:quantum/audio/audio.c ****             last_timestamp         = current_time;
+ 1662              		.loc 1 392 22 view .LVU431
+ 1663 009e A4B2     		uxth	r4, r4
+ 1664              	.LVL107:
+ 393:quantum/audio/audio.c ****             uint16_t previous_note = current_note;
+ 1665              		.loc 1 393 13 is_stmt 1 view .LVU432
+ 394:quantum/audio/audio.c ****             current_note++;
+ 1666              		.loc 1 394 13 view .LVU433
+ 395:quantum/audio/audio.c ****             voices_timer = timer_read();  // reset to zero, for the effects added by voices.c
+ 1667              		.loc 1 395 13 view .LVU434
+ 396:quantum/audio/audio.c **** 
+ 1668              		.loc 1 396 13 view .LVU435
+ 398:quantum/audio/audio.c ****                 if (notes_repeat) {
+ 1669              		.loc 1 398 13 view .LVU436
+ 398:quantum/audio/audio.c ****                 if (notes_repeat) {
+ 1670              		.loc 1 398 16 is_stmt 0 view .LVU437
+ 1671 00a0 05D3     		bcc	.L129
+ 399:quantum/audio/audio.c ****                     current_note = 0;
+ 1672              		.loc 1 399 17 is_stmt 1 view .LVU438
+ 399:quantum/audio/audio.c ****                     current_note = 0;
+ 1673              		.loc 1 399 21 is_stmt 0 view .LVU439
+ 1674 00a2 484B     		ldr	r3, .L154+40
+ 399:quantum/audio/audio.c ****                     current_note = 0;
+ 1675              		.loc 1 399 20 view .LVU440
+ 1676 00a4 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1677 00a6 5BB3     		cbz	r3, .L130
+ 400:quantum/audio/audio.c ****                 } else {
+ 1678              		.loc 1 400 21 is_stmt 1 view .LVU441
+ 400:quantum/audio/audio.c ****                 } else {
+ 1679              		.loc 1 400 34 is_stmt 0 view .LVU442
+ 1680 00a8 0023     		movs	r3, #0
+ 1681 00aa A8F80030 		strh	r3, [r8]	@ movhi
+ 1682              	.L129:
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1683              		.loc 1 407 13 is_stmt 1 view .LVU443
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1684              		.loc 1 407 35 is_stmt 0 view .LVU444
+ 1685 00ae 464B     		ldr	r3, .L154+44
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1686              		.loc 1 407 17 view .LVU445
+ 1687 00b0 4648     		ldr	r0, .L154+48
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1688              		.loc 1 407 35 view .LVU446
+ 1689 00b2 1A68     		ldr	r2, [r3]
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1690              		.loc 1 407 16 view .LVU447
+ 1691 00b4 90F800C0 		ldrb	ip, [r0]	@ zero_extendqisi2
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1692              		.loc 1 407 102 view .LVU448
+ 1693 00b8 B8F80030 		ldrh	r3, [r8]
+ 1694 00bc DB00     		lsls	r3, r3, #3
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1695              		.loc 1 407 16 view .LVU449
+ 1696 00be BCF1000F 		cmp	ip, #0
+ 1697 00c2 23D1     		bne	.L132
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1698              		.loc 1 407 65 discriminator 1 view .LVU450
+ 1699 00c4 02EBC90E 		add	lr, r2, r9, lsl #3
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1700              		.loc 1 407 102 discriminator 1 view .LVU451
+ 1701 00c8 02EB030C 		add	ip, r2, r3
+ 407:quantum/audio/audio.c ****                 note_resting = true;
+ 1702              		.loc 1 407 31 discriminator 1 view .LVU452
+ 1703 00cc 9EED007A 		vldr.32	s14, [lr]
+ 1704 00d0 DCED007A 		vldr.32	s15, [ip]
+ 1705 00d4 B4EE677A 		vcmp.f32	s14, s15
+ 1706 00d8 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 1707 00dc 16D1     		bne	.L132
+ 408:quantum/audio/audio.c **** 
+ 1708              		.loc 1 408 17 is_stmt 1 view .LVU453
+ 408:quantum/audio/audio.c **** 
+ 1709              		.loc 1 408 30 is_stmt 0 view .LVU454
+ 1710 00de 0123     		movs	r3, #1
+ 1711 00e0 0370     		strb	r3, [r0]
+ 412:quantum/audio/audio.c ****                 current_note                 = previous_note;
+ 1712              		.loc 1 412 17 is_stmt 1 view .LVU455
+ 1713 00e2 0220     		movs	r0, #2
+ 1714 00e4 FFF7FEFF 		bl	audio_duration_to_ms
+ 1715              	.LVL108:
+ 1716 00e8 9FED390A 		vldr.32	s0, .L154+52
+ 1717 00ec FFF7FEFF 		bl	audio_play_note
+ 1718              	.LVL109:
+ 413:quantum/audio/audio.c ****                 melody_current_note_duration = audio_duration_to_ms(2);
+ 1719              		.loc 1 413 17 view .LVU456
+ 414:quantum/audio/audio.c **** 
+ 1720              		.loc 1 414 48 is_stmt 0 view .LVU457
+ 1721 00f0 0220     		movs	r0, #2
+ 413:quantum/audio/audio.c ****                 melody_current_note_duration = audio_duration_to_ms(2);
+ 1722              		.loc 1 413 46 view .LVU458
+ 1723 00f2 A8F80090 		strh	r9, [r8]	@ movhi
+ 414:quantum/audio/audio.c **** 
+ 1724              		.loc 1 414 17 is_stmt 1 view .LVU459
+ 414:quantum/audio/audio.c **** 
+ 1725              		.loc 1 414 48 is_stmt 0 view .LVU460
+ 1726 00f6 FFF7FEFF 		bl	audio_duration_to_ms
+ 1727              	.LVL110:
+ 1728 00fa 0446     		mov	r4, r0
+ 1729              	.LVL111:
+ 1730              	.L137:
+ 414:quantum/audio/audio.c **** 
+ 1731              		.loc 1 414 46 view .LVU461
+ 1732 00fc 3480     		strh	r4, [r6]	@ movhi
+ 1733 00fe 8EE7     		b	.L127
+ 1734              	.LVL112:
+ 1735              	.L130:
+ 402:quantum/audio/audio.c ****                     return false;
+ 1736              		.loc 1 402 21 is_stmt 1 view .LVU462
+ 1737 0100 FFF7FEFF 		bl	audio_stop_all
+ 1738              	.LVL113:
+ 403:quantum/audio/audio.c ****                 }
+ 1739              		.loc 1 403 21 view .LVU463
+ 1740              	.L125:
+ 403:quantum/audio/audio.c ****                 }
+ 1741              		.loc 1 403 21 is_stmt 0 view .LVU464
+ 1742              	.LBE61:
+ 383:quantum/audio/audio.c ****     }
+ 1743              		.loc 1 383 16 view .LVU465
+ 1744 0104 0024     		movs	r4, #0
+ 1745              	.L131:
+ 483:quantum/audio/audio.c **** 
+ 1746              		.loc 1 483 1 view .LVU466
+ 1747 0106 2046     		mov	r0, r4
+ 1748 0108 BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ 1749              	.LVL114:
+ 1750              	.L132:
+ 1751              	.LBB63:
+ 1752              	.LBB62:
+ 417:quantum/audio/audio.c **** 
+ 1753              		.loc 1 417 17 is_stmt 1 view .LVU467
+ 431:quantum/audio/audio.c **** 
+ 1754              		.loc 1 431 88 is_stmt 0 view .LVU468
+ 1755 010c 1344     		add	r3, r3, r2
+ 431:quantum/audio/audio.c **** 
+ 1756              		.loc 1 431 37 view .LVU469
+ 1757 010e D3ED017A 		vldr.32	s15, [r3, #4]
+ 1758 0112 FCEEE77A 		vcvt.u32.f32	s15, s15
+ 417:quantum/audio/audio.c **** 
+ 1759              		.loc 1 417 30 view .LVU470
+ 1760 0116 4FF0000C 		mov	ip, #0
+ 431:quantum/audio/audio.c **** 
+ 1761              		.loc 1 431 37 view .LVU471
+ 1762 011a 17EE903A 		vmov	r3, s15	@ int
+ 417:quantum/audio/audio.c **** 
+ 1763              		.loc 1 417 30 view .LVU472
+ 1764 011e 80F800C0 		strb	ip, [r0]
+ 431:quantum/audio/audio.c **** 
+ 1765              		.loc 1 431 17 is_stmt 1 view .LVU473
+ 431:quantum/audio/audio.c **** 
+ 1766              		.loc 1 431 37 is_stmt 0 view .LVU474
+ 1767 0122 98B2     		uxth	r0, r3
+ 1768 0124 FFF7FEFF 		bl	audio_duration_to_ms
+ 1769              	.LVL115:
+ 434:quantum/audio/audio.c ****                     delta -= duration;
+ 1770              		.loc 1 434 17 is_stmt 1 view .LVU475
+ 434:quantum/audio/audio.c ****                     delta -= duration;
+ 1771              		.loc 1 434 71 is_stmt 0 view .LVU476
+ 1772 0128 0139     		subs	r1, r1, #1
+ 1773              	.L133:
+ 434:quantum/audio/audio.c ****                     delta -= duration;
+ 1774              		.loc 1 434 41 is_stmt 1 view .LVU477
+ 1775 012a 8442     		cmp	r4, r0
+ 434:quantum/audio/audio.c ****                     delta -= duration;
+ 1776              		.loc 1 434 57 is_stmt 0 view .LVU478
+ 1777 012c B8F80030 		ldrh	r3, [r8]
+ 434:quantum/audio/audio.c ****                     delta -= duration;
+ 1778              		.loc 1 434 41 view .LVU479
+ 1779 0130 01D9     		bls	.L134
+ 434:quantum/audio/audio.c ****                     delta -= duration;
+ 1780              		.loc 1 434 41 discriminator 1 view .LVU480
+ 1781 0132 9942     		cmp	r1, r3
+ 1782 0134 0CDC     		bgt	.L135
+ 1783              	.L134:
+ 440:quantum/audio/audio.c ****                     duration -= delta;
+ 1784              		.loc 1 440 17 is_stmt 1 view .LVU481
+ 440:quantum/audio/audio.c ****                     duration -= delta;
+ 1785              		.loc 1 440 20 is_stmt 0 view .LVU482
+ 1786 0136 8442     		cmp	r4, r0
+ 441:quantum/audio/audio.c ****                 } else {
+ 1787              		.loc 1 441 21 is_stmt 1 view .LVU483
+ 441:quantum/audio/audio.c ****                 } else {
+ 1788              		.loc 1 441 30 is_stmt 0 view .LVU484
+ 1789 0138 3ABF     		itte	cc
+ 1790 013a 001B     		subcc	r0, r0, r4
+ 1791              	.LVL116:
+ 441:quantum/audio/audio.c ****                 } else {
+ 1792              		.loc 1 441 30 view .LVU485
+ 1793 013c 84B2     		uxthcc	r4, r0
+ 1794              	.LVL117:
+ 445:quantum/audio/audio.c ****                 }
+ 1795              		.loc 1 445 30 view .LVU486
+ 1796 013e 0124     		movcs	r4, #1
+ 1797              	.LVL118:
+ 448:quantum/audio/audio.c ****                 melody_current_note_duration = duration;
+ 1798              		.loc 1 448 17 is_stmt 1 view .LVU487
+ 1799 0140 02EBC302 		add	r2, r2, r3, lsl #3
+ 1800 0144 92ED000A 		vldr.32	s0, [r2]
+ 1801 0148 2046     		mov	r0, r4
+ 1802 014a FFF7FEFF 		bl	audio_play_note
+ 1803              	.LVL119:
+ 449:quantum/audio/audio.c ****             }
+ 1804              		.loc 1 449 17 view .LVU488
+ 1805 014e D5E7     		b	.L137
+ 1806              	.LVL120:
+ 1807              	.L135:
+ 435:quantum/audio/audio.c ****                     current_note++;
+ 1808              		.loc 1 435 21 view .LVU489
+ 436:quantum/audio/audio.c ****                     duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 1809              		.loc 1 436 33 is_stmt 0 view .LVU490
+ 1810 0150 0133     		adds	r3, r3, #1
+ 1811 0152 9BB2     		uxth	r3, r3
+ 1812 0154 A8F80030 		strh	r3, [r8]	@ movhi
+ 437:quantum/audio/audio.c ****                 }
+ 1813              		.loc 1 437 83 view .LVU491
+ 1814 0158 02EBC303 		add	r3, r2, r3, lsl #3
+ 437:quantum/audio/audio.c ****                 }
+ 1815              		.loc 1 437 32 view .LVU492
+ 1816 015c D3ED017A 		vldr.32	s15, [r3, #4]
+ 1817 0160 FCEEE77A 		vcvt.u32.f32	s15, s15
+ 435:quantum/audio/audio.c ****                     current_note++;
+ 1818              		.loc 1 435 27 view .LVU493
+ 1819 0164 201A     		subs	r0, r4, r0
+ 1820              	.LVL121:
+ 437:quantum/audio/audio.c ****                 }
+ 1821              		.loc 1 437 32 view .LVU494
+ 1822 0166 17EE903A 		vmov	r3, s15	@ int
+ 435:quantum/audio/audio.c ****                     current_note++;
+ 1823              		.loc 1 435 27 view .LVU495
+ 1824 016a 84B2     		uxth	r4, r0
+ 1825              	.LVL122:
+ 436:quantum/audio/audio.c ****                     duration = audio_duration_to_ms((*notes_pointer)[current_note][1]);
+ 1826              		.loc 1 436 21 is_stmt 1 view .LVU496
+ 437:quantum/audio/audio.c ****                 }
+ 1827              		.loc 1 437 21 view .LVU497
+ 437:quantum/audio/audio.c ****                 }
+ 1828              		.loc 1 437 32 is_stmt 0 view .LVU498
+ 1829 016c 98B2     		uxth	r0, r3
+ 1830 016e FFF7FEFF 		bl	audio_duration_to_ms
+ 1831              	.LVL123:
+ 437:quantum/audio/audio.c ****                 }
+ 1832              		.loc 1 437 32 view .LVU499
+ 1833 0172 DAE7     		b	.L133
+ 1834              	.LVL124:
+ 1835              	.L144:
+ 437:quantum/audio/audio.c ****                 }
+ 1836              		.loc 1 437 32 view .LVU500
+ 1837              	.LBE62:
+ 1838              	.LBE63:
+ 1839              	.LBB64:
+ 466:quantum/audio/audio.c ****                 && (tones[i].duration != 0)    // 'uninitialized'
+ 1840              		.loc 1 466 13 is_stmt 1 view .LVU501
+ 467:quantum/audio/audio.c ****             ) {
+ 1841              		.loc 1 467 17 is_stmt 0 view .LVU502
+ 1842 0174 2B89     		ldrh	r3, [r5, #8]
+ 1843 0176 013B     		subs	r3, r3, #1
+ 466:quantum/audio/audio.c ****                 && (tones[i].duration != 0)    // 'uninitialized'
+ 1844              		.loc 1 466 16 view .LVU503
+ 1845 0178 9BB2     		uxth	r3, r3
+ 1846 017a 4345     		cmp	r3, r8
+ 1847 017c 09D8     		bhi	.L142
+ 469:quantum/audio/audio.c ****                     audio_stop_tone(tones[i].pitch);  // also sets 'state_changed=true'
+ 1848              		.loc 1 469 17 is_stmt 1 view .LVU504
+ 469:quantum/audio/audio.c ****                     audio_stop_tone(tones[i].pitch);  // also sets 'state_changed=true'
+ 1849              		.loc 1 469 21 is_stmt 0 view .LVU505
+ 1850 017e 2888     		ldrh	r0, [r5]
+ 1851 0180 FFF7FEFF 		bl	timer_elapsed
+ 1852              	.LVL125:
+ 469:quantum/audio/audio.c ****                     audio_stop_tone(tones[i].pitch);  // also sets 'state_changed=true'
+ 1853              		.loc 1 469 20 view .LVU506
+ 1854 0184 2B89     		ldrh	r3, [r5, #8]
+ 1855 0186 8342     		cmp	r3, r0
+ 1856 0188 03D8     		bhi	.L142
+ 470:quantum/audio/audio.c ****                 }
+ 1857              		.loc 1 470 21 is_stmt 1 view .LVU507
+ 1858 018a 95ED010A 		vldr.32	s0, [r5, #4]
+ 1859 018e FFF7FEFF 		bl	audio_stop_tone
+ 1860              	.LVL126:
+ 1861              	.L142:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1862              		.loc 1 465 44 discriminator 2 view .LVU508
+ 1863 0192 0136     		adds	r6, r6, #1
+ 1864              	.LVL127:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1865              		.loc 1 465 44 is_stmt 0 discriminator 2 view .LVU509
+ 1866 0194 0C35     		adds	r5, r5, #12
+ 1867 0196 53E7     		b	.L140
+ 1868              	.LVL128:
+ 1869              	.L146:
+ 465:quantum/audio/audio.c ****             if ((tones[i].duration != 0xffff)  // indefinitely playing notes, started by 'audio_pla
+ 1870              		.loc 1 465 44 discriminator 2 view .LVU510
+ 1871 0198 2C46     		mov	r4, r5
+ 1872 019a 55E7     		b	.L138
+ 1873              	.L155:
+ 1874              		.align	2
+ 1875              	.L154:
+ 1876 019c 00000000 		.word	playing_note
+ 1877 01a0 00000000 		.word	playing_melody
+ 1878 01a4 00000000 		.word	vibrato
+ 1879 01a8 00000000 		.word	glissando
+ 1880 01ac 00000000 		.word	tones
+ 1881 01b0 00000000 		.word	active_tones
+ 1882 01b4 00000000 		.word	state_changed
+ 1883 01b8 00000000 		.word	melody_current_note_duration
+ 1884 01bc 00000000 		.word	voices_timer
+ 1885 01c0 00000000 		.word	notes_count
+ 1886 01c4 00000000 		.word	notes_repeat
+ 1887 01c8 00000000 		.word	notes_pointer
+ 1888 01cc 00000000 		.word	note_resting
+ 1889 01d0 00000000 		.word	0
+ 1890 01d4 00000000 		.word	last_timestamp
+ 1891 01d8 00000000 		.word	current_note
+ 1892              	.LBE64:
+ 1893              		.cfi_endproc
+ 1894              	.LFE358:
+ 1896              		.section	.text.audio_ms_to_duration,"ax",%progbits
+ 1897              		.align	1
+ 1898              		.global	audio_ms_to_duration
+ 1899              		.syntax unified
+ 1900              		.thumb
+ 1901              		.thumb_func
+ 1903              	audio_ms_to_duration:
+ 1904              	.LVL129:
+ 1905              	.LFB363:
+ 536:quantum/audio/audio.c **** uint16_t audio_ms_to_duration(uint16_t duration_ms) {
+ 1906              		.loc 1 536 53 is_stmt 1 view -0
+ 1907              		.cfi_startproc
+ 1908              		@ args = 0, pretend = 0, frame = 0
+ 1909              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1910              		@ link register save eliminated.
+ 537:quantum/audio/audio.c **** #if defined(__AVR__)
+ 538:quantum/audio/audio.c ****     return ((uint32_t)duration_ms * 64 * note_tempo) / 60 / 1000;
+ 539:quantum/audio/audio.c **** #else
+ 540:quantum/audio/audio.c ****     return ((float)duration_ms * 64 * note_tempo) / 60 / 1000;
+ 1911              		.loc 1 540 5 view .LVU512
+ 536:quantum/audio/audio.c **** uint16_t audio_ms_to_duration(uint16_t duration_ms) {
+ 1912              		.loc 1 536 53 is_stmt 0 view .LVU513
+ 1913 0000 07EE900A 		vmov	s15, r0	@ int
+ 1914              		.loc 1 540 37 view .LVU514
+ 1915 0004 0D4B     		ldr	r3, .L157
+ 1916              		.loc 1 540 32 view .LVU515
+ 1917 0006 9FED0E7A 		vldr.32	s14, .L157+4
+ 1918              		.loc 1 540 37 view .LVU516
+ 1919 000a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1920              		.loc 1 540 13 view .LVU517
+ 1921 000c F8EE677A 		vcvt.f32.u32	s15, s15
+ 1922              		.loc 1 540 32 view .LVU518
+ 1923 0010 67EE877A 		vmul.f32	s15, s15, s14
+ 1924              		.loc 1 540 37 view .LVU519
+ 1925 0014 07EE103A 		vmov	s14, r3	@ int
+ 1926 0018 B8EEC77A 		vcvt.f32.s32	s14, s14
+ 1927 001c 67EE877A 		vmul.f32	s15, s15, s14
+ 1928              		.loc 1 540 51 view .LVU520
+ 1929 0020 9FED087A 		vldr.32	s14, .L157+8
+ 1930 0024 C7EE876A 		vdiv.f32	s13, s15, s14
+ 1931              		.loc 1 540 56 view .LVU521
+ 1932 0028 9FED077A 		vldr.32	s14, .L157+12
+ 1933 002c C6EE877A 		vdiv.f32	s15, s13, s14
+ 1934 0030 FCEEE77A 		vcvt.u32.f32	s15, s15
+ 541:quantum/audio/audio.c **** #endif
+ 542:quantum/audio/audio.c **** }
+ 1935              		.loc 1 542 1 view .LVU522
+ 1936 0034 17EE903A 		vmov	r3, s15	@ int
+ 1937 0038 98B2     		uxth	r0, r3
+ 1938              	.LVL130:
+ 1939              		.loc 1 542 1 view .LVU523
+ 1940 003a 7047     		bx	lr
+ 1941              	.L158:
+ 1942              		.align	2
+ 1943              	.L157:
+ 1944 003c 00000000 		.word	note_tempo
+ 1945 0040 00008042 		.word	1115684864
+ 1946 0044 00007042 		.word	1114636288
+ 1947 0048 00007A44 		.word	1148846080
+ 1948              		.cfi_endproc
+ 1949              	.LFE363:
+ 1951              		.section	.text.audio_play_click,"ax",%progbits
+ 1952              		.align	1
+ 1953              		.global	audio_play_click
+ 1954              		.syntax unified
+ 1955              		.thumb
+ 1956              		.thumb_func
+ 1958              	audio_play_click:
+ 1959              	.LVL131:
+ 1960              	.LFB352:
+ 326:quantum/audio/audio.c ****     uint16_t duration_tone  = audio_ms_to_duration(duration);
+ 1961              		.loc 1 326 72 is_stmt 1 view -0
+ 1962              		.cfi_startproc
+ 1963              		@ args = 0, pretend = 0, frame = 0
+ 1964              		@ frame_needed = 0, uses_anonymous_args = 0
+ 327:quantum/audio/audio.c ****     uint16_t duration_delay = audio_ms_to_duration(delay);
+ 1965              		.loc 1 327 5 view .LVU525
+ 326:quantum/audio/audio.c ****     uint16_t duration_tone  = audio_ms_to_duration(duration);
+ 1966              		.loc 1 326 72 is_stmt 0 view .LVU526
+ 1967 0000 08B5     		push	{r3, lr}
+ 1968              		.cfi_def_cfa_offset 8
+ 1969              		.cfi_offset 3, -8
+ 1970              		.cfi_offset 14, -4
+ 326:quantum/audio/audio.c ****     uint16_t duration_tone  = audio_ms_to_duration(duration);
+ 1971              		.loc 1 326 72 view .LVU527
+ 1972 0002 0246     		mov	r2, r0
+ 327:quantum/audio/audio.c ****     uint16_t duration_delay = audio_ms_to_duration(delay);
+ 1973              		.loc 1 327 31 view .LVU528
+ 1974 0004 0846     		mov	r0, r1
+ 1975              	.LVL132:
+ 327:quantum/audio/audio.c ****     uint16_t duration_delay = audio_ms_to_duration(delay);
+ 1976              		.loc 1 327 31 view .LVU529
+ 1977 0006 FFF7FEFF 		bl	audio_ms_to_duration
+ 1978              	.LVL133:
+ 1979 000a 06EE100A 		vmov	s12, r0	@ int
+ 1980              	.LVL134:
+ 328:quantum/audio/audio.c **** 
+ 1981              		.loc 1 328 5 is_stmt 1 view .LVU530
+ 328:quantum/audio/audio.c **** 
+ 1982              		.loc 1 328 31 is_stmt 0 view .LVU531
+ 1983 000e 1046     		mov	r0, r2
+ 1984 0010 FFF7FEFF 		bl	audio_ms_to_duration
+ 1985              	.LVL135:
+ 330:quantum/audio/audio.c ****         click[0][0] = pitch;
+ 1986              		.loc 1 330 15 view .LVU532
+ 1987 0014 07EE102A 		vmov	s14, r2	@ int
+ 1988 0018 B8EEC77A 		vcvt.f32.s32	s14, s14
+ 328:quantum/audio/audio.c **** 
+ 1989              		.loc 1 328 31 view .LVU533
+ 1990 001c 06EE900A 		vmov	s13, r0	@ int
+ 1991              	.LVL136:
+ 330:quantum/audio/audio.c ****         click[0][0] = pitch;
+ 1992              		.loc 1 330 5 is_stmt 1 view .LVU534
+ 330:quantum/audio/audio.c ****         click[0][0] = pitch;
+ 1993              		.loc 1 330 8 is_stmt 0 view .LVU535
+ 1994 0020 B5EEC07A 		vcmpe.f32	s14, #0
+ 1995 0024 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 332:quantum/audio/audio.c ****         click[1][0] = 0.0f;
+ 1996              		.loc 1 332 21 view .LVU536
+ 1997 0028 F8EE467A 		vcvt.f32.u32	s15, s12
+ 1998 002c 0D48     		ldr	r0, .L165
+ 330:quantum/audio/audio.c ****         click[0][0] = pitch;
+ 1999              		.loc 1 330 8 view .LVU537
+ 2000 002e 4FF00003 		mov	r3, #0
+ 2001 0032 0BD8     		bhi	.L163
+ 331:quantum/audio/audio.c ****         click[0][1] = duration_tone;
+ 2002              		.loc 1 331 9 is_stmt 1 view .LVU538
+ 331:quantum/audio/audio.c ****         click[0][1] = duration_tone;
+ 2003              		.loc 1 331 21 is_stmt 0 view .LVU539
+ 2004 0034 80ED000A 		vstr.32	s0, [r0]
+ 332:quantum/audio/audio.c ****         click[1][0] = 0.0f;
+ 2005              		.loc 1 332 9 is_stmt 1 view .LVU540
+ 332:quantum/audio/audio.c ****         click[1][0] = 0.0f;
+ 2006              		.loc 1 332 21 is_stmt 0 view .LVU541
+ 2007 0038 C0ED017A 		vstr.32	s15, [r0, #4]
+ 333:quantum/audio/audio.c ****         click[1][1] = 0.0f;
+ 2008              		.loc 1 333 9 is_stmt 1 view .LVU542
+ 333:quantum/audio/audio.c ****         click[1][1] = 0.0f;
+ 2009              		.loc 1 333 21 is_stmt 0 view .LVU543
+ 2010 003c 8360     		str	r3, [r0, #8]	@ float
+ 334:quantum/audio/audio.c ****         audio_play_melody(&click, 1, false);
+ 2011              		.loc 1 334 9 is_stmt 1 view .LVU544
+ 334:quantum/audio/audio.c ****         audio_play_melody(&click, 1, false);
+ 2012              		.loc 1 334 21 is_stmt 0 view .LVU545
+ 2013 003e C360     		str	r3, [r0, #12]	@ float
+ 335:quantum/audio/audio.c ****     } else {
+ 2014              		.loc 1 335 9 is_stmt 1 view .LVU546
+ 2015 0040 0022     		movs	r2, #0
+ 2016 0042 0121     		movs	r1, #1
+ 2017              	.LVL137:
+ 2018              	.L164:
+ 345:quantum/audio/audio.c **** 
+ 2019              		.loc 1 345 1 is_stmt 0 view .LVU547
+ 2020 0044 BDE80840 		pop	{r3, lr}
+ 2021              		.cfi_remember_state
+ 2022              		.cfi_restore 14
+ 2023              		.cfi_restore 3
+ 2024              		.cfi_def_cfa_offset 0
+ 343:quantum/audio/audio.c ****     }
+ 2025              		.loc 1 343 9 view .LVU548
+ 2026 0048 FFF7FEBF 		b	audio_play_melody
+ 2027              	.LVL138:
+ 2028              	.L163:
+ 2029              		.cfi_restore_state
+ 338:quantum/audio/audio.c ****         click[0][1] = duration_delay;
+ 2030              		.loc 1 338 9 is_stmt 1 view .LVU549
+ 339:quantum/audio/audio.c ****         // second note is the actual click
+ 2031              		.loc 1 339 21 is_stmt 0 view .LVU550
+ 2032 004c B8EE667A 		vcvt.f32.u32	s14, s13
+ 338:quantum/audio/audio.c ****         click[0][1] = duration_delay;
+ 2033              		.loc 1 338 21 view .LVU551
+ 2034 0050 0360     		str	r3, [r0]	@ float
+ 339:quantum/audio/audio.c ****         // second note is the actual click
+ 2035              		.loc 1 339 9 is_stmt 1 view .LVU552
+ 339:quantum/audio/audio.c ****         // second note is the actual click
+ 2036              		.loc 1 339 21 is_stmt 0 view .LVU553
+ 2037 0052 80ED017A 		vstr.32	s14, [r0, #4]
+ 341:quantum/audio/audio.c ****         click[1][1] = duration_tone;
+ 2038              		.loc 1 341 9 is_stmt 1 view .LVU554
+ 341:quantum/audio/audio.c ****         click[1][1] = duration_tone;
+ 2039              		.loc 1 341 21 is_stmt 0 view .LVU555
+ 2040 0056 80ED020A 		vstr.32	s0, [r0, #8]
+ 342:quantum/audio/audio.c ****         audio_play_melody(&click, 2, false);
+ 2041              		.loc 1 342 9 is_stmt 1 view .LVU556
+ 342:quantum/audio/audio.c ****         audio_play_melody(&click, 2, false);
+ 2042              		.loc 1 342 21 is_stmt 0 view .LVU557
+ 2043 005a C0ED037A 		vstr.32	s15, [r0, #12]
+ 343:quantum/audio/audio.c ****     }
+ 2044              		.loc 1 343 9 is_stmt 1 view .LVU558
+ 2045 005e 0022     		movs	r2, #0
+ 2046 0060 0221     		movs	r1, #2
+ 2047              	.LVL139:
+ 343:quantum/audio/audio.c ****     }
+ 2048              		.loc 1 343 9 is_stmt 0 view .LVU559
+ 2049 0062 EFE7     		b	.L164
+ 2050              	.L166:
+ 2051              		.align	2
+ 2052              	.L165:
+ 2053 0064 00000000 		.word	click
+ 2054              		.cfi_endproc
+ 2055              	.LFE352:
+ 2057              		.comm	click,16,4
+ 2058              		.comm	audio_config,1,1
+ 2059              		.section	.data.audio_driver_stopped,"aw"
+ 2062              	audio_driver_stopped:
+ 2063 0000 01       		.byte	1
+ 2064              		.section	.bss.audio_initialized,"aw",%nobits
+ 2067              	audio_initialized:
+ 2068 0000 00       		.space	1
+ 2069              		.global	audio_off_song
+ 2070              		.section	.data.audio_off_song,"aw"
+ 2071              		.align	2
+ 2074              	audio_off_song:
+ 2075 0000 0000DC44 		.word	1155268608
+ 2076 0004 00000041 		.word	1090519040
+ 2077 0008 00005C44 		.word	1146880000
+ 2078 000c 00000041 		.word	1090519040
+ 2079              		.global	audio_on_song
+ 2080              		.section	.data.audio_on_song,"aw"
+ 2081              		.align	2
+ 2084              	audio_on_song:
+ 2085 0000 00005C44 		.word	1146880000
+ 2086 0004 00000041 		.word	1090519040
+ 2087 0008 0000DC44 		.word	1155268608
+ 2088 000c 00000041 		.word	1090519040
+ 2089              		.global	startup_song
+ 2090              		.section	.bss.startup_song,"aw",%nobits
+ 2091              		.align	2
+ 2094              	startup_song:
+ 2095              		.global	last_timestamp
+ 2096              		.section	.bss.last_timestamp,"aw",%nobits
+ 2097              		.align	1
+ 2100              	last_timestamp:
+ 2101 0000 0000     		.space	2
+ 2102              		.global	note_resting
+ 2103              		.section	.bss.note_resting,"aw",%nobits
+ 2106              	note_resting:
+ 2107 0000 00       		.space	1
+ 2108              		.global	current_note
+ 2109              		.section	.bss.current_note,"aw",%nobits
+ 2110              		.align	1
+ 2113              	current_note:
+ 2114 0000 0000     		.space	2
+ 2115              		.global	note_tempo
+ 2116              		.section	.data.note_tempo,"aw"
+ 2119              	note_tempo:
+ 2120 0000 78       		.byte	120
+ 2121              		.global	melody_current_note_duration
+ 2122              		.section	.bss.melody_current_note_duration,"aw",%nobits
+ 2123              		.align	1
+ 2126              	melody_current_note_duration:
+ 2127 0000 0000     		.space	2
+ 2128              		.comm	notes_repeat,1,1
+ 2129              		.comm	notes_count,2,2
+ 2130              		.comm	notes_pointer,4,4
+ 2131              		.global	state_changed
+ 2132              		.section	.bss.state_changed,"aw",%nobits
+ 2135              	state_changed:
+ 2136 0000 00       		.space	1
+ 2137              		.global	playing_note
+ 2138              		.section	.bss.playing_note,"aw",%nobits
+ 2141              	playing_note:
+ 2142 0000 00       		.space	1
+ 2143              		.global	playing_melody
+ 2144              		.section	.bss.playing_melody,"aw",%nobits
+ 2147              	playing_melody:
+ 2148 0000 00       		.space	1
+ 2149              		.comm	tones,96,4
+ 2150              		.global	active_tones
+ 2151              		.section	.bss.active_tones,"aw",%nobits
+ 2154              	active_tones:
+ 2155 0000 00       		.space	1
+ 2156              		.text
+ 2157              	.Letext0:
+ 2158              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 2159              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 2160              		.file 4 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 2161              		.file 5 "./lib/chibios/os/rt/include/chtime.h"
+ 2162              		.file 6 "quantum/audio/audio.h"
+ 2163              		.file 7 "tmk_core/common/timer.h"
+ 2164              		.file 8 "quantum/audio/voices.h"
+ 2165              		.file 9 "quantum/process_keycode/process_audio.h"
+ 2166              		.file 10 "./lib/chibios/os/rt/include/chthreads.h"
+ 2167              		.file 11 "quantum/eeconfig.h"
+ 2168              		.file 12 "quantum/sequencer/sequencer.h"
+ 2169              		.file 13 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 audio.c
+     /tmp/ccdDT4wo.s:21     .text.audio_is_on:0000000000000000 $t
+     /tmp/ccdDT4wo.s:27     .text.audio_is_on:0000000000000000 audio_is_on
+     /tmp/ccdDT4wo.s:44     .text.audio_is_on:000000000000000c $d
+                            *COM*:0000000000000001 audio_config
+     /tmp/ccdDT4wo.s:49     .text.audio_stop_all:0000000000000000 $t
+     /tmp/ccdDT4wo.s:55     .text.audio_stop_all:0000000000000000 audio_stop_all
+     /tmp/ccdDT4wo.s:146    .text.audio_stop_all:0000000000000038 $d
+     /tmp/ccdDT4wo.s:2062   .data.audio_driver_stopped:0000000000000000 audio_driver_stopped
+     /tmp/ccdDT4wo.s:2154   .bss.active_tones:0000000000000000 active_tones
+     /tmp/ccdDT4wo.s:2147   .bss.playing_melody:0000000000000000 playing_melody
+     /tmp/ccdDT4wo.s:2141   .bss.playing_note:0000000000000000 playing_note
+     /tmp/ccdDT4wo.s:2126   .bss.melody_current_note_duration:0000000000000000 melody_current_note_duration
+                            *COM*:0000000000000060 tones
+     /tmp/ccdDT4wo.s:157    .text.audio_toggle:0000000000000000 $t
+     /tmp/ccdDT4wo.s:163    .text.audio_toggle:0000000000000000 audio_toggle
+     /tmp/ccdDT4wo.s:220    .text.audio_toggle:0000000000000034 $d
+     /tmp/ccdDT4wo.s:225    .text.audio_is_playing_note:0000000000000000 $t
+     /tmp/ccdDT4wo.s:231    .text.audio_is_playing_note:0000000000000000 audio_is_playing_note
+     /tmp/ccdDT4wo.s:246    .text.audio_is_playing_note:0000000000000008 $d
+     /tmp/ccdDT4wo.s:251    .text.audio_is_playing_melody:0000000000000000 $t
+     /tmp/ccdDT4wo.s:257    .text.audio_is_playing_melody:0000000000000000 audio_is_playing_melody
+     /tmp/ccdDT4wo.s:272    .text.audio_is_playing_melody:0000000000000008 $d
+     /tmp/ccdDT4wo.s:277    .text.audio_get_number_of_active_tones:0000000000000000 $t
+     /tmp/ccdDT4wo.s:283    .text.audio_get_number_of_active_tones:0000000000000000 audio_get_number_of_active_tones
+     /tmp/ccdDT4wo.s:298    .text.audio_get_number_of_active_tones:0000000000000008 $d
+     /tmp/ccdDT4wo.s:303    .text.audio_get_frequency:0000000000000000 $t
+     /tmp/ccdDT4wo.s:309    .text.audio_get_frequency:0000000000000000 audio_get_frequency
+     /tmp/ccdDT4wo.s:341    .text.audio_get_frequency:0000000000000024 $d
+     /tmp/ccdDT4wo.s:348    .text.audio_get_processed_frequency:0000000000000000 $t
+     /tmp/ccdDT4wo.s:354    .text.audio_get_processed_frequency:0000000000000000 audio_get_processed_frequency
+     /tmp/ccdDT4wo.s:400    .text.audio_get_processed_frequency:0000000000000030 $d
+     /tmp/ccdDT4wo.s:407    .text.audio_set_tempo:0000000000000000 $t
+     /tmp/ccdDT4wo.s:413    .text.audio_set_tempo:0000000000000000 audio_set_tempo
+     /tmp/ccdDT4wo.s:435    .text.audio_set_tempo:000000000000000c $d
+     /tmp/ccdDT4wo.s:2119   .data.note_tempo:0000000000000000 note_tempo
+     /tmp/ccdDT4wo.s:440    .text.audio_increase_tempo:0000000000000000 $t
+     /tmp/ccdDT4wo.s:446    .text.audio_increase_tempo:0000000000000000 audio_increase_tempo
+     /tmp/ccdDT4wo.s:476    .text.audio_increase_tempo:0000000000000018 $d
+     /tmp/ccdDT4wo.s:481    .text.audio_decrease_tempo:0000000000000000 $t
+     /tmp/ccdDT4wo.s:487    .text.audio_decrease_tempo:0000000000000000 audio_decrease_tempo
+     /tmp/ccdDT4wo.s:517    .text.audio_decrease_tempo:0000000000000018 $d
+     /tmp/ccdDT4wo.s:522    .text.audio_duration_to_ms:0000000000000000 $t
+     /tmp/ccdDT4wo.s:528    .text.audio_duration_to_ms:0000000000000000 audio_duration_to_ms
+     /tmp/ccdDT4wo.s:568    .text.audio_duration_to_ms:0000000000000038 $d
+     /tmp/ccdDT4wo.s:575    .text.audio_play_melody:0000000000000000 $t
+     /tmp/ccdDT4wo.s:581    .text.audio_play_melody:0000000000000000 audio_play_melody
+     /tmp/ccdDT4wo.s:789    .text.audio_init:0000000000000000 audio_init
+     /tmp/ccdDT4wo.s:1109   .text.audio_play_note:0000000000000000 audio_play_note
+     /tmp/ccdDT4wo.s:718    .text.audio_play_melody:000000000000008c $d
+     /tmp/ccdDT4wo.s:2067   .bss.audio_initialized:0000000000000000 audio_initialized
+                            *COM*:0000000000000004 notes_pointer
+     /tmp/ccdDT4wo.s:2106   .bss.note_resting:0000000000000000 note_resting
+                            *COM*:0000000000000002 notes_count
+                            *COM*:0000000000000001 notes_repeat
+     /tmp/ccdDT4wo.s:2113   .bss.current_note:0000000000000000 current_note
+     /tmp/ccdDT4wo.s:2100   .bss.last_timestamp:0000000000000000 last_timestamp
+     /tmp/ccdDT4wo.s:733    .text.audio_startup:0000000000000000 $t
+     /tmp/ccdDT4wo.s:739    .text.audio_startup:0000000000000000 audio_startup
+     /tmp/ccdDT4wo.s:776    .text.audio_startup:0000000000000020 $d
+     /tmp/ccdDT4wo.s:2094   .bss.startup_song:0000000000000000 startup_song
+     /tmp/ccdDT4wo.s:783    .text.audio_init:0000000000000000 $t
+     /tmp/ccdDT4wo.s:897    .text.audio_init:000000000000004c $d
+     /tmp/ccdDT4wo.s:905    .text.audio_stop_tone:0000000000000000 $t
+     /tmp/ccdDT4wo.s:911    .text.audio_stop_tone:0000000000000000 audio_stop_tone
+     /tmp/ccdDT4wo.s:1092   .text.audio_stop_tone:00000000000000a0 $d
+     /tmp/ccdDT4wo.s:2135   .bss.state_changed:0000000000000000 state_changed
+     /tmp/ccdDT4wo.s:1103   .text.audio_play_note:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1353   .text.audio_play_note:00000000000000e0 $d
+     /tmp/ccdDT4wo.s:1368   .text.audio_play_tone:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1374   .text.audio_play_tone:0000000000000000 audio_play_tone
+     /tmp/ccdDT4wo.s:1391   .text.audio_on:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1397   .text.audio_on:0000000000000000 audio_on
+     /tmp/ccdDT4wo.s:1435   .text.audio_on:0000000000000024 $d
+     /tmp/ccdDT4wo.s:2084   .data.audio_on_song:0000000000000000 audio_on_song
+     /tmp/ccdDT4wo.s:1441   .text.audio_off:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1447   .text.audio_off:0000000000000000 audio_off
+     /tmp/ccdDT4wo.s:1494   .text.audio_off:000000000000002c $d
+     /tmp/ccdDT4wo.s:2074   .data.audio_off_song:0000000000000000 audio_off_song
+     /tmp/ccdDT4wo.s:1500   .text.audio_update_state:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1506   .text.audio_update_state:0000000000000000 audio_update_state
+     /tmp/ccdDT4wo.s:1876   .text.audio_update_state:000000000000019c $d
+     /tmp/ccdDT4wo.s:1897   .text.audio_ms_to_duration:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1903   .text.audio_ms_to_duration:0000000000000000 audio_ms_to_duration
+     /tmp/ccdDT4wo.s:1944   .text.audio_ms_to_duration:000000000000003c $d
+     /tmp/ccdDT4wo.s:1952   .text.audio_play_click:0000000000000000 $t
+     /tmp/ccdDT4wo.s:1958   .text.audio_play_click:0000000000000000 audio_play_click
+     /tmp/ccdDT4wo.s:2053   .text.audio_play_click:0000000000000064 $d
+                            *COM*:0000000000000010 click
+     /tmp/ccdDT4wo.s:2068   .bss.audio_initialized:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2071   .data.audio_off_song:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2081   .data.audio_on_song:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2097   .bss.last_timestamp:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2107   .bss.note_resting:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2110   .bss.current_note:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2123   .bss.melody_current_note_duration:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2136   .bss.state_changed:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2142   .bss.playing_note:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2148   .bss.playing_melody:0000000000000000 $d
+     /tmp/ccdDT4wo.s:2155   .bss.active_tones:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+audio_driver_stop
+eeconfig_update_audio
+audio_on_user
+voice_envelope
+timer_read
+eeconfig_is_enabled
+eeconfig_init
+eeconfig_read_audio
+audio_driver_initialize
+memmove
+audio_driver_start
+voices_timer
+chThdSleep
+timer_elapsed
+vibrato
+glissando

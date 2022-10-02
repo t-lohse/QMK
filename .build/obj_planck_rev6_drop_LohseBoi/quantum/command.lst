@@ -1,0 +1,2856 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"command.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/command.c"
+  20              		.section	.rodata.mousekey_param_print.str1.1,"aMS",%progbits,1
+  21              	.LC0:
+  22 0000 313A0964 		.ascii	"1:\011delay(*10ms): %u\0122:\011interval(ms): %u\012"
+  22      656C6179 
+  22      282A3130 
+  22      6D73293A 
+  22      2025750A 
+  23 0028 333A096D 		.ascii	"3:\011max_speed: %u\0124:\011time_to_max: %u\0125:\011"
+  23      61785F73 
+  23      70656564 
+  23      3A202575 
+  23      0A343A09 
+  24 004f 77686565 		.ascii	"wheel_max_speed: %u\0126:\011wheel_time_to_max: %u\012"
+  24      6C5F6D61 
+  24      785F7370 
+  24      6565643A 
+  24      2025750A 
+  25 007c 00       		.ascii	"\000"
+  26              		.section	.text.mousekey_param_print,"ax",%progbits
+  27              		.align	1
+  28              		.syntax unified
+  29              		.thumb
+  30              		.thumb_func
+  32              	mousekey_param_print:
+  33              	.LFB305:
+   1:quantum/command.c **** /*
+   2:quantum/command.c **** Copyright 2011 Jun Wako <wakojun@gmail.com>
+   3:quantum/command.c **** 
+   4:quantum/command.c **** This program is free software: you can redistribute it and/or modify
+   5:quantum/command.c **** it under the terms of the GNU General Public License as published by
+   6:quantum/command.c **** the Free Software Foundation, either version 2 of the License, or
+   7:quantum/command.c **** (at your option) any later version.
+   8:quantum/command.c **** 
+   9:quantum/command.c **** This program is distributed in the hope that it will be useful,
+  10:quantum/command.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/command.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/command.c **** GNU General Public License for more details.
+  13:quantum/command.c **** 
+  14:quantum/command.c **** You should have received a copy of the GNU General Public License
+  15:quantum/command.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/command.c **** */
+  17:quantum/command.c **** #include <stdint.h>
+  18:quantum/command.c **** #include <stdbool.h>
+  19:quantum/command.c **** #include "wait.h"
+  20:quantum/command.c **** #include "keycode.h"
+  21:quantum/command.c **** #include "host.h"
+  22:quantum/command.c **** #include "keymap.h"
+  23:quantum/command.c **** #include "print.h"
+  24:quantum/command.c **** #include "debug.h"
+  25:quantum/command.c **** #include "util.h"
+  26:quantum/command.c **** #include "timer.h"
+  27:quantum/command.c **** #include "keyboard.h"
+  28:quantum/command.c **** #include "bootloader.h"
+  29:quantum/command.c **** #include "action_layer.h"
+  30:quantum/command.c **** #include "action_util.h"
+  31:quantum/command.c **** #include "eeconfig.h"
+  32:quantum/command.c **** #include "sleep_led.h"
+  33:quantum/command.c **** #include "led.h"
+  34:quantum/command.c **** #include "command.h"
+  35:quantum/command.c **** #include "quantum.h"
+  36:quantum/command.c **** #include "version.h"
+  37:quantum/command.c **** 
+  38:quantum/command.c **** #ifdef BACKLIGHT_ENABLE
+  39:quantum/command.c **** #    include "backlight.h"
+  40:quantum/command.c **** #endif
+  41:quantum/command.c **** 
+  42:quantum/command.c **** #if defined(MOUSEKEY_ENABLE)
+  43:quantum/command.c **** #    include "mousekey.h"
+  44:quantum/command.c **** #endif
+  45:quantum/command.c **** 
+  46:quantum/command.c **** #ifdef AUDIO_ENABLE
+  47:quantum/command.c **** #    include "audio.h"
+  48:quantum/command.c **** #endif /* AUDIO_ENABLE */
+  49:quantum/command.c **** 
+  50:quantum/command.c **** static bool command_common(uint8_t code);
+  51:quantum/command.c **** static void command_common_help(void);
+  52:quantum/command.c **** static void print_version(void);
+  53:quantum/command.c **** static void print_status(void);
+  54:quantum/command.c **** static bool command_console(uint8_t code);
+  55:quantum/command.c **** static void command_console_help(void);
+  56:quantum/command.c **** #if defined(MOUSEKEY_ENABLE)
+  57:quantum/command.c **** static bool mousekey_console(uint8_t code);
+  58:quantum/command.c **** #endif
+  59:quantum/command.c **** 
+  60:quantum/command.c **** static void switch_default_layer(uint8_t layer);
+  61:quantum/command.c **** 
+  62:quantum/command.c **** command_state_t command_state = ONESHOT;
+  63:quantum/command.c **** 
+  64:quantum/command.c **** bool command_proc(uint8_t code) {
+  65:quantum/command.c ****     switch (command_state) {
+  66:quantum/command.c ****         case ONESHOT:
+  67:quantum/command.c ****             if (!IS_COMMAND()) return false;
+  68:quantum/command.c ****             return (command_extra(code) || command_common(code));
+  69:quantum/command.c ****             break;
+  70:quantum/command.c ****         case CONSOLE:
+  71:quantum/command.c ****             if (IS_COMMAND())
+  72:quantum/command.c ****                 return (command_extra(code) || command_common(code));
+  73:quantum/command.c ****             else
+  74:quantum/command.c ****                 return (command_console_extra(code) || command_console(code));
+  75:quantum/command.c ****             break;
+  76:quantum/command.c **** #if defined(MOUSEKEY_ENABLE)
+  77:quantum/command.c ****         case MOUSEKEY:
+  78:quantum/command.c ****             mousekey_console(code);
+  79:quantum/command.c ****             break;
+  80:quantum/command.c **** #endif
+  81:quantum/command.c ****         default:
+  82:quantum/command.c ****             command_state = ONESHOT;
+  83:quantum/command.c ****             return false;
+  84:quantum/command.c ****     }
+  85:quantum/command.c ****     return true;
+  86:quantum/command.c **** }
+  87:quantum/command.c **** 
+  88:quantum/command.c **** /* TODO: Refactoring is needed. */
+  89:quantum/command.c **** /* This allows to define extra commands. return false when not processed. */
+  90:quantum/command.c **** bool command_extra(uint8_t code) __attribute__((weak));
+  91:quantum/command.c **** bool command_extra(uint8_t code) {
+  92:quantum/command.c ****     (void)code;
+  93:quantum/command.c ****     return false;
+  94:quantum/command.c **** }
+  95:quantum/command.c **** 
+  96:quantum/command.c **** bool command_console_extra(uint8_t code) __attribute__((weak));
+  97:quantum/command.c **** bool command_console_extra(uint8_t code) {
+  98:quantum/command.c ****     (void)code;
+  99:quantum/command.c ****     return false;
+ 100:quantum/command.c **** }
+ 101:quantum/command.c **** 
+ 102:quantum/command.c **** /***********************************************************
+ 103:quantum/command.c ****  * Command common
+ 104:quantum/command.c ****  ***********************************************************/
+ 105:quantum/command.c **** 
+ 106:quantum/command.c **** static void command_common_help(void) {
+ 107:quantum/command.c ****     print(/* clang-format off */
+ 108:quantum/command.c ****         "\n\t- Magic -\n"
+ 109:quantum/command.c **** 
+ 110:quantum/command.c ****         STR(MAGIC_KEY_DEBUG) ":	Debug Message Toggle\n"
+ 111:quantum/command.c ****         STR(MAGIC_KEY_DEBUG_MATRIX) ":	Matrix Debug Mode Toggle"
+ 112:quantum/command.c ****             " - Show keypresses in matrix grid\n"
+ 113:quantum/command.c ****         STR(MAGIC_KEY_DEBUG_KBD) ":	Keyboard Debug Toggle"
+ 114:quantum/command.c ****             " - Show keypress report\n"
+ 115:quantum/command.c ****         STR(MAGIC_KEY_DEBUG_MOUSE) ":	Debug Mouse Toggle\n"
+ 116:quantum/command.c ****         STR(MAGIC_KEY_VERSION) ":	Version\n"
+ 117:quantum/command.c ****         STR(MAGIC_KEY_STATUS) ":	Status\n"
+ 118:quantum/command.c ****         STR(MAGIC_KEY_CONSOLE) ":	Activate Console Mode\n"
+ 119:quantum/command.c **** 
+ 120:quantum/command.c **** #if MAGIC_KEY_SWITCH_LAYER_WITH_CUSTOM
+ 121:quantum/command.c ****         STR(MAGIC_KEY_LAYER0) ":	Switch to Layer 0\n"
+ 122:quantum/command.c ****         STR(MAGIC_KEY_LAYER1) ":	Switch to Layer 1\n"
+ 123:quantum/command.c ****         STR(MAGIC_KEY_LAYER2) ":	Switch to Layer 2\n"
+ 124:quantum/command.c ****         STR(MAGIC_KEY_LAYER3) ":	Switch to Layer 3\n"
+ 125:quantum/command.c ****         STR(MAGIC_KEY_LAYER4) ":	Switch to Layer 4\n"
+ 126:quantum/command.c ****         STR(MAGIC_KEY_LAYER5) ":	Switch to Layer 5\n"
+ 127:quantum/command.c ****         STR(MAGIC_KEY_LAYER6) ":	Switch to Layer 6\n"
+ 128:quantum/command.c ****         STR(MAGIC_KEY_LAYER7) ":	Switch to Layer 7\n"
+ 129:quantum/command.c ****         STR(MAGIC_KEY_LAYER8) ":	Switch to Layer 8\n"
+ 130:quantum/command.c ****         STR(MAGIC_KEY_LAYER9) ":	Switch to Layer 9\n"
+ 131:quantum/command.c **** #endif
+ 132:quantum/command.c **** 
+ 133:quantum/command.c **** #if MAGIC_KEY_SWITCH_LAYER_WITH_FKEYS
+ 134:quantum/command.c ****         "F1-F10:	Switch to Layer 0-9 (F10 = L0)\n"
+ 135:quantum/command.c **** #endif
+ 136:quantum/command.c **** 
+ 137:quantum/command.c **** #if MAGIC_KEY_SWITCH_LAYER_WITH_NKEYS
+ 138:quantum/command.c ****         "0-9:	Switch to Layer 0-9\n"
+ 139:quantum/command.c **** #endif
+ 140:quantum/command.c **** 
+ 141:quantum/command.c ****         STR(MAGIC_KEY_LAYER0_ALT) ":	Switch to Layer 0 (alternate)\n"
+ 142:quantum/command.c **** 
+ 143:quantum/command.c ****         STR(MAGIC_KEY_BOOTLOADER) ":	Jump to Bootloader\n"
+ 144:quantum/command.c ****         STR(MAGIC_KEY_BOOTLOADER_ALT) ":	Jump to Bootloader (alternate)\n"
+ 145:quantum/command.c **** 
+ 146:quantum/command.c **** #ifdef KEYBOARD_LOCK_ENABLE
+ 147:quantum/command.c ****         STR(MAGIC_KEY_LOCK) ":	Lock Keyboard\n"
+ 148:quantum/command.c **** #endif
+ 149:quantum/command.c **** 
+ 150:quantum/command.c ****         STR(MAGIC_KEY_EEPROM) ":	Print EEPROM Settings\n"
+ 151:quantum/command.c ****         STR(MAGIC_KEY_EEPROM_CLEAR) ":	Clear EEPROM\n"
+ 152:quantum/command.c **** 
+ 153:quantum/command.c **** #ifdef NKRO_ENABLE
+ 154:quantum/command.c ****         STR(MAGIC_KEY_NKRO) ":	NKRO Toggle\n"
+ 155:quantum/command.c **** #endif
+ 156:quantum/command.c **** 
+ 157:quantum/command.c **** #ifdef SLEEP_LED_ENABLE
+ 158:quantum/command.c ****         STR(MAGIC_KEY_SLEEP_LED) ":	Sleep LED Test\n"
+ 159:quantum/command.c **** #endif
+ 160:quantum/command.c ****     ); /* clang-format on */
+ 161:quantum/command.c **** }
+ 162:quantum/command.c **** 
+ 163:quantum/command.c **** static void print_version(void) {
+ 164:quantum/command.c ****     print(/* clang-format off */
+ 165:quantum/command.c ****         "\n\t- Version -\n"
+ 166:quantum/command.c ****         "VID: " STR(VENDOR_ID) "(" STR(MANUFACTURER) ") "
+ 167:quantum/command.c ****         "PID: " STR(PRODUCT_ID) "(" STR(PRODUCT) ") "
+ 168:quantum/command.c ****         "VER: " STR(DEVICE_VER) "\n"
+ 169:quantum/command.c ****         "BUILD:  (" __DATE__ ")\n"
+ 170:quantum/command.c **** #ifndef SKIP_VERSION
+ 171:quantum/command.c **** #    ifdef PROTOCOL_CHIBIOS
+ 172:quantum/command.c ****         "CHIBIOS: " STR(CHIBIOS_VERSION)
+ 173:quantum/command.c ****             ", CONTRIB: " STR(CHIBIOS_CONTRIB_VERSION) "\n"
+ 174:quantum/command.c **** #    endif
+ 175:quantum/command.c **** #endif
+ 176:quantum/command.c **** 
+ 177:quantum/command.c ****     /* build options */
+ 178:quantum/command.c ****         "OPTIONS:"
+ 179:quantum/command.c **** 
+ 180:quantum/command.c **** #ifdef PROTOCOL_LUFA
+ 181:quantum/command.c ****         " LUFA"
+ 182:quantum/command.c **** #endif
+ 183:quantum/command.c **** #ifdef PROTOCOL_VUSB
+ 184:quantum/command.c ****         " VUSB"
+ 185:quantum/command.c **** #endif
+ 186:quantum/command.c **** #ifdef BOOTMAGIC_ENABLE
+ 187:quantum/command.c ****         " BOOTMAGIC"
+ 188:quantum/command.c **** #endif
+ 189:quantum/command.c **** #ifdef MOUSEKEY_ENABLE
+ 190:quantum/command.c ****         " MOUSEKEY"
+ 191:quantum/command.c **** #endif
+ 192:quantum/command.c **** #ifdef EXTRAKEY_ENABLE
+ 193:quantum/command.c ****         " EXTRAKEY"
+ 194:quantum/command.c **** #endif
+ 195:quantum/command.c **** #ifdef CONSOLE_ENABLE
+ 196:quantum/command.c ****         " CONSOLE"
+ 197:quantum/command.c **** #endif
+ 198:quantum/command.c **** #ifdef COMMAND_ENABLE
+ 199:quantum/command.c ****         " COMMAND"
+ 200:quantum/command.c **** #endif
+ 201:quantum/command.c **** #ifdef NKRO_ENABLE
+ 202:quantum/command.c ****         " NKRO"
+ 203:quantum/command.c **** #endif
+ 204:quantum/command.c **** #ifdef LTO_ENABLE
+ 205:quantum/command.c ****         " LTO"
+ 206:quantum/command.c **** #endif
+ 207:quantum/command.c **** 
+ 208:quantum/command.c ****         " " STR(BOOTLOADER_SIZE) "\n"
+ 209:quantum/command.c **** 
+ 210:quantum/command.c ****         "GCC: " STR(__GNUC__)
+ 211:quantum/command.c ****             "." STR(__GNUC_MINOR__)
+ 212:quantum/command.c ****             "." STR(__GNUC_PATCHLEVEL__)
+ 213:quantum/command.c **** #if defined(__AVR__)
+ 214:quantum/command.c ****         " AVR-LIBC: " __AVR_LIBC_VERSION_STRING__
+ 215:quantum/command.c ****         " AVR_ARCH: avr" STR(__AVR_ARCH__)
+ 216:quantum/command.c **** #endif
+ 217:quantum/command.c ****         "\n"
+ 218:quantum/command.c ****     ); /* clang-format on */
+ 219:quantum/command.c **** }
+ 220:quantum/command.c **** 
+ 221:quantum/command.c **** static void print_status(void) {
+ 222:quantum/command.c ****     xprintf(/* clang-format off */
+ 223:quantum/command.c ****         "\n\t- Status -\n"
+ 224:quantum/command.c **** 
+ 225:quantum/command.c ****         "host_keyboard_leds(): %02X\n"
+ 226:quantum/command.c **** #ifndef PROTOCOL_VUSB
+ 227:quantum/command.c ****         "keyboard_protocol: %02X\n"
+ 228:quantum/command.c ****         "keyboard_idle: %02X\n"
+ 229:quantum/command.c **** #endif
+ 230:quantum/command.c **** #ifdef NKRO_ENABLE
+ 231:quantum/command.c ****         "keymap_config.nkro: %02X\n"
+ 232:quantum/command.c **** #endif
+ 233:quantum/command.c ****         "timer_read32(): %08lX\n"
+ 234:quantum/command.c **** 
+ 235:quantum/command.c ****         , host_keyboard_leds()
+ 236:quantum/command.c **** #ifndef PROTOCOL_VUSB
+ 237:quantum/command.c ****         /* these aren't set on the V-USB protocol, so we just ignore them for now */
+ 238:quantum/command.c ****         , keyboard_protocol
+ 239:quantum/command.c ****         , keyboard_idle
+ 240:quantum/command.c **** #endif
+ 241:quantum/command.c **** #ifdef NKRO_ENABLE
+ 242:quantum/command.c ****         , keymap_config.nkro
+ 243:quantum/command.c **** #endif
+ 244:quantum/command.c ****         , timer_read32()
+ 245:quantum/command.c **** 
+ 246:quantum/command.c ****     ); /* clang-format on */
+ 247:quantum/command.c **** }
+ 248:quantum/command.c **** 
+ 249:quantum/command.c **** #if !defined(NO_PRINT) && !defined(USER_PRINT)
+ 250:quantum/command.c **** static void print_eeconfig(void) {
+ 251:quantum/command.c ****     xprintf("eeconfig:\ndefault_layer: %u\n", eeconfig_read_default_layer());
+ 252:quantum/command.c **** 
+ 253:quantum/command.c ****     debug_config_t dc;
+ 254:quantum/command.c ****     dc.raw = eeconfig_read_debug();
+ 255:quantum/command.c ****     xprintf(/* clang-format off */
+ 256:quantum/command.c **** 
+ 257:quantum/command.c ****         "debug_config.raw: %02X\n"
+ 258:quantum/command.c ****         ".enable: %u\n"
+ 259:quantum/command.c ****         ".matrix: %u\n"
+ 260:quantum/command.c ****         ".keyboard: %u\n"
+ 261:quantum/command.c ****         ".mouse: %u\n"
+ 262:quantum/command.c **** 
+ 263:quantum/command.c ****         , dc.raw
+ 264:quantum/command.c ****         , dc.enable
+ 265:quantum/command.c ****         , dc.matrix
+ 266:quantum/command.c ****         , dc.keyboard
+ 267:quantum/command.c ****         , dc.mouse
+ 268:quantum/command.c ****     ); /* clang-format on */
+ 269:quantum/command.c **** 
+ 270:quantum/command.c ****     keymap_config_t kc;
+ 271:quantum/command.c ****     kc.raw = eeconfig_read_keymap();
+ 272:quantum/command.c ****     xprintf(/* clang-format off */
+ 273:quantum/command.c **** 
+ 274:quantum/command.c ****         "keymap_config.raw: %02X\n"
+ 275:quantum/command.c ****         ".swap_control_capslock: %u\n"
+ 276:quantum/command.c ****         ".capslock_to_control: %u\n"
+ 277:quantum/command.c ****         ".swap_lctl_lgui: %u\n"
+ 278:quantum/command.c ****         ".swap_rctl_rgui: %u\n"
+ 279:quantum/command.c ****         ".swap_lalt_lgui: %u\n"
+ 280:quantum/command.c ****         ".swap_ralt_rgui: %u\n"
+ 281:quantum/command.c ****         ".no_gui: %u\n"
+ 282:quantum/command.c ****         ".swap_grave_esc: %u\n"
+ 283:quantum/command.c ****         ".swap_backslash_backspace: %u\n"
+ 284:quantum/command.c ****         ".nkro: %u\n"
+ 285:quantum/command.c **** 
+ 286:quantum/command.c ****         , kc.raw
+ 287:quantum/command.c ****         , kc.swap_control_capslock
+ 288:quantum/command.c ****         , kc.capslock_to_control
+ 289:quantum/command.c ****         , kc.swap_lctl_lgui
+ 290:quantum/command.c ****         , kc.swap_rctl_rgui
+ 291:quantum/command.c ****         , kc.swap_lalt_lgui
+ 292:quantum/command.c ****         , kc.swap_ralt_rgui
+ 293:quantum/command.c ****         , kc.no_gui
+ 294:quantum/command.c ****         , kc.swap_grave_esc
+ 295:quantum/command.c ****         , kc.swap_backslash_backspace
+ 296:quantum/command.c ****         , kc.nkro
+ 297:quantum/command.c ****     ); /* clang-format on */
+ 298:quantum/command.c **** 
+ 299:quantum/command.c **** #    ifdef BACKLIGHT_ENABLE
+ 300:quantum/command.c **** 
+ 301:quantum/command.c ****     backlight_config_t bc;
+ 302:quantum/command.c ****     bc.raw = eeconfig_read_backlight();
+ 303:quantum/command.c ****     xprintf(/* clang-format off */
+ 304:quantum/command.c ****         "backlight_config"
+ 305:quantum/command.c **** 
+ 306:quantum/command.c ****         ".raw: %02X\n"
+ 307:quantum/command.c ****         ".enable: %u\n"
+ 308:quantum/command.c ****         ".level: %u\n"
+ 309:quantum/command.c **** 
+ 310:quantum/command.c ****         , bc.raw
+ 311:quantum/command.c ****         , bc.enable
+ 312:quantum/command.c ****         , bc.level
+ 313:quantum/command.c **** 
+ 314:quantum/command.c ****     ); /* clang-format on */
+ 315:quantum/command.c **** 
+ 316:quantum/command.c **** #    endif /* BACKLIGHT_ENABLE */
+ 317:quantum/command.c **** }
+ 318:quantum/command.c **** #endif /* !NO_PRINT && !USER_PRINT */
+ 319:quantum/command.c **** 
+ 320:quantum/command.c **** static bool command_common(uint8_t code) {
+ 321:quantum/command.c **** #ifdef KEYBOARD_LOCK_ENABLE
+ 322:quantum/command.c ****     static host_driver_t *host_driver = 0;
+ 323:quantum/command.c **** #endif
+ 324:quantum/command.c **** 
+ 325:quantum/command.c ****     switch (code) {
+ 326:quantum/command.c **** #ifdef SLEEP_LED_ENABLE
+ 327:quantum/command.c **** 
+ 328:quantum/command.c ****         // test breathing sleep LED
+ 329:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_SLEEP_LED):
+ 330:quantum/command.c ****             print("Sleep LED Test\n");
+ 331:quantum/command.c ****             sleep_led_toggle();
+ 332:quantum/command.c ****             led_set(host_keyboard_leds());
+ 333:quantum/command.c ****             break;
+ 334:quantum/command.c **** #endif
+ 335:quantum/command.c **** 
+ 336:quantum/command.c ****         // print stored eeprom config
+ 337:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_EEPROM):
+ 338:quantum/command.c **** #if !defined(NO_PRINT) && !defined(USER_PRINT)
+ 339:quantum/command.c ****             print_eeconfig();
+ 340:quantum/command.c **** #endif /* !NO_PRINT && !USER_PRINT */
+ 341:quantum/command.c ****             break;
+ 342:quantum/command.c **** 
+ 343:quantum/command.c ****         // clear eeprom
+ 344:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_EEPROM_CLEAR):
+ 345:quantum/command.c ****             print("Clearing EEPROM\n");
+ 346:quantum/command.c ****             eeconfig_init();
+ 347:quantum/command.c ****             break;
+ 348:quantum/command.c **** 
+ 349:quantum/command.c **** #ifdef KEYBOARD_LOCK_ENABLE
+ 350:quantum/command.c **** 
+ 351:quantum/command.c ****         // lock/unlock keyboard
+ 352:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LOCK):
+ 353:quantum/command.c ****             if (host_get_driver()) {
+ 354:quantum/command.c ****                 host_driver = host_get_driver();
+ 355:quantum/command.c ****                 clear_keyboard();
+ 356:quantum/command.c ****                 host_set_driver(0);
+ 357:quantum/command.c ****                 print("Locked.\n");
+ 358:quantum/command.c ****             } else {
+ 359:quantum/command.c ****                 host_set_driver(host_driver);
+ 360:quantum/command.c ****                 print("Unlocked.\n");
+ 361:quantum/command.c ****             }
+ 362:quantum/command.c ****             break;
+ 363:quantum/command.c **** #endif
+ 364:quantum/command.c **** 
+ 365:quantum/command.c ****         // print help
+ 366:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_HELP):
+ 367:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_HELP_ALT):
+ 368:quantum/command.c ****             command_common_help();
+ 369:quantum/command.c ****             break;
+ 370:quantum/command.c **** 
+ 371:quantum/command.c ****         // activate console
+ 372:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_CONSOLE):
+ 373:quantum/command.c ****             debug_matrix   = false;
+ 374:quantum/command.c ****             debug_keyboard = false;
+ 375:quantum/command.c ****             debug_mouse    = false;
+ 376:quantum/command.c ****             debug_enable   = false;
+ 377:quantum/command.c ****             command_console_help();
+ 378:quantum/command.c ****             print("C> ");
+ 379:quantum/command.c ****             command_state = CONSOLE;
+ 380:quantum/command.c ****             break;
+ 381:quantum/command.c **** 
+ 382:quantum/command.c ****         // jump to bootloader
+ 383:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_BOOTLOADER):
+ 384:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_BOOTLOADER_ALT):
+ 385:quantum/command.c ****             print("\n\nJumping to bootloader... ");
+ 386:quantum/command.c ****             reset_keyboard();
+ 387:quantum/command.c ****             break;
+ 388:quantum/command.c **** 
+ 389:quantum/command.c ****         // debug toggle
+ 390:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_DEBUG):
+ 391:quantum/command.c ****             debug_enable = !debug_enable;
+ 392:quantum/command.c ****             if (debug_enable) {
+ 393:quantum/command.c ****                 print("\ndebug: on\n");
+ 394:quantum/command.c ****             } else {
+ 395:quantum/command.c ****                 print("\ndebug: off\n");
+ 396:quantum/command.c ****                 debug_matrix   = false;
+ 397:quantum/command.c ****                 debug_keyboard = false;
+ 398:quantum/command.c ****                 debug_mouse    = false;
+ 399:quantum/command.c ****             }
+ 400:quantum/command.c ****             break;
+ 401:quantum/command.c **** 
+ 402:quantum/command.c ****         // debug matrix toggle
+ 403:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_DEBUG_MATRIX):
+ 404:quantum/command.c ****             debug_matrix = !debug_matrix;
+ 405:quantum/command.c ****             if (debug_matrix) {
+ 406:quantum/command.c ****                 print("\nmatrix: on\n");
+ 407:quantum/command.c ****                 debug_enable = true;
+ 408:quantum/command.c ****             } else {
+ 409:quantum/command.c ****                 print("\nmatrix: off\n");
+ 410:quantum/command.c ****             }
+ 411:quantum/command.c ****             break;
+ 412:quantum/command.c **** 
+ 413:quantum/command.c ****         // debug keyboard toggle
+ 414:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_DEBUG_KBD):
+ 415:quantum/command.c ****             debug_keyboard = !debug_keyboard;
+ 416:quantum/command.c ****             if (debug_keyboard) {
+ 417:quantum/command.c ****                 print("\nkeyboard: on\n");
+ 418:quantum/command.c ****                 debug_enable = true;
+ 419:quantum/command.c ****             } else {
+ 420:quantum/command.c ****                 print("\nkeyboard: off\n");
+ 421:quantum/command.c ****             }
+ 422:quantum/command.c ****             break;
+ 423:quantum/command.c **** 
+ 424:quantum/command.c ****         // debug mouse toggle
+ 425:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_DEBUG_MOUSE):
+ 426:quantum/command.c ****             debug_mouse = !debug_mouse;
+ 427:quantum/command.c ****             if (debug_mouse) {
+ 428:quantum/command.c ****                 print("\nmouse: on\n");
+ 429:quantum/command.c ****                 debug_enable = true;
+ 430:quantum/command.c ****             } else {
+ 431:quantum/command.c ****                 print("\nmouse: off\n");
+ 432:quantum/command.c ****             }
+ 433:quantum/command.c ****             break;
+ 434:quantum/command.c **** 
+ 435:quantum/command.c ****         // print version
+ 436:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_VERSION):
+ 437:quantum/command.c ****             print_version();
+ 438:quantum/command.c ****             break;
+ 439:quantum/command.c **** 
+ 440:quantum/command.c ****         // print status
+ 441:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_STATUS):
+ 442:quantum/command.c ****             print_status();
+ 443:quantum/command.c ****             break;
+ 444:quantum/command.c **** 
+ 445:quantum/command.c **** #ifdef NKRO_ENABLE
+ 446:quantum/command.c **** 
+ 447:quantum/command.c ****         // NKRO toggle
+ 448:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_NKRO):
+ 449:quantum/command.c ****             clear_keyboard();  // clear to prevent stuck keys
+ 450:quantum/command.c ****             keymap_config.nkro = !keymap_config.nkro;
+ 451:quantum/command.c ****             if (keymap_config.nkro) {
+ 452:quantum/command.c ****                 print("NKRO: on\n");
+ 453:quantum/command.c ****             } else {
+ 454:quantum/command.c ****                 print("NKRO: off\n");
+ 455:quantum/command.c ****             }
+ 456:quantum/command.c ****             break;
+ 457:quantum/command.c **** #endif
+ 458:quantum/command.c **** 
+ 459:quantum/command.c ****             // switch layers
+ 460:quantum/command.c **** 
+ 461:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER0_ALT):
+ 462:quantum/command.c ****             switch_default_layer(0);
+ 463:quantum/command.c ****             break;
+ 464:quantum/command.c **** 
+ 465:quantum/command.c **** #if MAGIC_KEY_SWITCH_LAYER_WITH_CUSTOM
+ 466:quantum/command.c **** 
+ 467:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER0):
+ 468:quantum/command.c ****             switch_default_layer(0);
+ 469:quantum/command.c ****             break;
+ 470:quantum/command.c **** 
+ 471:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER1):
+ 472:quantum/command.c ****             switch_default_layer(1);
+ 473:quantum/command.c ****             break;
+ 474:quantum/command.c **** 
+ 475:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER2):
+ 476:quantum/command.c ****             switch_default_layer(2);
+ 477:quantum/command.c ****             break;
+ 478:quantum/command.c **** 
+ 479:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER3):
+ 480:quantum/command.c ****             switch_default_layer(3);
+ 481:quantum/command.c ****             break;
+ 482:quantum/command.c **** 
+ 483:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER4):
+ 484:quantum/command.c ****             switch_default_layer(4);
+ 485:quantum/command.c ****             break;
+ 486:quantum/command.c **** 
+ 487:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER5):
+ 488:quantum/command.c ****             switch_default_layer(5);
+ 489:quantum/command.c ****             break;
+ 490:quantum/command.c **** 
+ 491:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER6):
+ 492:quantum/command.c ****             switch_default_layer(6);
+ 493:quantum/command.c ****             break;
+ 494:quantum/command.c **** 
+ 495:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER7):
+ 496:quantum/command.c ****             switch_default_layer(7);
+ 497:quantum/command.c ****             break;
+ 498:quantum/command.c **** 
+ 499:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER8):
+ 500:quantum/command.c ****             switch_default_layer(8);
+ 501:quantum/command.c ****             break;
+ 502:quantum/command.c **** 
+ 503:quantum/command.c ****         case MAGIC_KC(MAGIC_KEY_LAYER9):
+ 504:quantum/command.c ****             switch_default_layer(9);
+ 505:quantum/command.c ****             break;
+ 506:quantum/command.c **** #endif
+ 507:quantum/command.c **** 
+ 508:quantum/command.c **** #if MAGIC_KEY_SWITCH_LAYER_WITH_FKEYS
+ 509:quantum/command.c **** 
+ 510:quantum/command.c ****         case KC_F1 ... KC_F9:
+ 511:quantum/command.c ****             switch_default_layer((code - KC_F1) + 1);
+ 512:quantum/command.c ****             break;
+ 513:quantum/command.c ****         case KC_F10:
+ 514:quantum/command.c ****             switch_default_layer(0);
+ 515:quantum/command.c ****             break;
+ 516:quantum/command.c **** #endif
+ 517:quantum/command.c **** 
+ 518:quantum/command.c **** #if MAGIC_KEY_SWITCH_LAYER_WITH_NKEYS
+ 519:quantum/command.c **** 
+ 520:quantum/command.c ****         case KC_1 ... KC_9:
+ 521:quantum/command.c ****             switch_default_layer((code - KC_1) + 1);
+ 522:quantum/command.c ****             break;
+ 523:quantum/command.c ****         case KC_0:
+ 524:quantum/command.c ****             switch_default_layer(0);
+ 525:quantum/command.c ****             break;
+ 526:quantum/command.c **** #endif
+ 527:quantum/command.c **** 
+ 528:quantum/command.c ****         default:
+ 529:quantum/command.c ****             print("?");
+ 530:quantum/command.c ****             return false;
+ 531:quantum/command.c ****     }
+ 532:quantum/command.c ****     return true;
+ 533:quantum/command.c **** }
+ 534:quantum/command.c **** 
+ 535:quantum/command.c **** /***********************************************************
+ 536:quantum/command.c ****  * Command console
+ 537:quantum/command.c ****  ***********************************************************/
+ 538:quantum/command.c **** static void command_console_help(void) {
+ 539:quantum/command.c ****     print("\n\t- Console -\n"
+ 540:quantum/command.c ****           "ESC/q:	quit\n"
+ 541:quantum/command.c **** #ifdef MOUSEKEY_ENABLE
+ 542:quantum/command.c ****           "m:	mousekey\n"
+ 543:quantum/command.c **** #endif
+ 544:quantum/command.c ****     );
+ 545:quantum/command.c **** }
+ 546:quantum/command.c **** 
+ 547:quantum/command.c **** static bool command_console(uint8_t code) {
+ 548:quantum/command.c ****     switch (code) {
+ 549:quantum/command.c ****         case KC_H:
+ 550:quantum/command.c ****         case KC_SLASH: /* ? */
+ 551:quantum/command.c ****             command_console_help();
+ 552:quantum/command.c ****             print("C> ");
+ 553:quantum/command.c ****             return true;
+ 554:quantum/command.c ****         case KC_Q:
+ 555:quantum/command.c ****         case KC_ESC:
+ 556:quantum/command.c ****             command_state = ONESHOT;
+ 557:quantum/command.c ****             return false;
+ 558:quantum/command.c **** #if defined(MOUSEKEY_ENABLE)
+ 559:quantum/command.c ****         case KC_M:
+ 560:quantum/command.c ****             command_state = MOUSEKEY;
+ 561:quantum/command.c ****             mousekey_console(KC_SLASH /* ? */);
+ 562:quantum/command.c ****             return true;
+ 563:quantum/command.c **** #endif
+ 564:quantum/command.c ****         default:
+ 565:quantum/command.c ****             print("?");
+ 566:quantum/command.c ****             return false;
+ 567:quantum/command.c ****     }
+ 568:quantum/command.c **** }
+ 569:quantum/command.c **** 
+ 570:quantum/command.c **** /***********************************************************
+ 571:quantum/command.c ****  * Mousekey console
+ 572:quantum/command.c ****  ***********************************************************/
+ 573:quantum/command.c **** 
+ 574:quantum/command.c **** #if defined(MOUSEKEY_ENABLE)
+ 575:quantum/command.c **** 
+ 576:quantum/command.c **** #    if !defined(NO_PRINT) && !defined(USER_PRINT)
+ 577:quantum/command.c **** static void mousekey_param_print(void) {
+  34              		.loc 1 577 40 view -0
+  35              		.cfi_startproc
+  36              		@ args = 0, pretend = 0, frame = 0
+  37              		@ frame_needed = 0, uses_anonymous_args = 0
+ 578:quantum/command.c ****     xprintf(/* clang-format off */
+  38              		.loc 1 578 5 view .LVU1
+ 577:quantum/command.c ****     xprintf(/* clang-format off */
+  39              		.loc 1 577 40 is_stmt 0 view .LVU2
+  40 0000 1FB5     		push	{r0, r1, r2, r3, r4, lr}
+  41              		.cfi_def_cfa_offset 24
+  42              		.cfi_offset 14, -4
+  43              		.loc 1 578 5 view .LVU3
+  44 0002 0A4B     		ldr	r3, .L2
+  45 0004 0A4A     		ldr	r2, .L2+4
+  46 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  47 0008 0293     		str	r3, [sp, #8]
+  48 000a 0A4B     		ldr	r3, .L2+8
+  49 000c 0A49     		ldr	r1, .L2+12
+  50 000e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  51 0010 0193     		str	r3, [sp, #4]
+  52 0012 0A4B     		ldr	r3, .L2+16
+  53 0014 0A48     		ldr	r0, .L2+20
+  54 0016 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  55 0018 0093     		str	r3, [sp]
+  56 001a 0A4B     		ldr	r3, .L2+24
+  57 001c 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+  58 001e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  59 0020 0978     		ldrb	r1, [r1]	@ zero_extendqisi2
+  60 0022 FFF7FEFF 		bl	printf_
+  61              	.LVL0:
+ 579:quantum/command.c **** 
+ 580:quantum/command.c **** #ifndef MK_3_SPEED
+ 581:quantum/command.c ****         "1:	delay(*10ms): %u\n"
+ 582:quantum/command.c ****         "2:	interval(ms): %u\n"
+ 583:quantum/command.c ****         "3:	max_speed: %u\n"
+ 584:quantum/command.c ****         "4:	time_to_max: %u\n"
+ 585:quantum/command.c ****         "5:	wheel_max_speed: %u\n"
+ 586:quantum/command.c ****         "6:	wheel_time_to_max: %u\n"
+ 587:quantum/command.c **** 
+ 588:quantum/command.c ****         , mk_delay
+ 589:quantum/command.c ****         , mk_interval
+ 590:quantum/command.c ****         , mk_max_speed
+ 591:quantum/command.c ****         , mk_time_to_max
+ 592:quantum/command.c ****         , mk_wheel_max_speed
+ 593:quantum/command.c ****         , mk_wheel_time_to_max
+ 594:quantum/command.c **** #else
+ 595:quantum/command.c ****         "no knobs sorry\n"
+ 596:quantum/command.c **** #endif
+ 597:quantum/command.c **** 
+ 598:quantum/command.c ****     ); /* clang-format on */
+ 599:quantum/command.c **** }
+  62              		.loc 1 599 1 view .LVU4
+  63 0026 05B0     		add	sp, sp, #20
+  64              		.cfi_def_cfa_offset 4
+  65              		@ sp needed
+  66 0028 5DF804FB 		ldr	pc, [sp], #4
+  67              	.L3:
+  68              		.align	2
+  69              	.L2:
+  70 002c 00000000 		.word	mk_wheel_time_to_max
+  71 0030 00000000 		.word	mk_interval
+  72 0034 00000000 		.word	mk_wheel_max_speed
+  73 0038 00000000 		.word	mk_delay
+  74 003c 00000000 		.word	mk_time_to_max
+  75 0040 00000000 		.word	.LC0
+  76 0044 00000000 		.word	mk_max_speed
+  77              		.cfi_endproc
+  78              	.LFE305:
+  80              		.section	.rodata.switch_default_layer.str1.1,"aMS",%progbits,1
+  81              	.LC1:
+  82 0000 4C25640A 		.ascii	"L%d\012\000"
+  82      00
+  83              		.section	.text.switch_default_layer,"ax",%progbits
+  84              		.align	1
+  85              		.syntax unified
+  86              		.thumb
+  87              		.thumb_func
+  89              	switch_default_layer:
+  90              	.LVL1:
+  91              	.LFB308:
+ 600:quantum/command.c **** #    endif /* !NO_PRINT && !USER_PRINT */
+ 601:quantum/command.c **** 
+ 602:quantum/command.c **** #    if !defined(NO_PRINT) && !defined(USER_PRINT)
+ 603:quantum/command.c **** static void mousekey_console_help(void) {
+ 604:quantum/command.c ****     mousekey_param_print();
+ 605:quantum/command.c ****     xprintf(/* clang-format off */
+ 606:quantum/command.c ****         "p:	print values\n"
+ 607:quantum/command.c ****         "d:	set defaults\n"
+ 608:quantum/command.c ****         "up:	+1\n"
+ 609:quantum/command.c ****         "dn:	-1\n"
+ 610:quantum/command.c ****         "lt:	+10\n"
+ 611:quantum/command.c ****         "rt:	-10\n"
+ 612:quantum/command.c ****         "ESC/q:	quit\n"
+ 613:quantum/command.c **** 
+ 614:quantum/command.c **** #ifndef MK_3_SPEED
+ 615:quantum/command.c ****         "\n"
+ 616:quantum/command.c ****         "speed = delta * max_speed * (repeat / time_to_max)\n"
+ 617:quantum/command.c ****         "where delta: cursor=%d, wheel=%d\n"
+ 618:quantum/command.c ****         "See http://en.wikipedia.org/wiki/Mouse_keys\n"
+ 619:quantum/command.c ****         , MOUSEKEY_MOVE_DELTA, MOUSEKEY_WHEEL_DELTA
+ 620:quantum/command.c **** #endif
+ 621:quantum/command.c **** 
+ 622:quantum/command.c ****     ); /* clang-format on */
+ 623:quantum/command.c **** }
+ 624:quantum/command.c **** #    endif /* !NO_PRINT && !USER_PRINT */
+ 625:quantum/command.c **** 
+ 626:quantum/command.c **** /* Only used by `quantum/command.c` / `command_proc()`. To avoid
+ 627:quantum/command.c ****  * any doubt: we return `false` to return to the main console,
+ 628:quantum/command.c ****  * which differs from the `bool` that `command_proc()` returns. */
+ 629:quantum/command.c **** bool mousekey_console(uint8_t code) {
+ 630:quantum/command.c ****     static uint8_t  param = 0;
+ 631:quantum/command.c ****     static uint8_t *pp    = NULL;
+ 632:quantum/command.c ****     static char *   desc  = NULL;
+ 633:quantum/command.c **** 
+ 634:quantum/command.c **** #    if defined(NO_PRINT) || defined(USER_PRINT) /* -Wunused-parameter */
+ 635:quantum/command.c ****     (void)desc;
+ 636:quantum/command.c **** #    endif
+ 637:quantum/command.c **** 
+ 638:quantum/command.c ****     int8_t change = 0;
+ 639:quantum/command.c **** 
+ 640:quantum/command.c ****     switch (code) {
+ 641:quantum/command.c ****         case KC_H:
+ 642:quantum/command.c ****         case KC_SLASH: /* ? */
+ 643:quantum/command.c **** #    if !defined(NO_PRINT) && !defined(USER_PRINT)
+ 644:quantum/command.c ****             print("\n\t- Mousekey -\n");
+ 645:quantum/command.c ****             mousekey_console_help();
+ 646:quantum/command.c **** #    endif
+ 647:quantum/command.c ****             break;
+ 648:quantum/command.c **** 
+ 649:quantum/command.c ****         case KC_Q:
+ 650:quantum/command.c ****         case KC_ESC:
+ 651:quantum/command.c ****             print("q\n");
+ 652:quantum/command.c ****             if (!param) return false;
+ 653:quantum/command.c ****             param = 0;
+ 654:quantum/command.c ****             pp    = NULL;
+ 655:quantum/command.c ****             desc  = NULL;
+ 656:quantum/command.c ****             break;
+ 657:quantum/command.c **** 
+ 658:quantum/command.c ****         case KC_P:
+ 659:quantum/command.c **** #    if !defined(NO_PRINT) && !defined(USER_PRINT)
+ 660:quantum/command.c ****             print("\n\t- Values -\n");
+ 661:quantum/command.c ****             mousekey_param_print();
+ 662:quantum/command.c **** #    endif
+ 663:quantum/command.c ****             break;
+ 664:quantum/command.c **** 
+ 665:quantum/command.c ****         case KC_1 ... KC_0: /* KC_0 gives param = 10 */
+ 666:quantum/command.c ****             param = 1 + code - KC_1;
+ 667:quantum/command.c ****             switch (param) { /* clang-format off */
+ 668:quantum/command.c **** #               define PARAM(n, v) case n: pp = &(v); desc = #v; break
+ 669:quantum/command.c **** 
+ 670:quantum/command.c **** #ifndef MK_3_SPEED
+ 671:quantum/command.c ****                 PARAM(1, mk_delay);
+ 672:quantum/command.c ****                 PARAM(2, mk_interval);
+ 673:quantum/command.c ****                 PARAM(3, mk_max_speed);
+ 674:quantum/command.c ****                 PARAM(4, mk_time_to_max);
+ 675:quantum/command.c ****                 PARAM(5, mk_wheel_max_speed);
+ 676:quantum/command.c ****                 PARAM(6, mk_wheel_time_to_max);
+ 677:quantum/command.c **** #endif /* MK_3_SPEED */
+ 678:quantum/command.c **** 
+ 679:quantum/command.c **** #               undef PARAM
+ 680:quantum/command.c ****                 default:
+ 681:quantum/command.c ****                     param = 0;
+ 682:quantum/command.c ****                     print("?\n");
+ 683:quantum/command.c ****                     break;
+ 684:quantum/command.c ****             } /* clang-format on */
+ 685:quantum/command.c ****             if (param) xprintf("%u\n", param);
+ 686:quantum/command.c ****             break;
+ 687:quantum/command.c **** 
+ 688:quantum/command.c ****             /* clang-format off */
+ 689:quantum/command.c ****         case KC_UP:    change =  +1; break;
+ 690:quantum/command.c ****         case KC_DOWN:  change =  -1; break;
+ 691:quantum/command.c ****         case KC_LEFT:  change = -10; break;
+ 692:quantum/command.c ****         case KC_RIGHT: change = +10; break;
+ 693:quantum/command.c ****             /* clang-format on */
+ 694:quantum/command.c **** 
+ 695:quantum/command.c ****         case KC_D:
+ 696:quantum/command.c **** 
+ 697:quantum/command.c **** #    ifndef MK_3_SPEED
+ 698:quantum/command.c ****             mk_delay             = MOUSEKEY_DELAY / 10;
+ 699:quantum/command.c ****             mk_interval          = MOUSEKEY_INTERVAL;
+ 700:quantum/command.c ****             mk_max_speed         = MOUSEKEY_MAX_SPEED;
+ 701:quantum/command.c ****             mk_time_to_max       = MOUSEKEY_TIME_TO_MAX;
+ 702:quantum/command.c ****             mk_wheel_max_speed   = MOUSEKEY_WHEEL_MAX_SPEED;
+ 703:quantum/command.c ****             mk_wheel_time_to_max = MOUSEKEY_WHEEL_TIME_TO_MAX;
+ 704:quantum/command.c **** #    endif /* MK_3_SPEED */
+ 705:quantum/command.c **** 
+ 706:quantum/command.c ****             print("defaults\n");
+ 707:quantum/command.c ****             break;
+ 708:quantum/command.c **** 
+ 709:quantum/command.c ****         default:
+ 710:quantum/command.c ****             print("?\n");
+ 711:quantum/command.c ****             break;
+ 712:quantum/command.c ****     }
+ 713:quantum/command.c **** 
+ 714:quantum/command.c ****     if (change) {
+ 715:quantum/command.c ****         if (pp) {
+ 716:quantum/command.c ****             int16_t val = *pp + change;
+ 717:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 718:quantum/command.c ****                 *pp = UINT8_MAX;
+ 719:quantum/command.c ****             else if (val < 0)
+ 720:quantum/command.c ****                 *pp = 0;
+ 721:quantum/command.c ****             else
+ 722:quantum/command.c ****                 *pp = (uint8_t)val;
+ 723:quantum/command.c ****             xprintf("= %u\n", *pp);
+ 724:quantum/command.c ****         } else {
+ 725:quantum/command.c ****             print("?\n");
+ 726:quantum/command.c ****         }
+ 727:quantum/command.c ****     }
+ 728:quantum/command.c **** 
+ 729:quantum/command.c ****     if (param) {
+ 730:quantum/command.c ****         xprintf("M%u:%s> ", param, desc ? desc : "???");
+ 731:quantum/command.c ****     } else {
+ 732:quantum/command.c ****         print("M> ");
+ 733:quantum/command.c ****     }
+ 734:quantum/command.c ****     return true;
+ 735:quantum/command.c **** }
+ 736:quantum/command.c **** 
+ 737:quantum/command.c **** #endif /* MOUSEKEY_ENABLE */
+ 738:quantum/command.c **** 
+ 739:quantum/command.c **** /***********************************************************
+ 740:quantum/command.c ****  * Utilities
+ 741:quantum/command.c ****  ***********************************************************/
+ 742:quantum/command.c **** 
+ 743:quantum/command.c **** static void switch_default_layer(uint8_t layer) {
+  92              		.loc 1 743 49 is_stmt 1 view -0
+  93              		.cfi_startproc
+  94              		@ args = 0, pretend = 0, frame = 0
+  95              		@ frame_needed = 0, uses_anonymous_args = 0
+ 744:quantum/command.c ****     xprintf("L%d\n", layer);
+  96              		.loc 1 744 5 view .LVU6
+ 743:quantum/command.c ****     xprintf("L%d\n", layer);
+  97              		.loc 1 743 49 is_stmt 0 view .LVU7
+  98 0000 10B5     		push	{r4, lr}
+  99              		.cfi_def_cfa_offset 8
+ 100              		.cfi_offset 4, -8
+ 101              		.cfi_offset 14, -4
+ 102              		.loc 1 744 5 view .LVU8
+ 103 0002 0146     		mov	r1, r0
+ 743:quantum/command.c ****     xprintf("L%d\n", layer);
+ 104              		.loc 1 743 49 view .LVU9
+ 105 0004 0446     		mov	r4, r0
+ 106              		.loc 1 744 5 view .LVU10
+ 107 0006 0548     		ldr	r0, .L5
+ 108              	.LVL2:
+ 109              		.loc 1 744 5 view .LVU11
+ 110 0008 FFF7FEFF 		bl	printf_
+ 111              	.LVL3:
+ 745:quantum/command.c ****     default_layer_set((layer_state_t)1 << layer);
+ 112              		.loc 1 745 5 is_stmt 1 view .LVU12
+ 113 000c 0120     		movs	r0, #1
+ 114 000e A040     		lsls	r0, r0, r4
+ 115 0010 FFF7FEFF 		bl	default_layer_set
+ 116              	.LVL4:
+ 746:quantum/command.c ****     clear_keyboard();
+ 117              		.loc 1 746 5 view .LVU13
+ 747:quantum/command.c **** }
+ 118              		.loc 1 747 1 is_stmt 0 view .LVU14
+ 119 0014 BDE81040 		pop	{r4, lr}
+ 120              		.cfi_restore 14
+ 121              		.cfi_restore 4
+ 122              		.cfi_def_cfa_offset 0
+ 746:quantum/command.c ****     clear_keyboard();
+ 123              		.loc 1 746 5 view .LVU15
+ 124 0018 FFF7FEBF 		b	clear_keyboard
+ 125              	.LVL5:
+ 126              	.L6:
+ 127              		.align	2
+ 128              	.L5:
+ 129 001c 00000000 		.word	.LC1
+ 130              		.cfi_endproc
+ 131              	.LFE308:
+ 133              		.section	.rodata.command_common.str1.1,"aMS",%progbits,1
+ 134              	.LC2:
+ 135 0000 6565636F 		.ascii	"eeconfig:\012default_layer: %u\012\000"
+ 135      6E666967 
+ 135      3A0A6465 
+ 135      6661756C 
+ 135      745F6C61 
+ 136              	.LC3:
+ 137 001d 64656275 		.ascii	"debug_config.raw: %02X\012.enable: %u\012.matrix: %"
+ 137      675F636F 
+ 137      6E666967 
+ 137      2E726177 
+ 137      3A202530 
+ 138 004a 750A2E6B 		.ascii	"u\012.keyboard: %u\012.mouse: %u\012\000"
+ 138      6579626F 
+ 138      6172643A 
+ 138      2025750A 
+ 138      2E6D6F75 
+ 139              	.LC4:
+ 140 0066 6B65796D 		.ascii	"keymap_config.raw: %02X\012.swap_control_capslock: "
+ 140      61705F63 
+ 140      6F6E6669 
+ 140      672E7261 
+ 140      773A2025 
+ 141 0096 25750A2E 		.ascii	"%u\012.capslock_to_control: %u\012.swap_lctl_lgui: "
+ 141      63617073 
+ 141      6C6F636B 
+ 141      5F746F5F 
+ 141      636F6E74 
+ 142 00c3 25750A2E 		.ascii	"%u\012.swap_rctl_rgui: %u\012.swap_lalt_lgui: %u\012"
+ 142      73776170 
+ 142      5F726374 
+ 142      6C5F7267 
+ 142      75693A20 
+ 143 00ee 2E737761 		.ascii	".swap_ralt_rgui: %u\012.no_gui: %u\012.swap_grave_e"
+ 143      705F7261 
+ 143      6C745F72 
+ 143      6775693A 
+ 143      2025750A 
+ 144 011b 73633A20 		.ascii	"sc: %u\012.swap_backslash_backspace: %u\012.nkro: %"
+ 144      25750A2E 
+ 144      73776170 
+ 144      5F626163 
+ 144      6B736C61 
+ 145 0148 750A00   		.ascii	"u\012\000"
+ 146              	.LC5:
+ 147 014b 436C6561 		.ascii	"Clearing EEPROM\012\000"
+ 147      72696E67 
+ 147      20454550 
+ 147      524F4D0A 
+ 147      00
+ 148              	.LC6:
+ 149 015c 0A092D20 		.ascii	"\012\011- Magic -\012D:\011Debug Message Toggle\012"
+ 149      4D616769 
+ 149      63202D0A 
+ 149      443A0944 
+ 149      65627567 
+ 150 0180 583A094D 		.ascii	"X:\011Matrix Debug Mode Toggle - Show keypresses in"
+ 150      61747269 
+ 150      78204465 
+ 150      62756720 
+ 150      4D6F6465 
+ 151 01b0 206D6174 		.ascii	" matrix grid\012K:\011Keyboard Debug Toggle - Show "
+ 151      72697820 
+ 151      67726964 
+ 151      0A4B3A09 
+ 151      4B657962 
+ 152 01dd 6B657970 		.ascii	"keypress report\012M:\011Debug Mouse Toggle\012V:\011"
+ 152      72657373 
+ 152      20726570 
+ 152      6F72740A 
+ 152      4D3A0944 
+ 153 0206 56657273 		.ascii	"Version\012S:\011Status\012C:\011Activate Console M"
+ 153      696F6E0A 
+ 153      533A0953 
+ 153      74617475 
+ 153      730A433A 
+ 154 022d 6F64650A 		.ascii	"ode\012F1-F10:\011Switch to Layer 0-9 (F10 = L0)\012"
+ 154      46312D46 
+ 154      31303A09 
+ 154      53776974 
+ 154      63682074 
+ 155 0258 302D393A 		.ascii	"0-9:\011Switch to Layer 0-9\012GRAVE:\011Switch to "
+ 155      09537769 
+ 155      74636820 
+ 155      746F204C 
+ 155      61796572 
+ 156 0282 4C617965 		.ascii	"Layer 0 (alternate)\012B:\011Jump to Bootloader\012"
+ 156      72203020 
+ 156      28616C74 
+ 156      65726E61 
+ 156      7465290A 
+ 157 02ac 4553433A 		.ascii	"ESC:\011Jump to Bootloader (alternate)\012E:\011Pri"
+ 157      094A756D 
+ 157      7020746F 
+ 157      20426F6F 
+ 157      746C6F61 
+ 158 02d6 6E742045 		.ascii	"nt EEPROM Settings\012BSPACE:\011Clear EEPROM\012N:"
+ 158      4550524F 
+ 158      4D205365 
+ 158      7474696E 
+ 158      67730A42 
+ 159 0300 094E4B52 		.ascii	"\011NKRO Toggle\012\000"
+ 159      4F20546F 
+ 159      67676C65 
+ 159      0A00
+ 160              	.LC7:
+ 161 030e 0A092D20 		.ascii	"\012\011- Console -\012ESC/q:\011quit\012m:\011mous"
+ 161      436F6E73 
+ 161      6F6C6520 
+ 161      2D0A4553 
+ 161      432F713A 
+ 162 032f 656B6579 		.ascii	"ekey\012\000"
+ 162      0A00
+ 163              	.LC8:
+ 164 0335 433E2000 		.ascii	"C> \000"
+ 165              	.LC9:
+ 166 0339 0A0A4A75 		.ascii	"\012\012Jumping to bootloader... \000"
+ 166      6D70696E 
+ 166      6720746F 
+ 166      20626F6F 
+ 166      746C6F61 
+ 167              	.LC10:
+ 168 0355 0A646562 		.ascii	"\012debug: on\012\000"
+ 168      75673A20 
+ 168      6F6E0A00 
+ 169              	.LC11:
+ 170 0361 0A646562 		.ascii	"\012debug: off\012\000"
+ 170      75673A20 
+ 170      6F66660A 
+ 170      00
+ 171              	.LC12:
+ 172 036e 0A6D6174 		.ascii	"\012matrix: on\012\000"
+ 172      7269783A 
+ 172      206F6E0A 
+ 172      00
+ 173              	.LC13:
+ 174 037b 0A6D6174 		.ascii	"\012matrix: off\012\000"
+ 174      7269783A 
+ 174      206F6666 
+ 174      0A00
+ 175              	.LC14:
+ 176 0389 0A6B6579 		.ascii	"\012keyboard: on\012\000"
+ 176      626F6172 
+ 176      643A206F 
+ 176      6E0A00
+ 177              	.LC15:
+ 178 0398 0A6B6579 		.ascii	"\012keyboard: off\012\000"
+ 178      626F6172 
+ 178      643A206F 
+ 178      66660A00 
+ 179              	.LC16:
+ 180 03a8 0A6D6F75 		.ascii	"\012mouse: on\012\000"
+ 180      73653A20 
+ 180      6F6E0A00 
+ 181              	.LC17:
+ 182 03b4 0A6D6F75 		.ascii	"\012mouse: off\012\000"
+ 182      73653A20 
+ 182      6F66660A 
+ 182      00
+ 183              	.LC18:
+ 184 03c1 0A092D20 		.ascii	"\012\011- Version -\012VID: 0x03A8(Drop) PID: 0xA4F"
+ 184      56657273 
+ 184      696F6E20 
+ 184      2D0A5649 
+ 184      443A2030 
+ 185 03eb 3928506C 		.ascii	"9(Planck) VER: 0x0006\012BUILD:  (Sep  9 2022)\012C"
+ 185      616E636B 
+ 185      29205645 
+ 185      523A2030 
+ 185      78303030 
+ 186 0418 48494249 		.ascii	"HIBIOS: \"0.12.29-21-g2a801d-dirty\", CONTRIB: \"20"
+ 186      4F533A20 
+ 186      22302E31 
+ 186      322E3239 
+ 186      2D32312D 
+ 187 0448 32322D30 		.ascii	"22-09-09-22:26:25\"\012OPTIONS: MOUSEKEY EXTRAKEY C"
+ 187      392D3039 
+ 187      2D32323A 
+ 187      32363A32 
+ 187      35220A4F 
+ 188 0477 4F4E534F 		.ascii	"ONSOLE COMMAND NKRO BOOTLOADER_SIZE\012GCC: 12.2.0\012"
+ 188      4C452043 
+ 188      4F4D4D41 
+ 188      4E44204E 
+ 188      4B524F20 
+ 189 04a7 00       		.ascii	"\000"
+ 190              	.LC19:
+ 191 04a8 0A092D20 		.ascii	"\012\011- Status -\012host_keyboard_leds(): %02X\012"
+ 191      53746174 
+ 191      7573202D 
+ 191      0A686F73 
+ 191      745F6B65 
+ 192 04d0 6B657962 		.ascii	"keyboard_protocol: %02X\012keyboard_idle: %02X\012k"
+ 192      6F617264 
+ 192      5F70726F 
+ 192      746F636F 
+ 192      6C3A2025 
+ 193 04fd 65796D61 		.ascii	"eymap_config.nkro: %02X\012timer_read32(): %08lX\012"
+ 193      705F636F 
+ 193      6E666967 
+ 193      2E6E6B72 
+ 193      6F3A2025 
+ 194 052b 00       		.ascii	"\000"
+ 195              	.LC20:
+ 196 052c 4E4B524F 		.ascii	"NKRO: on\012\000"
+ 196      3A206F6E 
+ 196      0A00
+ 197              	.LC21:
+ 198 0536 4E4B524F 		.ascii	"NKRO: off\012\000"
+ 198      3A206F66 
+ 198      660A00
+ 199              	.LC22:
+ 200 0541 3F00     		.ascii	"?\000"
+ 201              		.section	.text.command_common,"ax",%progbits
+ 202              		.align	1
+ 203              		.syntax unified
+ 204              		.thumb
+ 205              		.thumb_func
+ 207              	command_common:
+ 208              	.LVL6:
+ 209              	.LFB302:
+ 320:quantum/command.c **** #ifdef KEYBOARD_LOCK_ENABLE
+ 210              		.loc 1 320 42 is_stmt 1 view -0
+ 211              		.cfi_startproc
+ 212              		@ args = 0, pretend = 0, frame = 0
+ 213              		@ frame_needed = 0, uses_anonymous_args = 0
+ 325:quantum/command.c **** #ifdef SLEEP_LED_ENABLE
+ 214              		.loc 1 325 5 view .LVU17
+ 320:quantum/command.c **** #ifdef KEYBOARD_LOCK_ENABLE
+ 215              		.loc 1 320 42 is_stmt 0 view .LVU18
+ 216 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 217              		.cfi_def_cfa_offset 20
+ 218              		.cfi_offset 4, -20
+ 219              		.cfi_offset 5, -16
+ 220              		.cfi_offset 6, -12
+ 221              		.cfi_offset 7, -8
+ 222              		.cfi_offset 14, -4
+ 325:quantum/command.c **** #ifdef SLEEP_LED_ENABLE
+ 223              		.loc 1 325 5 view .LVU19
+ 224 0002 431F     		subs	r3, r0, #5
+ 320:quantum/command.c **** #ifdef KEYBOARD_LOCK_ENABLE
+ 225              		.loc 1 320 42 view .LVU20
+ 226 0004 89B0     		sub	sp, sp, #36
+ 227              		.cfi_def_cfa_offset 56
+ 325:quantum/command.c **** #ifdef SLEEP_LED_ENABLE
+ 228              		.loc 1 325 5 view .LVU21
+ 229 0006 3E2B     		cmp	r3, #62
+ 230 0008 00F21281 		bhi	.L8
+ 231 000c DFE813F0 		tbh	[pc, r3, lsl #1]
+ 232              	.L10:
+ 233 0010 9300     		.2byte	(.L14-.L10)/2
+ 234 0012 8400     		.2byte	(.L24-.L10)/2
+ 235 0014 9900     		.2byte	(.L23-.L10)/2
+ 236 0016 3F00     		.2byte	(.L22-.L10)/2
+ 237 0018 1001     		.2byte	(.L8-.L10)/2
+ 238 001a 1001     		.2byte	(.L8-.L10)/2
+ 239 001c 8000     		.2byte	(.L12-.L10)/2
+ 240 001e 1001     		.2byte	(.L8-.L10)/2
+ 241 0020 1001     		.2byte	(.L8-.L10)/2
+ 242 0022 C200     		.2byte	(.L21-.L10)/2
+ 243 0024 1001     		.2byte	(.L8-.L10)/2
+ 244 0026 D100     		.2byte	(.L20-.L10)/2
+ 245 0028 F700     		.2byte	(.L19-.L10)/2
+ 246 002a 1001     		.2byte	(.L8-.L10)/2
+ 247 002c 1001     		.2byte	(.L8-.L10)/2
+ 248 002e 1001     		.2byte	(.L8-.L10)/2
+ 249 0030 1001     		.2byte	(.L8-.L10)/2
+ 250 0032 E200     		.2byte	(.L18-.L10)/2
+ 251 0034 1001     		.2byte	(.L8-.L10)/2
+ 252 0036 1001     		.2byte	(.L8-.L10)/2
+ 253 0038 E000     		.2byte	(.L17-.L10)/2
+ 254 003a 1001     		.2byte	(.L8-.L10)/2
+ 255 003c AE00     		.2byte	(.L16-.L10)/2
+ 256 003e 1001     		.2byte	(.L8-.L10)/2
+ 257 0040 1001     		.2byte	(.L8-.L10)/2
+ 258 0042 0E01     		.2byte	(.L15-.L10)/2
+ 259 0044 0E01     		.2byte	(.L15-.L10)/2
+ 260 0046 0E01     		.2byte	(.L15-.L10)/2
+ 261 0048 0E01     		.2byte	(.L15-.L10)/2
+ 262 004a 0E01     		.2byte	(.L15-.L10)/2
+ 263 004c 0E01     		.2byte	(.L15-.L10)/2
+ 264 004e 0E01     		.2byte	(.L15-.L10)/2
+ 265 0050 0E01     		.2byte	(.L15-.L10)/2
+ 266 0052 0E01     		.2byte	(.L15-.L10)/2
+ 267 0054 0701     		.2byte	(.L9-.L10)/2
+ 268 0056 1001     		.2byte	(.L8-.L10)/2
+ 269 0058 9300     		.2byte	(.L14-.L10)/2
+ 270 005a 7A00     		.2byte	(.L13-.L10)/2
+ 271 005c 1001     		.2byte	(.L8-.L10)/2
+ 272 005e 1001     		.2byte	(.L8-.L10)/2
+ 273 0060 1001     		.2byte	(.L8-.L10)/2
+ 274 0062 1001     		.2byte	(.L8-.L10)/2
+ 275 0064 1001     		.2byte	(.L8-.L10)/2
+ 276 0066 1001     		.2byte	(.L8-.L10)/2
+ 277 0068 1001     		.2byte	(.L8-.L10)/2
+ 278 006a 1001     		.2byte	(.L8-.L10)/2
+ 279 006c 1001     		.2byte	(.L8-.L10)/2
+ 280 006e 1001     		.2byte	(.L8-.L10)/2
+ 281 0070 0701     		.2byte	(.L9-.L10)/2
+ 282 0072 1001     		.2byte	(.L8-.L10)/2
+ 283 0074 1001     		.2byte	(.L8-.L10)/2
+ 284 0076 8000     		.2byte	(.L12-.L10)/2
+ 285 0078 1001     		.2byte	(.L8-.L10)/2
+ 286 007a 0B01     		.2byte	(.L11-.L10)/2
+ 287 007c 0B01     		.2byte	(.L11-.L10)/2
+ 288 007e 0B01     		.2byte	(.L11-.L10)/2
+ 289 0080 0B01     		.2byte	(.L11-.L10)/2
+ 290 0082 0B01     		.2byte	(.L11-.L10)/2
+ 291 0084 0B01     		.2byte	(.L11-.L10)/2
+ 292 0086 0B01     		.2byte	(.L11-.L10)/2
+ 293 0088 0B01     		.2byte	(.L11-.L10)/2
+ 294 008a 0B01     		.2byte	(.L11-.L10)/2
+ 295 008c 0701     		.2byte	(.L9-.L10)/2
+ 296              		.p2align 1
+ 297              	.L22:
+ 339:quantum/command.c **** #endif /* !NO_PRINT && !USER_PRINT */
+ 298              		.loc 1 339 13 is_stmt 1 view .LVU22
+ 299              	.LBB12:
+ 300              	.LBI12:
+ 250:quantum/command.c ****     xprintf("eeconfig:\ndefault_layer: %u\n", eeconfig_read_default_layer());
+ 301              		.loc 1 250 13 view .LVU23
+ 302              	.LBB13:
+ 251:quantum/command.c **** 
+ 303              		.loc 1 251 5 view .LVU24
+ 251:quantum/command.c **** 
+ 304              		.loc 1 251 47 is_stmt 0 view .LVU25
+ 305 008e FFF7FEFF 		bl	eeconfig_read_default_layer
+ 306              	.LVL7:
+ 251:quantum/command.c **** 
+ 307              		.loc 1 251 47 view .LVU26
+ 308 0092 0146     		mov	r1, r0
+ 251:quantum/command.c **** 
+ 309              		.loc 1 251 5 view .LVU27
+ 310 0094 6948     		ldr	r0, .L38
+ 311 0096 FFF7FEFF 		bl	printf_
+ 312              	.LVL8:
+ 253:quantum/command.c ****     dc.raw = eeconfig_read_debug();
+ 313              		.loc 1 253 5 is_stmt 1 view .LVU28
+ 254:quantum/command.c ****     xprintf(/* clang-format off */
+ 314              		.loc 1 254 5 view .LVU29
+ 254:quantum/command.c ****     xprintf(/* clang-format off */
+ 315              		.loc 1 254 14 is_stmt 0 view .LVU30
+ 316 009a FFF7FEFF 		bl	eeconfig_read_debug
+ 317              	.LVL9:
+ 255:quantum/command.c **** 
+ 318              		.loc 1 255 5 view .LVU31
+ 319 009e C0F3C003 		ubfx	r3, r0, #3, #1
+ 320 00a2 0193     		str	r3, [sp, #4]
+ 321 00a4 C0F38003 		ubfx	r3, r0, #2, #1
+ 254:quantum/command.c ****     xprintf(/* clang-format off */
+ 322              		.loc 1 254 14 view .LVU32
+ 323 00a8 0146     		mov	r1, r0
+ 255:quantum/command.c **** 
+ 324              		.loc 1 255 5 is_stmt 1 view .LVU33
+ 325 00aa 00F00102 		and	r2, r0, #1
+ 326 00ae 0093     		str	r3, [sp]
+ 327 00b0 C0F34003 		ubfx	r3, r0, #1, #1
+ 328 00b4 6248     		ldr	r0, .L38+4
+ 329 00b6 FFF7FEFF 		bl	printf_
+ 330              	.LVL10:
+ 270:quantum/command.c ****     kc.raw = eeconfig_read_keymap();
+ 331              		.loc 1 270 5 view .LVU34
+ 271:quantum/command.c ****     xprintf(/* clang-format off */
+ 332              		.loc 1 271 5 view .LVU35
+ 271:quantum/command.c ****     xprintf(/* clang-format off */
+ 333              		.loc 1 271 14 is_stmt 0 view .LVU36
+ 334 00ba FFF7FEFF 		bl	eeconfig_read_keymap
+ 335              	.LVL11:
+ 272:quantum/command.c **** 
+ 336              		.loc 1 272 5 view .LVU37
+ 337 00be C0F3C013 		ubfx	r3, r0, #7, #1
+ 338 00c2 0793     		str	r3, [sp, #28]
+ 339 00c4 C0F38013 		ubfx	r3, r0, #6, #1
+ 340 00c8 0693     		str	r3, [sp, #24]
+ 341 00ca C0F34013 		ubfx	r3, r0, #5, #1
+ 342 00ce 0593     		str	r3, [sp, #20]
+ 343 00d0 C0F30013 		ubfx	r3, r0, #4, #1
+ 344 00d4 0493     		str	r3, [sp, #16]
+ 345 00d6 C0F3C003 		ubfx	r3, r0, #3, #1
+ 346 00da 0393     		str	r3, [sp, #12]
+ 347 00dc C0F38003 		ubfx	r3, r0, #2, #1
+ 348 00e0 0293     		str	r3, [sp, #8]
+ 349 00e2 C0F34023 		ubfx	r3, r0, #9, #1
+ 350 00e6 0193     		str	r3, [sp, #4]
+ 351 00e8 C0F30023 		ubfx	r3, r0, #8, #1
+ 271:quantum/command.c ****     xprintf(/* clang-format off */
+ 352              		.loc 1 271 14 view .LVU38
+ 353 00ec 0146     		mov	r1, r0
+ 272:quantum/command.c **** 
+ 354              		.loc 1 272 5 is_stmt 1 view .LVU39
+ 355 00ee 0093     		str	r3, [sp]
+ 356 00f0 00F00102 		and	r2, r0, #1
+ 357 00f4 C0F34003 		ubfx	r3, r0, #1, #1
+ 358 00f8 5248     		ldr	r0, .L38+8
+ 359 00fa FFF7FEFF 		bl	printf_
+ 360              	.LVL12:
+ 361              	.L26:
+ 362              	.LBE13:
+ 363              	.LBE12:
+ 532:quantum/command.c **** }
+ 364              		.loc 1 532 12 is_stmt 0 view .LVU40
+ 365 00fe 0120     		movs	r0, #1
+ 366              	.L25:
+ 533:quantum/command.c **** 
+ 367              		.loc 1 533 1 view .LVU41
+ 368 0100 09B0     		add	sp, sp, #36
+ 369              		.cfi_remember_state
+ 370              		.cfi_def_cfa_offset 20
+ 371              		@ sp needed
+ 372 0102 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 373              	.LVL13:
+ 374              	.L13:
+ 375              		.cfi_restore_state
+ 345:quantum/command.c ****             eeconfig_init();
+ 376              		.loc 1 345 13 is_stmt 1 view .LVU42
+ 377 0104 5048     		ldr	r0, .L38+12
+ 378              	.LVL14:
+ 345:quantum/command.c ****             eeconfig_init();
+ 379              		.loc 1 345 13 is_stmt 0 view .LVU43
+ 380 0106 FFF7FEFF 		bl	printf_
+ 381              	.LVL15:
+ 346:quantum/command.c ****             break;
+ 382              		.loc 1 346 13 is_stmt 1 view .LVU44
+ 383 010a FFF7FEFF 		bl	eeconfig_init
+ 384              	.LVL16:
+ 347:quantum/command.c **** 
+ 385              		.loc 1 347 13 view .LVU45
+ 386 010e F6E7     		b	.L26
+ 387              	.LVL17:
+ 388              	.L12:
+ 368:quantum/command.c ****             break;
+ 389              		.loc 1 368 13 view .LVU46
+ 390              	.LBB14:
+ 391              	.LBI14:
+ 106:quantum/command.c ****     print(/* clang-format off */
+ 392              		.loc 1 106 13 view .LVU47
+ 393              	.LBB15:
+ 107:quantum/command.c ****         "\n\t- Magic -\n"
+ 394              		.loc 1 107 5 view .LVU48
+ 395 0110 4E48     		ldr	r0, .L38+16
+ 396              	.LVL18:
+ 397              	.L33:
+ 107:quantum/command.c ****         "\n\t- Magic -\n"
+ 398              		.loc 1 107 5 is_stmt 0 view .LVU49
+ 399              	.LBE15:
+ 400              	.LBE14:
+ 393:quantum/command.c ****             } else {
+ 401              		.loc 1 393 17 view .LVU50
+ 402 0112 FFF7FEFF 		bl	printf_
+ 403              	.LVL19:
+ 404 0116 F2E7     		b	.L26
+ 405              	.LVL20:
+ 406              	.L24:
+ 373:quantum/command.c ****             debug_keyboard = false;
+ 407              		.loc 1 373 13 is_stmt 1 view .LVU51
+ 374:quantum/command.c ****             debug_mouse    = false;
+ 408              		.loc 1 374 13 view .LVU52
+ 375:quantum/command.c ****             debug_enable   = false;
+ 409              		.loc 1 375 13 view .LVU53
+ 376:quantum/command.c ****             command_console_help();
+ 410              		.loc 1 376 13 view .LVU54
+ 376:quantum/command.c ****             command_console_help();
+ 411              		.loc 1 376 28 is_stmt 0 view .LVU55
+ 412 0118 4D4A     		ldr	r2, .L38+20
+ 413              	.LBB16:
+ 414              	.LBB17:
+ 539:quantum/command.c ****           "ESC/q:	quit\n"
+ 415              		.loc 1 539 5 view .LVU56
+ 416 011a 4E48     		ldr	r0, .L38+24
+ 417              	.LVL21:
+ 539:quantum/command.c ****           "ESC/q:	quit\n"
+ 418              		.loc 1 539 5 view .LVU57
+ 419              	.LBE17:
+ 420              	.LBE16:
+ 376:quantum/command.c ****             command_console_help();
+ 421              		.loc 1 376 28 view .LVU58
+ 422 011c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 423 011e 23F00F03 		bic	r3, r3, #15
+ 424 0122 1370     		strb	r3, [r2]
+ 377:quantum/command.c ****             print("C> ");
+ 425              		.loc 1 377 13 is_stmt 1 view .LVU59
+ 426              	.LBB19:
+ 427              	.LBI16:
+ 538:quantum/command.c ****     print("\n\t- Console -\n"
+ 428              		.loc 1 538 13 view .LVU60
+ 429              	.LBB18:
+ 539:quantum/command.c ****           "ESC/q:	quit\n"
+ 430              		.loc 1 539 5 view .LVU61
+ 431 0124 FFF7FEFF 		bl	printf_
+ 432              	.LVL22:
+ 433              	.LBE18:
+ 434              	.LBE19:
+ 378:quantum/command.c ****             command_state = CONSOLE;
+ 435              		.loc 1 378 13 view .LVU62
+ 436 0128 4B48     		ldr	r0, .L38+28
+ 437 012a FFF7FEFF 		bl	printf_
+ 438              	.LVL23:
+ 379:quantum/command.c ****             break;
+ 439              		.loc 1 379 13 view .LVU63
+ 379:quantum/command.c ****             break;
+ 440              		.loc 1 379 27 is_stmt 0 view .LVU64
+ 441 012e 4B4B     		ldr	r3, .L38+32
+ 442 0130 0122     		movs	r2, #1
+ 443 0132 1A70     		strb	r2, [r3]
+ 380:quantum/command.c **** 
+ 444              		.loc 1 380 13 is_stmt 1 view .LVU65
+ 445 0134 E3E7     		b	.L26
+ 446              	.LVL24:
+ 447              	.L14:
+ 385:quantum/command.c ****             reset_keyboard();
+ 448              		.loc 1 385 13 view .LVU66
+ 449 0136 4A48     		ldr	r0, .L38+36
+ 450              	.LVL25:
+ 385:quantum/command.c ****             reset_keyboard();
+ 451              		.loc 1 385 13 is_stmt 0 view .LVU67
+ 452 0138 FFF7FEFF 		bl	printf_
+ 453              	.LVL26:
+ 386:quantum/command.c ****             break;
+ 454              		.loc 1 386 13 is_stmt 1 view .LVU68
+ 455 013c FFF7FEFF 		bl	reset_keyboard
+ 456              	.LVL27:
+ 387:quantum/command.c **** 
+ 457              		.loc 1 387 13 view .LVU69
+ 458 0140 DDE7     		b	.L26
+ 459              	.LVL28:
+ 460              	.L23:
+ 391:quantum/command.c ****             if (debug_enable) {
+ 461              		.loc 1 391 13 view .LVU70
+ 391:quantum/command.c ****             if (debug_enable) {
+ 462              		.loc 1 391 26 is_stmt 0 view .LVU71
+ 463 0142 434C     		ldr	r4, .L38+20
+ 391:quantum/command.c ****             if (debug_enable) {
+ 464              		.loc 1 391 29 view .LVU72
+ 465 0144 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 466 0146 C3F30002 		ubfx	r2, r3, #0, #1
+ 391:quantum/command.c ****             if (debug_enable) {
+ 467              		.loc 1 391 13 view .LVU73
+ 468 014a 82F00102 		eor	r2, r2, #1
+ 391:quantum/command.c ****             if (debug_enable) {
+ 469              		.loc 1 391 26 view .LVU74
+ 470 014e 62F30003 		bfi	r3, r2, #0, #1
+ 392:quantum/command.c ****                 print("\ndebug: on\n");
+ 471              		.loc 1 392 16 view .LVU75
+ 472 0152 DD07     		lsls	r5, r3, #31
+ 391:quantum/command.c ****             if (debug_enable) {
+ 473              		.loc 1 391 26 view .LVU76
+ 474 0154 2370     		strb	r3, [r4]
+ 392:quantum/command.c ****                 print("\ndebug: on\n");
+ 475              		.loc 1 392 13 is_stmt 1 view .LVU77
+ 392:quantum/command.c ****                 print("\ndebug: on\n");
+ 476              		.loc 1 392 16 is_stmt 0 view .LVU78
+ 477 0156 01D5     		bpl	.L27
+ 393:quantum/command.c ****             } else {
+ 478              		.loc 1 393 17 is_stmt 1 view .LVU79
+ 479 0158 4248     		ldr	r0, .L38+40
+ 480              	.LVL29:
+ 393:quantum/command.c ****             } else {
+ 481              		.loc 1 393 17 is_stmt 0 view .LVU80
+ 482 015a DAE7     		b	.L33
+ 483              	.LVL30:
+ 484              	.L27:
+ 395:quantum/command.c ****                 debug_matrix   = false;
+ 485              		.loc 1 395 17 is_stmt 1 view .LVU81
+ 486 015c 4248     		ldr	r0, .L38+44
+ 487              	.LVL31:
+ 395:quantum/command.c ****                 debug_matrix   = false;
+ 488              		.loc 1 395 17 is_stmt 0 view .LVU82
+ 489 015e FFF7FEFF 		bl	printf_
+ 490              	.LVL32:
+ 396:quantum/command.c ****                 debug_keyboard = false;
+ 491              		.loc 1 396 17 is_stmt 1 view .LVU83
+ 397:quantum/command.c ****                 debug_mouse    = false;
+ 492              		.loc 1 397 17 view .LVU84
+ 398:quantum/command.c ****             }
+ 493              		.loc 1 398 17 view .LVU85
+ 396:quantum/command.c ****                 debug_keyboard = false;
+ 494              		.loc 1 396 32 is_stmt 0 view .LVU86
+ 495 0162 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 496 0164 23F00E03 		bic	r3, r3, #14
+ 497              	.L34:
+ 407:quantum/command.c ****             } else {
+ 498              		.loc 1 407 30 view .LVU87
+ 499 0168 2370     		strb	r3, [r4]
+ 500 016a C8E7     		b	.L26
+ 501              	.LVL33:
+ 502              	.L16:
+ 404:quantum/command.c ****             if (debug_matrix) {
+ 503              		.loc 1 404 13 is_stmt 1 view .LVU88
+ 404:quantum/command.c ****             if (debug_matrix) {
+ 504              		.loc 1 404 26 is_stmt 0 view .LVU89
+ 505 016c 384C     		ldr	r4, .L38+20
+ 404:quantum/command.c ****             if (debug_matrix) {
+ 506              		.loc 1 404 29 view .LVU90
+ 507 016e 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 508 0170 C3F34002 		ubfx	r2, r3, #1, #1
+ 404:quantum/command.c ****             if (debug_matrix) {
+ 509              		.loc 1 404 13 view .LVU91
+ 510 0174 82F00102 		eor	r2, r2, #1
+ 404:quantum/command.c ****             if (debug_matrix) {
+ 511              		.loc 1 404 26 view .LVU92
+ 512 0178 62F34103 		bfi	r3, r2, #1, #1
+ 405:quantum/command.c ****                 print("\nmatrix: on\n");
+ 513              		.loc 1 405 16 view .LVU93
+ 514 017c 9807     		lsls	r0, r3, #30
+ 515              	.LVL34:
+ 404:quantum/command.c ****             if (debug_matrix) {
+ 516              		.loc 1 404 26 view .LVU94
+ 517 017e 2370     		strb	r3, [r4]
+ 405:quantum/command.c ****                 print("\nmatrix: on\n");
+ 518              		.loc 1 405 13 is_stmt 1 view .LVU95
+ 405:quantum/command.c ****                 print("\nmatrix: on\n");
+ 519              		.loc 1 405 16 is_stmt 0 view .LVU96
+ 520 0180 06D5     		bpl	.L28
+ 406:quantum/command.c ****                 debug_enable = true;
+ 521              		.loc 1 406 17 is_stmt 1 view .LVU97
+ 522 0182 3A48     		ldr	r0, .L38+48
+ 523              	.L35:
+ 524 0184 FFF7FEFF 		bl	printf_
+ 525              	.LVL35:
+ 407:quantum/command.c ****             } else {
+ 526              		.loc 1 407 17 view .LVU98
+ 407:quantum/command.c ****             } else {
+ 527              		.loc 1 407 30 is_stmt 0 view .LVU99
+ 528 0188 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 529 018a 43F00103 		orr	r3, r3, #1
+ 530 018e EBE7     		b	.L34
+ 531              	.L28:
+ 409:quantum/command.c ****             }
+ 532              		.loc 1 409 17 is_stmt 1 view .LVU100
+ 533 0190 3748     		ldr	r0, .L38+52
+ 534 0192 BEE7     		b	.L33
+ 535              	.LVL36:
+ 536              	.L21:
+ 415:quantum/command.c ****             if (debug_keyboard) {
+ 537              		.loc 1 415 13 view .LVU101
+ 415:quantum/command.c ****             if (debug_keyboard) {
+ 538              		.loc 1 415 28 is_stmt 0 view .LVU102
+ 539 0194 2E4C     		ldr	r4, .L38+20
+ 415:quantum/command.c ****             if (debug_keyboard) {
+ 540              		.loc 1 415 31 view .LVU103
+ 541 0196 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 542 0198 C3F38002 		ubfx	r2, r3, #2, #1
+ 415:quantum/command.c ****             if (debug_keyboard) {
+ 543              		.loc 1 415 13 view .LVU104
+ 544 019c 82F00102 		eor	r2, r2, #1
+ 415:quantum/command.c ****             if (debug_keyboard) {
+ 545              		.loc 1 415 28 view .LVU105
+ 546 01a0 62F38203 		bfi	r3, r2, #2, #1
+ 416:quantum/command.c ****                 print("\nkeyboard: on\n");
+ 547              		.loc 1 416 16 view .LVU106
+ 548 01a4 5907     		lsls	r1, r3, #29
+ 415:quantum/command.c ****             if (debug_keyboard) {
+ 549              		.loc 1 415 28 view .LVU107
+ 550 01a6 2370     		strb	r3, [r4]
+ 416:quantum/command.c ****                 print("\nkeyboard: on\n");
+ 551              		.loc 1 416 13 is_stmt 1 view .LVU108
+ 416:quantum/command.c ****                 print("\nkeyboard: on\n");
+ 552              		.loc 1 416 16 is_stmt 0 view .LVU109
+ 553 01a8 01D5     		bpl	.L29
+ 417:quantum/command.c ****                 debug_enable = true;
+ 554              		.loc 1 417 17 is_stmt 1 view .LVU110
+ 555 01aa 3248     		ldr	r0, .L38+56
+ 556              	.LVL37:
+ 417:quantum/command.c ****                 debug_enable = true;
+ 557              		.loc 1 417 17 is_stmt 0 view .LVU111
+ 558 01ac EAE7     		b	.L35
+ 559              	.LVL38:
+ 560              	.L29:
+ 420:quantum/command.c ****             }
+ 561              		.loc 1 420 17 is_stmt 1 view .LVU112
+ 562 01ae 3248     		ldr	r0, .L38+60
+ 563              	.LVL39:
+ 420:quantum/command.c ****             }
+ 564              		.loc 1 420 17 is_stmt 0 view .LVU113
+ 565 01b0 AFE7     		b	.L33
+ 566              	.LVL40:
+ 567              	.L20:
+ 426:quantum/command.c ****             if (debug_mouse) {
+ 568              		.loc 1 426 13 is_stmt 1 view .LVU114
+ 426:quantum/command.c ****             if (debug_mouse) {
+ 569              		.loc 1 426 25 is_stmt 0 view .LVU115
+ 570 01b2 274C     		ldr	r4, .L38+20
+ 426:quantum/command.c ****             if (debug_mouse) {
+ 571              		.loc 1 426 28 view .LVU116
+ 572 01b4 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 573 01b6 C3F3C002 		ubfx	r2, r3, #3, #1
+ 426:quantum/command.c ****             if (debug_mouse) {
+ 574              		.loc 1 426 13 view .LVU117
+ 575 01ba 82F00102 		eor	r2, r2, #1
+ 426:quantum/command.c ****             if (debug_mouse) {
+ 576              		.loc 1 426 25 view .LVU118
+ 577 01be 62F3C303 		bfi	r3, r2, #3, #1
+ 427:quantum/command.c ****                 print("\nmouse: on\n");
+ 578              		.loc 1 427 16 view .LVU119
+ 579 01c2 1A07     		lsls	r2, r3, #28
+ 426:quantum/command.c ****             if (debug_mouse) {
+ 580              		.loc 1 426 25 view .LVU120
+ 581 01c4 2370     		strb	r3, [r4]
+ 427:quantum/command.c ****                 print("\nmouse: on\n");
+ 582              		.loc 1 427 13 is_stmt 1 view .LVU121
+ 427:quantum/command.c ****                 print("\nmouse: on\n");
+ 583              		.loc 1 427 16 is_stmt 0 view .LVU122
+ 584 01c6 01D5     		bpl	.L30
+ 428:quantum/command.c ****                 debug_enable = true;
+ 585              		.loc 1 428 17 is_stmt 1 view .LVU123
+ 586 01c8 2C48     		ldr	r0, .L38+64
+ 587              	.LVL41:
+ 428:quantum/command.c ****                 debug_enable = true;
+ 588              		.loc 1 428 17 is_stmt 0 view .LVU124
+ 589 01ca DBE7     		b	.L35
+ 590              	.LVL42:
+ 591              	.L30:
+ 431:quantum/command.c ****             }
+ 592              		.loc 1 431 17 is_stmt 1 view .LVU125
+ 593 01cc 2C48     		ldr	r0, .L38+68
+ 594              	.LVL43:
+ 431:quantum/command.c ****             }
+ 595              		.loc 1 431 17 is_stmt 0 view .LVU126
+ 596 01ce A0E7     		b	.L33
+ 597              	.LVL44:
+ 598              	.L17:
+ 437:quantum/command.c ****             break;
+ 599              		.loc 1 437 13 is_stmt 1 view .LVU127
+ 600              	.LBB20:
+ 601              	.LBI20:
+ 163:quantum/command.c ****     print(/* clang-format off */
+ 602              		.loc 1 163 13 view .LVU128
+ 603              	.LBB21:
+ 164:quantum/command.c ****         "\n\t- Version -\n"
+ 604              		.loc 1 164 5 view .LVU129
+ 605 01d0 2C48     		ldr	r0, .L38+72
+ 606              	.LVL45:
+ 164:quantum/command.c ****         "\n\t- Version -\n"
+ 607              		.loc 1 164 5 is_stmt 0 view .LVU130
+ 608 01d2 9EE7     		b	.L33
+ 609              	.LVL46:
+ 610              	.L18:
+ 164:quantum/command.c ****         "\n\t- Version -\n"
+ 611              		.loc 1 164 5 view .LVU131
+ 612              	.LBE21:
+ 613              	.LBE20:
+ 442:quantum/command.c ****             break;
+ 614              		.loc 1 442 13 is_stmt 1 view .LVU132
+ 615              	.LBB22:
+ 616              	.LBI22:
+ 221:quantum/command.c ****     xprintf(/* clang-format off */
+ 617              		.loc 1 221 13 view .LVU133
+ 618              	.LBB23:
+ 222:quantum/command.c ****         "\n\t- Status -\n"
+ 619              		.loc 1 222 5 view .LVU134
+ 235:quantum/command.c **** #ifndef PROTOCOL_VUSB
+ 620              		.loc 1 235 11 is_stmt 0 view .LVU135
+ 621 01d4 FFF7FEFF 		bl	host_keyboard_leds
+ 622              	.LVL47:
+ 222:quantum/command.c ****         "\n\t- Status -\n"
+ 623              		.loc 1 222 5 view .LVU136
+ 624 01d8 2B4B     		ldr	r3, .L38+76
+ 625 01da 1E78     		ldrb	r6, [r3]	@ zero_extendqisi2
+ 626 01dc 2B4B     		ldr	r3, .L38+80
+ 627 01de 1F78     		ldrb	r7, [r3]	@ zero_extendqisi2
+ 242:quantum/command.c **** #endif
+ 628              		.loc 1 242 24 view .LVU137
+ 629 01e0 2B4B     		ldr	r3, .L38+84
+ 235:quantum/command.c **** #ifndef PROTOCOL_VUSB
+ 630              		.loc 1 235 11 view .LVU138
+ 631 01e2 0446     		mov	r4, r0
+ 242:quantum/command.c **** #endif
+ 632              		.loc 1 242 24 view .LVU139
+ 633 01e4 1D78     		ldrb	r5, [r3]	@ zero_extendqisi2
+ 222:quantum/command.c ****         "\n\t- Status -\n"
+ 634              		.loc 1 222 5 view .LVU140
+ 635 01e6 FFF7FEFF 		bl	timer_read32
+ 636              	.LVL48:
+ 637 01ea ED09     		lsrs	r5, r5, #7
+ 638 01ec CDE90050 		strd	r5, r0, [sp]
+ 639 01f0 3B46     		mov	r3, r7
+ 640 01f2 3246     		mov	r2, r6
+ 641 01f4 2146     		mov	r1, r4
+ 642 01f6 2748     		ldr	r0, .L38+88
+ 643 01f8 FFF7FEFF 		bl	printf_
+ 644              	.LVL49:
+ 247:quantum/command.c **** 
+ 645              		.loc 1 247 1 view .LVU141
+ 646 01fc 7FE7     		b	.L26
+ 647              	.LVL50:
+ 648              	.L19:
+ 247:quantum/command.c **** 
+ 649              		.loc 1 247 1 view .LVU142
+ 650              	.LBE23:
+ 651              	.LBE22:
+ 449:quantum/command.c ****             keymap_config.nkro = !keymap_config.nkro;
+ 652              		.loc 1 449 13 is_stmt 1 view .LVU143
+ 653 01fe FFF7FEFF 		bl	clear_keyboard
+ 654              	.LVL51:
+ 450:quantum/command.c ****             if (keymap_config.nkro) {
+ 655              		.loc 1 450 13 view .LVU144
+ 450:quantum/command.c ****             if (keymap_config.nkro) {
+ 656              		.loc 1 450 32 is_stmt 0 view .LVU145
+ 657 0202 2349     		ldr	r1, .L38+84
+ 450:quantum/command.c ****             if (keymap_config.nkro) {
+ 658              		.loc 1 450 48 view .LVU146
+ 659 0204 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 660 0206 C3F3C012 		ubfx	r2, r3, #7, #1
+ 450:quantum/command.c ****             if (keymap_config.nkro) {
+ 661              		.loc 1 450 13 view .LVU147
+ 662 020a 82F00102 		eor	r2, r2, #1
+ 450:quantum/command.c ****             if (keymap_config.nkro) {
+ 663              		.loc 1 450 32 view .LVU148
+ 664 020e 62F3C713 		bfi	r3, r2, #7, #1
+ 665 0212 0B70     		strb	r3, [r1]
+ 451:quantum/command.c ****                 print("NKRO: on\n");
+ 666              		.loc 1 451 13 is_stmt 1 view .LVU149
+ 451:quantum/command.c ****                 print("NKRO: on\n");
+ 667              		.loc 1 451 16 is_stmt 0 view .LVU150
+ 668 0214 1B06     		lsls	r3, r3, #24
+ 452:quantum/command.c ****             } else {
+ 669              		.loc 1 452 17 is_stmt 1 view .LVU151
+ 670 0216 4CBF     		ite	mi
+ 671 0218 1F48     		ldrmi	r0, .L38+92
+ 454:quantum/command.c ****             }
+ 672              		.loc 1 454 17 view .LVU152
+ 673 021a 2048     		ldrpl	r0, .L38+96
+ 674 021c 79E7     		b	.L33
+ 675              	.LVL52:
+ 676              	.L9:
+ 462:quantum/command.c ****             break;
+ 677              		.loc 1 462 13 view .LVU153
+ 678 021e 0020     		movs	r0, #0
+ 679              	.LVL53:
+ 680              	.L37:
+ 521:quantum/command.c ****             break;
+ 681              		.loc 1 521 13 is_stmt 0 view .LVU154
+ 682 0220 FFF7FEFF 		bl	switch_default_layer
+ 683              	.LVL54:
+ 522:quantum/command.c ****         case KC_0:
+ 684              		.loc 1 522 13 is_stmt 1 view .LVU155
+ 685 0224 6BE7     		b	.L26
+ 686              	.LVL55:
+ 687              	.L11:
+ 511:quantum/command.c ****             break;
+ 688              		.loc 1 511 13 view .LVU156
+ 689 0226 3938     		subs	r0, r0, #57
+ 690              	.LVL56:
+ 691              	.L36:
+ 521:quantum/command.c ****             break;
+ 692              		.loc 1 521 13 is_stmt 0 view .LVU157
+ 693 0228 C0B2     		uxtb	r0, r0
+ 694 022a F9E7     		b	.L37
+ 695              	.LVL57:
+ 696              	.L15:
+ 521:quantum/command.c ****             break;
+ 697              		.loc 1 521 13 is_stmt 1 view .LVU158
+ 698 022c 1D38     		subs	r0, r0, #29
+ 699              	.LVL58:
+ 521:quantum/command.c ****             break;
+ 700              		.loc 1 521 13 is_stmt 0 view .LVU159
+ 701 022e FBE7     		b	.L36
+ 702              	.LVL59:
+ 703              	.L8:
+ 529:quantum/command.c ****             return false;
+ 704              		.loc 1 529 13 is_stmt 1 view .LVU160
+ 705 0230 1B48     		ldr	r0, .L38+100
+ 706              	.LVL60:
+ 529:quantum/command.c ****             return false;
+ 707              		.loc 1 529 13 is_stmt 0 view .LVU161
+ 708 0232 FFF7FEFF 		bl	printf_
+ 709              	.LVL61:
+ 530:quantum/command.c ****     }
+ 710              		.loc 1 530 13 is_stmt 1 view .LVU162
+ 530:quantum/command.c ****     }
+ 711              		.loc 1 530 20 is_stmt 0 view .LVU163
+ 712 0236 0020     		movs	r0, #0
+ 713 0238 62E7     		b	.L25
+ 714              	.L39:
+ 715 023a 00BF     		.align	2
+ 716              	.L38:
+ 717 023c 00000000 		.word	.LC2
+ 718 0240 1D000000 		.word	.LC3
+ 719 0244 66000000 		.word	.LC4
+ 720 0248 4B010000 		.word	.LC5
+ 721 024c 5C010000 		.word	.LC6
+ 722 0250 00000000 		.word	debug_config
+ 723 0254 0E030000 		.word	.LC7
+ 724 0258 35030000 		.word	.LC8
+ 725 025c 00000000 		.word	command_state
+ 726 0260 39030000 		.word	.LC9
+ 727 0264 55030000 		.word	.LC10
+ 728 0268 61030000 		.word	.LC11
+ 729 026c 6E030000 		.word	.LC12
+ 730 0270 7B030000 		.word	.LC13
+ 731 0274 89030000 		.word	.LC14
+ 732 0278 98030000 		.word	.LC15
+ 733 027c A8030000 		.word	.LC16
+ 734 0280 B4030000 		.word	.LC17
+ 735 0284 C1030000 		.word	.LC18
+ 736 0288 00000000 		.word	keyboard_protocol
+ 737 028c 00000000 		.word	keyboard_idle
+ 738 0290 00000000 		.word	keymap_config
+ 739 0294 A8040000 		.word	.LC19
+ 740 0298 2C050000 		.word	.LC20
+ 741 029c 36050000 		.word	.LC21
+ 742 02a0 41050000 		.word	.LC22
+ 743              		.cfi_endproc
+ 744              	.LFE302:
+ 746              		.section	.rodata.mousekey_console.isra.0.str1.1,"aMS",%progbits,1
+ 747              	.LC23:
+ 748 0000 3F3F3F00 		.ascii	"???\000"
+ 749              	.LC24:
+ 750 0004 0A092D20 		.ascii	"\012\011- Mousekey -\012\000"
+ 750      4D6F7573 
+ 750      656B6579 
+ 750      202D0A00 
+ 751              	.LC25:
+ 752 0014 703A0970 		.ascii	"p:\011print values\012d:\011set defaults\012up:\011"
+ 752      72696E74 
+ 752      2076616C 
+ 752      7565730A 
+ 752      643A0973 
+ 753 0038 2B310A64 		.ascii	"+1\012dn:\011-1\012lt:\011+10\012rt:\011-10\012ESC/"
+ 753      6E3A092D 
+ 753      310A6C74 
+ 753      3A092B31 
+ 753      300A7274 
+ 754 0056 713A0971 		.ascii	"q:\011quit\012\012speed = delta * max_speed * (repe"
+ 754      7569740A 
+ 754      0A737065 
+ 754      6564203D 
+ 754      2064656C 
+ 755 0080 6174202F 		.ascii	"at / time_to_max)\012where delta: cursor=%d, wheel="
+ 755      2074696D 
+ 755      655F746F 
+ 755      5F6D6178 
+ 755      290A7768 
+ 756 00b0 25640A53 		.ascii	"%d\012See http://en.wikipedia.org/wiki/Mouse_keys\012"
+ 756      65652068 
+ 756      7474703A 
+ 756      2F2F656E 
+ 756      2E77696B 
+ 757 00df 00       		.ascii	"\000"
+ 758              	.LC26:
+ 759 00e0 710A00   		.ascii	"q\012\000"
+ 760              	.LC27:
+ 761 00e3 0A092D20 		.ascii	"\012\011- Values -\012\000"
+ 761      56616C75 
+ 761      6573202D 
+ 761      0A00
+ 762              	.LC28:
+ 763 00f1 6D6B5F64 		.ascii	"mk_delay\000"
+ 763      656C6179 
+ 763      00
+ 764              	.LC29:
+ 765 00fa 6D6B5F69 		.ascii	"mk_interval\000"
+ 765      6E746572 
+ 765      76616C00 
+ 766              	.LC30:
+ 767 0106 6D6B5F6D 		.ascii	"mk_max_speed\000"
+ 767      61785F73 
+ 767      70656564 
+ 767      00
+ 768              	.LC31:
+ 769 0113 6D6B5F74 		.ascii	"mk_time_to_max\000"
+ 769      696D655F 
+ 769      746F5F6D 
+ 769      617800
+ 770              	.LC32:
+ 771 0122 6D6B5F77 		.ascii	"mk_wheel_max_speed\000"
+ 771      6865656C 
+ 771      5F6D6178 
+ 771      5F737065 
+ 771      656400
+ 772              	.LC33:
+ 773 0135 6D6B5F77 		.ascii	"mk_wheel_time_to_max\000"
+ 773      6865656C 
+ 773      5F74696D 
+ 773      655F746F 
+ 773      5F6D6178 
+ 774              	.LC34:
+ 775 014a 3F0A00   		.ascii	"?\012\000"
+ 776              	.LC35:
+ 777 014d 25750A00 		.ascii	"%u\012\000"
+ 778              	.LC36:
+ 779 0151 64656661 		.ascii	"defaults\012\000"
+ 779      756C7473 
+ 779      0A00
+ 780              	.LC37:
+ 781 015b 3D202575 		.ascii	"= %u\012\000"
+ 781      0A00
+ 782              	.LC38:
+ 783 0161 4D25753A 		.ascii	"M%u:%s> \000"
+ 783      25733E20 
+ 783      00
+ 784              	.LC39:
+ 785 016a 4D3E2000 		.ascii	"M> \000"
+ 786              		.section	.text.mousekey_console.isra.0,"ax",%progbits
+ 787              		.align	1
+ 788              		.syntax unified
+ 789              		.thumb
+ 790              		.thumb_func
+ 792              	mousekey_console.isra.0:
+ 793              	.LVL62:
+ 794              	.LFB311:
+ 629:quantum/command.c ****     static uint8_t  param = 0;
+ 795              		.loc 1 629 6 is_stmt 1 view -0
+ 796              		.cfi_startproc
+ 797              		@ args = 0, pretend = 0, frame = 0
+ 798              		@ frame_needed = 0, uses_anonymous_args = 0
+ 630:quantum/command.c ****     static uint8_t *pp    = NULL;
+ 799              		.loc 1 630 5 view .LVU165
+ 631:quantum/command.c ****     static char *   desc  = NULL;
+ 800              		.loc 1 631 5 view .LVU166
+ 632:quantum/command.c **** 
+ 801              		.loc 1 632 5 view .LVU167
+ 638:quantum/command.c **** 
+ 802              		.loc 1 638 5 view .LVU168
+ 640:quantum/command.c ****         case KC_H:
+ 803              		.loc 1 640 5 view .LVU169
+ 804 0000 2928     		cmp	r0, #41
+ 629:quantum/command.c ****     static uint8_t  param = 0;
+ 805              		.loc 1 629 6 is_stmt 0 view .LVU170
+ 806 0002 10B5     		push	{r4, lr}
+ 807              		.cfi_def_cfa_offset 8
+ 808              		.cfi_offset 4, -8
+ 809              		.cfi_offset 14, -4
+ 810 0004 634C     		ldr	r4, .L102
+ 640:quantum/command.c ****         case KC_H:
+ 811              		.loc 1 640 5 view .LVU171
+ 812 0006 43D0     		beq	.L41
+ 813 0008 1AD8     		bhi	.L42
+ 814 000a 1328     		cmp	r0, #19
+ 815 000c 4DD0     		beq	.L43
+ 816 000e 06D8     		bhi	.L44
+ 817 0010 0728     		cmp	r0, #7
+ 818 0012 00F08180 		beq	.L45
+ 819 0016 0B28     		cmp	r0, #11
+ 820 0018 21D0     		beq	.L46
+ 821              	.LVL63:
+ 822              	.L65:
+ 725:quantum/command.c ****         }
+ 823              		.loc 1 725 13 is_stmt 1 view .LVU172
+ 824 001a 5F48     		ldr	r0, .L102+4
+ 825 001c 8FE0     		b	.L101
+ 826              	.LVL64:
+ 827              	.L44:
+ 640:quantum/command.c ****         case KC_H:
+ 828              		.loc 1 640 5 is_stmt 0 view .LVU173
+ 829 001e 1428     		cmp	r0, #20
+ 830 0020 36D0     		beq	.L41
+ 831 0022 A0F11E03 		sub	r3, r0, #30
+ 832 0026 092B     		cmp	r3, #9
+ 833 0028 F7D8     		bhi	.L65
+ 666:quantum/command.c ****             switch (param) { /* clang-format off */
+ 834              		.loc 1 666 13 is_stmt 1 view .LVU174
+ 666:quantum/command.c ****             switch (param) { /* clang-format off */
+ 835              		.loc 1 666 30 is_stmt 0 view .LVU175
+ 836 002a 1D38     		subs	r0, r0, #29
+ 837              	.LVL65:
+ 666:quantum/command.c ****             switch (param) { /* clang-format off */
+ 838              		.loc 1 666 30 view .LVU176
+ 839 002c C0B2     		uxtb	r0, r0
+ 666:quantum/command.c ****             switch (param) { /* clang-format off */
+ 840              		.loc 1 666 19 view .LVU177
+ 841 002e 2070     		strb	r0, [r4]
+ 667:quantum/command.c **** #               define PARAM(n, v) case n: pp = &(v); desc = #v; break
+ 842              		.loc 1 667 13 is_stmt 1 view .LVU178
+ 843 0030 0138     		subs	r0, r0, #1
+ 844 0032 0528     		cmp	r0, #5
+ 845 0034 6AD8     		bhi	.L53
+ 846 0036 DFE800F0 		tbb	[pc, r0]
+ 847              	.L55:
+ 848 003a 3E       		.byte	(.L60-.L55)/2
+ 849 003b 4B       		.byte	(.L59-.L55)/2
+ 850 003c 51       		.byte	(.L58-.L55)/2
+ 851 003d 57       		.byte	(.L57-.L55)/2
+ 852 003e 5D       		.byte	(.L56-.L55)/2
+ 853 003f 63       		.byte	(.L54-.L55)/2
+ 854              	.LVL66:
+ 855              		.p2align 1
+ 856              	.L42:
+ 640:quantum/command.c ****         case KC_H:
+ 857              		.loc 1 640 5 is_stmt 0 view .LVU179
+ 858 0040 3828     		cmp	r0, #56
+ 859 0042 0CD0     		beq	.L46
+ 860 0044 A0F14F03 		sub	r3, r0, #79
+ 861 0048 032B     		cmp	r3, #3
+ 862 004a E6D8     		bhi	.L65
+ 863 004c 5038     		subs	r0, r0, #80
+ 864              	.LVL67:
+ 640:quantum/command.c ****         case KC_H:
+ 865              		.loc 1 640 5 view .LVU180
+ 866 004e 534A     		ldr	r2, .L102+8
+ 867 0050 0228     		cmp	r0, #2
+ 868 0052 00F29780 		bhi	.L71
+ 869 0056 DFE800F0 		tbb	[pc, r0]
+ 870              	.L50:
+ 871 005a 75       		.byte	(.L52-.L50)/2
+ 872 005b 83       		.byte	(.L51-.L50)/2
+ 873 005c 8A       		.byte	(.L49-.L50)/2
+ 874              	.LVL68:
+ 875 005d 00       		.p2align 1
+ 876              	.L46:
+ 644:quantum/command.c ****             mousekey_console_help();
+ 877              		.loc 1 644 13 is_stmt 1 view .LVU181
+ 878 005e 5048     		ldr	r0, .L102+12
+ 879              	.LVL69:
+ 644:quantum/command.c ****             mousekey_console_help();
+ 880              		.loc 1 644 13 is_stmt 0 view .LVU182
+ 881 0060 FFF7FEFF 		bl	printf_
+ 882              	.LVL70:
+ 645:quantum/command.c **** #    endif
+ 883              		.loc 1 645 13 is_stmt 1 view .LVU183
+ 884              	.LBB28:
+ 885              	.LBI28:
+ 603:quantum/command.c ****     mousekey_param_print();
+ 886              		.loc 1 603 13 view .LVU184
+ 887              	.LBB29:
+ 604:quantum/command.c ****     xprintf(/* clang-format off */
+ 888              		.loc 1 604 5 view .LVU185
+ 889 0064 FFF7FEFF 		bl	mousekey_param_print
+ 890              	.LVL71:
+ 605:quantum/command.c ****         "p:	print values\n"
+ 891              		.loc 1 605 5 view .LVU186
+ 892 0068 4E48     		ldr	r0, .L102+16
+ 893 006a 0122     		movs	r2, #1
+ 894 006c 0521     		movs	r1, #5
+ 895 006e FFF7FEFF 		bl	printf_
+ 896              	.LVL72:
+ 897              	.L62:
+ 605:quantum/command.c ****         "p:	print values\n"
+ 898              		.loc 1 605 5 is_stmt 0 view .LVU187
+ 899              	.LBE29:
+ 900              	.LBE28:
+ 729:quantum/command.c ****         xprintf("M%u:%s> ", param, desc ? desc : "???");
+ 901              		.loc 1 729 5 is_stmt 1 view .LVU188
+ 729:quantum/command.c ****         xprintf("M%u:%s> ", param, desc ? desc : "???");
+ 902              		.loc 1 729 9 is_stmt 0 view .LVU189
+ 903 0072 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+ 729:quantum/command.c ****         xprintf("M%u:%s> ", param, desc ? desc : "???");
+ 904              		.loc 1 729 8 view .LVU190
+ 905 0074 0029     		cmp	r1, #0
+ 906 0076 00F08780 		beq	.L69
+ 730:quantum/command.c ****     } else {
+ 907              		.loc 1 730 9 is_stmt 1 view .LVU191
+ 730:quantum/command.c ****     } else {
+ 908              		.loc 1 730 41 is_stmt 0 view .LVU192
+ 909 007a 4B4B     		ldr	r3, .L102+20
+ 730:quantum/command.c ****     } else {
+ 910              		.loc 1 730 9 view .LVU193
+ 911 007c 4B48     		ldr	r0, .L102+24
+ 730:quantum/command.c ****     } else {
+ 912              		.loc 1 730 41 view .LVU194
+ 913 007e 1A68     		ldr	r2, [r3]
+ 730:quantum/command.c ****     } else {
+ 914              		.loc 1 730 9 view .LVU195
+ 915 0080 4B4B     		ldr	r3, .L102+28
+ 735:quantum/command.c **** 
+ 916              		.loc 1 735 1 view .LVU196
+ 917 0082 BDE81040 		pop	{r4, lr}
+ 918              		.cfi_remember_state
+ 919              		.cfi_restore 14
+ 920              		.cfi_restore 4
+ 921              		.cfi_def_cfa_offset 0
+ 730:quantum/command.c ****     } else {
+ 922              		.loc 1 730 9 view .LVU197
+ 923 0086 002A     		cmp	r2, #0
+ 924 0088 08BF     		it	eq
+ 925 008a 1A46     		moveq	r2, r3
+ 926 008c FFF7FEBF 		b	printf_
+ 927              	.LVL73:
+ 928              	.L41:
+ 929              		.cfi_restore_state
+ 651:quantum/command.c ****             if (!param) return false;
+ 930              		.loc 1 651 13 is_stmt 1 view .LVU198
+ 931 0090 4848     		ldr	r0, .L102+32
+ 932              	.LVL74:
+ 651:quantum/command.c ****             if (!param) return false;
+ 933              		.loc 1 651 13 is_stmt 0 view .LVU199
+ 934 0092 FFF7FEFF 		bl	printf_
+ 935              	.LVL75:
+ 652:quantum/command.c ****             param = 0;
+ 936              		.loc 1 652 13 is_stmt 1 view .LVU200
+ 652:quantum/command.c ****             param = 0;
+ 937              		.loc 1 652 16 is_stmt 0 view .LVU201
+ 938 0096 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 939 0098 002B     		cmp	r3, #0
+ 940 009a 7AD0     		beq	.L40
+ 653:quantum/command.c ****             pp    = NULL;
+ 941              		.loc 1 653 13 is_stmt 1 view .LVU202
+ 654:quantum/command.c ****             desc  = NULL;
+ 942              		.loc 1 654 19 is_stmt 0 view .LVU203
+ 943 009c 3F4A     		ldr	r2, .L102+8
+ 653:quantum/command.c ****             pp    = NULL;
+ 944              		.loc 1 653 19 view .LVU204
+ 945 009e 0023     		movs	r3, #0
+ 654:quantum/command.c ****             desc  = NULL;
+ 946              		.loc 1 654 19 view .LVU205
+ 947 00a0 1360     		str	r3, [r2]
+ 655:quantum/command.c ****             break;
+ 948              		.loc 1 655 19 view .LVU206
+ 949 00a2 414A     		ldr	r2, .L102+20
+ 653:quantum/command.c ****             pp    = NULL;
+ 950              		.loc 1 653 19 view .LVU207
+ 951 00a4 2370     		strb	r3, [r4]
+ 654:quantum/command.c ****             desc  = NULL;
+ 952              		.loc 1 654 13 is_stmt 1 view .LVU208
+ 655:quantum/command.c ****             break;
+ 953              		.loc 1 655 13 view .LVU209
+ 655:quantum/command.c ****             break;
+ 954              		.loc 1 655 19 is_stmt 0 view .LVU210
+ 955 00a6 1360     		str	r3, [r2]
+ 656:quantum/command.c **** 
+ 956              		.loc 1 656 13 is_stmt 1 view .LVU211
+ 714:quantum/command.c ****         if (pp) {
+ 957              		.loc 1 714 5 view .LVU212
+ 958 00a8 E3E7     		b	.L62
+ 959              	.LVL76:
+ 960              	.L43:
+ 660:quantum/command.c ****             mousekey_param_print();
+ 961              		.loc 1 660 13 view .LVU213
+ 962 00aa 4348     		ldr	r0, .L102+36
+ 963              	.LVL77:
+ 660:quantum/command.c ****             mousekey_param_print();
+ 964              		.loc 1 660 13 is_stmt 0 view .LVU214
+ 965 00ac FFF7FEFF 		bl	printf_
+ 966              	.LVL78:
+ 661:quantum/command.c **** #    endif
+ 967              		.loc 1 661 13 is_stmt 1 view .LVU215
+ 968 00b0 FFF7FEFF 		bl	mousekey_param_print
+ 969              	.LVL79:
+ 663:quantum/command.c **** 
+ 970              		.loc 1 663 13 view .LVU216
+ 714:quantum/command.c ****         if (pp) {
+ 971              		.loc 1 714 5 view .LVU217
+ 972 00b4 DDE7     		b	.L62
+ 973              	.L60:
+ 671:quantum/command.c ****                 PARAM(2, mk_interval);
+ 974              		.loc 1 671 17 view .LVU218
+ 975 00b6 394B     		ldr	r3, .L102+8
+ 976 00b8 404A     		ldr	r2, .L102+40
+ 977 00ba 1A60     		str	r2, [r3]
+ 671:quantum/command.c ****                 PARAM(2, mk_interval);
+ 978              		.loc 1 671 17 view .LVU219
+ 979 00bc 3A4B     		ldr	r3, .L102+20
+ 980 00be 404A     		ldr	r2, .L102+44
+ 981              	.L98:
+ 672:quantum/command.c ****                 PARAM(3, mk_max_speed);
+ 982              		.loc 1 672 17 is_stmt 0 view .LVU220
+ 983 00c0 1A60     		str	r2, [r3]
+ 672:quantum/command.c ****                 PARAM(3, mk_max_speed);
+ 984              		.loc 1 672 17 is_stmt 1 view .LVU221
+ 985              	.L64:
+ 685:quantum/command.c ****             break;
+ 986              		.loc 1 685 13 view .LVU222
+ 685:quantum/command.c ****             break;
+ 987              		.loc 1 685 17 is_stmt 0 view .LVU223
+ 988 00c2 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+ 685:quantum/command.c ****             break;
+ 989              		.loc 1 685 16 view .LVU224
+ 990 00c4 0029     		cmp	r1, #0
+ 991 00c6 D4D0     		beq	.L62
+ 685:quantum/command.c ****             break;
+ 992              		.loc 1 685 24 is_stmt 1 view .LVU225
+ 993 00c8 3E48     		ldr	r0, .L102+48
+ 994              	.LVL80:
+ 995              	.L100:
+ 996              	.LBB30:
+ 723:quantum/command.c ****         } else {
+ 997              		.loc 1 723 13 is_stmt 0 view .LVU226
+ 998 00ca FFF7FEFF 		bl	printf_
+ 999              	.LVL81:
+ 1000              	.LBE30:
+ 1001 00ce D0E7     		b	.L62
+ 1002              	.LVL82:
+ 1003              	.L59:
+ 672:quantum/command.c ****                 PARAM(3, mk_max_speed);
+ 1004              		.loc 1 672 17 is_stmt 1 view .LVU227
+ 1005 00d0 324B     		ldr	r3, .L102+8
+ 1006 00d2 3D4A     		ldr	r2, .L102+52
+ 1007 00d4 1A60     		str	r2, [r3]
+ 672:quantum/command.c ****                 PARAM(3, mk_max_speed);
+ 1008              		.loc 1 672 17 view .LVU228
+ 1009 00d6 344B     		ldr	r3, .L102+20
+ 1010 00d8 3C4A     		ldr	r2, .L102+56
+ 1011 00da F1E7     		b	.L98
+ 1012              	.L58:
+ 673:quantum/command.c ****                 PARAM(4, mk_time_to_max);
+ 1013              		.loc 1 673 17 view .LVU229
+ 1014 00dc 2F4B     		ldr	r3, .L102+8
+ 1015 00de 3C4A     		ldr	r2, .L102+60
+ 1016 00e0 1A60     		str	r2, [r3]
+ 673:quantum/command.c ****                 PARAM(4, mk_time_to_max);
+ 1017              		.loc 1 673 17 view .LVU230
+ 1018 00e2 314B     		ldr	r3, .L102+20
+ 1019 00e4 3B4A     		ldr	r2, .L102+64
+ 1020 00e6 EBE7     		b	.L98
+ 1021              	.L57:
+ 674:quantum/command.c ****                 PARAM(5, mk_wheel_max_speed);
+ 1022              		.loc 1 674 17 view .LVU231
+ 1023 00e8 2C4B     		ldr	r3, .L102+8
+ 1024 00ea 3B4A     		ldr	r2, .L102+68
+ 1025 00ec 1A60     		str	r2, [r3]
+ 674:quantum/command.c ****                 PARAM(5, mk_wheel_max_speed);
+ 1026              		.loc 1 674 17 view .LVU232
+ 1027 00ee 2E4B     		ldr	r3, .L102+20
+ 1028 00f0 3A4A     		ldr	r2, .L102+72
+ 1029 00f2 E5E7     		b	.L98
+ 1030              	.L56:
+ 675:quantum/command.c ****                 PARAM(6, mk_wheel_time_to_max);
+ 1031              		.loc 1 675 17 view .LVU233
+ 1032 00f4 294B     		ldr	r3, .L102+8
+ 1033 00f6 3A4A     		ldr	r2, .L102+76
+ 1034 00f8 1A60     		str	r2, [r3]
+ 675:quantum/command.c ****                 PARAM(6, mk_wheel_time_to_max);
+ 1035              		.loc 1 675 17 view .LVU234
+ 1036 00fa 2B4B     		ldr	r3, .L102+20
+ 1037 00fc 394A     		ldr	r2, .L102+80
+ 1038 00fe DFE7     		b	.L98
+ 1039              	.L54:
+ 676:quantum/command.c **** #endif /* MK_3_SPEED */
+ 1040              		.loc 1 676 17 view .LVU235
+ 1041 0100 264B     		ldr	r3, .L102+8
+ 1042 0102 394A     		ldr	r2, .L102+84
+ 1043 0104 1A60     		str	r2, [r3]
+ 676:quantum/command.c **** #endif /* MK_3_SPEED */
+ 1044              		.loc 1 676 17 view .LVU236
+ 1045 0106 284B     		ldr	r3, .L102+20
+ 1046 0108 384A     		ldr	r2, .L102+88
+ 1047 010a D9E7     		b	.L98
+ 1048              	.L53:
+ 681:quantum/command.c ****                     print("?\n");
+ 1049              		.loc 1 681 21 view .LVU237
+ 681:quantum/command.c ****                     print("?\n");
+ 1050              		.loc 1 681 27 is_stmt 0 view .LVU238
+ 1051 010c 0023     		movs	r3, #0
+ 682:quantum/command.c ****                     break;
+ 1052              		.loc 1 682 21 view .LVU239
+ 1053 010e 2248     		ldr	r0, .L102+4
+ 681:quantum/command.c ****                     print("?\n");
+ 1054              		.loc 1 681 27 view .LVU240
+ 1055 0110 2370     		strb	r3, [r4]
+ 682:quantum/command.c ****                     break;
+ 1056              		.loc 1 682 21 is_stmt 1 view .LVU241
+ 1057 0112 FFF7FEFF 		bl	printf_
+ 1058              	.LVL83:
+ 683:quantum/command.c ****             } /* clang-format on */
+ 1059              		.loc 1 683 21 view .LVU242
+ 1060 0116 D4E7     		b	.L64
+ 1061              	.LVL84:
+ 1062              	.L45:
+ 698:quantum/command.c ****             mk_interval          = MOUSEKEY_INTERVAL;
+ 1063              		.loc 1 698 13 view .LVU243
+ 698:quantum/command.c ****             mk_interval          = MOUSEKEY_INTERVAL;
+ 1064              		.loc 1 698 34 is_stmt 0 view .LVU244
+ 1065 0118 284B     		ldr	r3, .L102+40
+ 706:quantum/command.c ****             break;
+ 1066              		.loc 1 706 13 view .LVU245
+ 1067 011a 3548     		ldr	r0, .L102+92
+ 1068              	.LVL85:
+ 698:quantum/command.c ****             mk_interval          = MOUSEKEY_INTERVAL;
+ 1069              		.loc 1 698 34 view .LVU246
+ 1070 011c 1E22     		movs	r2, #30
+ 1071 011e 1A70     		strb	r2, [r3]
+ 699:quantum/command.c ****             mk_max_speed         = MOUSEKEY_MAX_SPEED;
+ 1072              		.loc 1 699 13 is_stmt 1 view .LVU247
+ 699:quantum/command.c ****             mk_max_speed         = MOUSEKEY_MAX_SPEED;
+ 1073              		.loc 1 699 34 is_stmt 0 view .LVU248
+ 1074 0120 294B     		ldr	r3, .L102+52
+ 1075 0122 3222     		movs	r2, #50
+ 1076 0124 1A70     		strb	r2, [r3]
+ 700:quantum/command.c ****             mk_time_to_max       = MOUSEKEY_TIME_TO_MAX;
+ 1077              		.loc 1 700 13 is_stmt 1 view .LVU249
+ 700:quantum/command.c ****             mk_time_to_max       = MOUSEKEY_TIME_TO_MAX;
+ 1078              		.loc 1 700 34 is_stmt 0 view .LVU250
+ 1079 0126 2A4B     		ldr	r3, .L102+60
+ 1080 0128 0A22     		movs	r2, #10
+ 1081 012a 1A70     		strb	r2, [r3]
+ 701:quantum/command.c ****             mk_wheel_max_speed   = MOUSEKEY_WHEEL_MAX_SPEED;
+ 1082              		.loc 1 701 13 is_stmt 1 view .LVU251
+ 701:quantum/command.c ****             mk_wheel_max_speed   = MOUSEKEY_WHEEL_MAX_SPEED;
+ 1083              		.loc 1 701 34 is_stmt 0 view .LVU252
+ 1084 012c 2A4B     		ldr	r3, .L102+68
+ 1085 012e 1422     		movs	r2, #20
+ 1086 0130 1A70     		strb	r2, [r3]
+ 702:quantum/command.c ****             mk_wheel_time_to_max = MOUSEKEY_WHEEL_TIME_TO_MAX;
+ 1087              		.loc 1 702 13 is_stmt 1 view .LVU253
+ 702:quantum/command.c ****             mk_wheel_time_to_max = MOUSEKEY_WHEEL_TIME_TO_MAX;
+ 1088              		.loc 1 702 34 is_stmt 0 view .LVU254
+ 1089 0132 2B4B     		ldr	r3, .L102+76
+ 1090 0134 0822     		movs	r2, #8
+ 1091 0136 1A70     		strb	r2, [r3]
+ 703:quantum/command.c **** #    endif /* MK_3_SPEED */
+ 1092              		.loc 1 703 13 is_stmt 1 view .LVU255
+ 703:quantum/command.c **** #    endif /* MK_3_SPEED */
+ 1093              		.loc 1 703 34 is_stmt 0 view .LVU256
+ 1094 0138 2B4B     		ldr	r3, .L102+84
+ 1095 013a 2822     		movs	r2, #40
+ 1096 013c 1A70     		strb	r2, [r3]
+ 706:quantum/command.c ****             break;
+ 1097              		.loc 1 706 13 is_stmt 1 view .LVU257
+ 1098              	.LVL86:
+ 1099              	.L101:
+ 725:quantum/command.c ****         }
+ 1100              		.loc 1 725 13 is_stmt 0 view .LVU258
+ 1101 013e FFF7FEFF 		bl	printf_
+ 1102              	.LVL87:
+ 1103 0142 96E7     		b	.L62
+ 1104              	.LVL88:
+ 1105              	.L52:
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1106              		.loc 1 715 9 is_stmt 1 view .LVU259
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1107              		.loc 1 715 13 is_stmt 0 view .LVU260
+ 1108 0144 1268     		ldr	r2, [r2]
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1109              		.loc 1 715 12 view .LVU261
+ 1110 0146 002A     		cmp	r2, #0
+ 1111 0148 3FF467AF 		beq	.L65
+ 1112              	.LBB31:
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1113              		.loc 1 716 13 is_stmt 1 view .LVU262
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1114              		.loc 1 716 27 is_stmt 0 view .LVU263
+ 1115 014c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1116              		.loc 1 716 21 view .LVU264
+ 1117 014e 0A3B     		subs	r3, r3, #10
+ 1118              	.L99:
+ 1119 0150 1BB2     		sxth	r3, r3
+ 1120              	.LVL89:
+ 717:quantum/command.c ****                 *pp = UINT8_MAX;
+ 1121              		.loc 1 717 13 is_stmt 1 view .LVU265
+ 719:quantum/command.c ****                 *pp = 0;
+ 1122              		.loc 1 719 18 view .LVU266
+ 719:quantum/command.c ****                 *pp = 0;
+ 1123              		.loc 1 719 21 is_stmt 0 view .LVU267
+ 1124 0152 002B     		cmp	r3, #0
+ 720:quantum/command.c ****             else
+ 1125              		.loc 1 720 17 is_stmt 1 view .LVU268
+ 720:quantum/command.c ****             else
+ 1126              		.loc 1 720 21 is_stmt 0 view .LVU269
+ 1127 0154 B8BF     		it	lt
+ 1128 0156 0023     		movlt	r3, #0
+ 1129              	.LVL90:
+ 1130              	.L67:
+ 722:quantum/command.c ****             xprintf("= %u\n", *pp);
+ 1131              		.loc 1 722 17 is_stmt 1 view .LVU270
+ 722:quantum/command.c ****             xprintf("= %u\n", *pp);
+ 1132              		.loc 1 722 23 is_stmt 0 view .LVU271
+ 1133 0158 1370     		strb	r3, [r2]
+ 723:quantum/command.c ****         } else {
+ 1134              		.loc 1 723 13 is_stmt 1 view .LVU272
+ 1135 015a 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+ 1136 015c 2548     		ldr	r0, .L102+96
+ 1137 015e B4E7     		b	.L100
+ 1138              	.LVL91:
+ 1139              	.L51:
+ 723:quantum/command.c ****         } else {
+ 1140              		.loc 1 723 13 is_stmt 0 view .LVU273
+ 1141              	.LBE31:
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1142              		.loc 1 715 9 is_stmt 1 view .LVU274
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1143              		.loc 1 715 13 is_stmt 0 view .LVU275
+ 1144 0160 1268     		ldr	r2, [r2]
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1145              		.loc 1 715 12 view .LVU276
+ 1146 0162 002A     		cmp	r2, #0
+ 1147 0164 3FF459AF 		beq	.L65
+ 1148              	.LBB32:
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1149              		.loc 1 716 13 is_stmt 1 view .LVU277
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1150              		.loc 1 716 27 is_stmt 0 view .LVU278
+ 1151 0168 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1152              		.loc 1 716 21 view .LVU279
+ 1153 016a 013B     		subs	r3, r3, #1
+ 1154 016c F0E7     		b	.L99
+ 1155              	.LVL92:
+ 1156              	.L49:
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1157              		.loc 1 716 21 view .LVU280
+ 1158              	.LBE32:
+ 689:quantum/command.c ****         case KC_DOWN:  change =  -1; break;
+ 1159              		.loc 1 689 31 view .LVU281
+ 1160 016e 0123     		movs	r3, #1
+ 1161              	.L48:
+ 1162              	.LVL93:
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1163              		.loc 1 715 9 is_stmt 1 view .LVU282
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1164              		.loc 1 715 13 is_stmt 0 view .LVU283
+ 1165 0170 1268     		ldr	r2, [r2]
+ 715:quantum/command.c ****             int16_t val = *pp + change;
+ 1166              		.loc 1 715 12 view .LVU284
+ 1167 0172 002A     		cmp	r2, #0
+ 1168 0174 3FF451AF 		beq	.L65
+ 1169              	.LBB33:
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1170              		.loc 1 716 13 is_stmt 1 view .LVU285
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1171              		.loc 1 716 27 is_stmt 0 view .LVU286
+ 1172 0178 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+ 716:quantum/command.c ****             if (val > (int16_t)UINT8_MAX)
+ 1173              		.loc 1 716 21 view .LVU287
+ 1174 017a 0B44     		add	r3, r3, r1
+ 1175              	.LVL94:
+ 717:quantum/command.c ****                 *pp = UINT8_MAX;
+ 1176              		.loc 1 717 13 is_stmt 1 view .LVU288
+ 717:quantum/command.c ****                 *pp = UINT8_MAX;
+ 1177              		.loc 1 717 16 is_stmt 0 view .LVU289
+ 1178 017c FF2B     		cmp	r3, #255
+ 1179 017e EBDD     		ble	.L67
+ 718:quantum/command.c ****             else if (val < 0)
+ 1180              		.loc 1 718 17 is_stmt 1 view .LVU290
+ 718:quantum/command.c ****             else if (val < 0)
+ 1181              		.loc 1 718 21 is_stmt 0 view .LVU291
+ 1182 0180 FF23     		movs	r3, #255
+ 1183              	.LVL95:
+ 718:quantum/command.c ****             else if (val < 0)
+ 1184              		.loc 1 718 21 view .LVU292
+ 1185 0182 E9E7     		b	.L67
+ 1186              	.LVL96:
+ 1187              	.L71:
+ 718:quantum/command.c ****             else if (val < 0)
+ 1188              		.loc 1 718 21 view .LVU293
+ 1189              	.LBE33:
+ 640:quantum/command.c ****         case KC_H:
+ 1190              		.loc 1 640 5 view .LVU294
+ 1191 0184 0A23     		movs	r3, #10
+ 1192 0186 F3E7     		b	.L48
+ 1193              	.LVL97:
+ 1194              	.L69:
+ 732:quantum/command.c ****     }
+ 1195              		.loc 1 732 9 is_stmt 1 view .LVU295
+ 735:quantum/command.c **** 
+ 1196              		.loc 1 735 1 is_stmt 0 view .LVU296
+ 1197 0188 BDE81040 		pop	{r4, lr}
+ 1198              		.cfi_remember_state
+ 1199              		.cfi_restore 14
+ 1200              		.cfi_restore 4
+ 1201              		.cfi_def_cfa_offset 0
+ 732:quantum/command.c ****     }
+ 1202              		.loc 1 732 9 view .LVU297
+ 1203 018c 1A48     		ldr	r0, .L102+100
+ 1204 018e FFF7FEBF 		b	printf_
+ 1205              	.LVL98:
+ 1206              	.L40:
+ 1207              		.cfi_restore_state
+ 735:quantum/command.c **** 
+ 1208              		.loc 1 735 1 view .LVU298
+ 1209 0192 10BD     		pop	{r4, pc}
+ 1210              	.L103:
+ 1211              		.align	2
+ 1212              	.L102:
+ 1213 0194 00000000 		.word	param.2
+ 1214 0198 4A010000 		.word	.LC34
+ 1215 019c 00000000 		.word	pp.1
+ 1216 01a0 04000000 		.word	.LC24
+ 1217 01a4 14000000 		.word	.LC25
+ 1218 01a8 00000000 		.word	desc.0
+ 1219 01ac 61010000 		.word	.LC38
+ 1220 01b0 00000000 		.word	.LC23
+ 1221 01b4 E0000000 		.word	.LC26
+ 1222 01b8 E3000000 		.word	.LC27
+ 1223 01bc 00000000 		.word	mk_delay
+ 1224 01c0 F1000000 		.word	.LC28
+ 1225 01c4 4D010000 		.word	.LC35
+ 1226 01c8 00000000 		.word	mk_interval
+ 1227 01cc FA000000 		.word	.LC29
+ 1228 01d0 00000000 		.word	mk_max_speed
+ 1229 01d4 06010000 		.word	.LC30
+ 1230 01d8 00000000 		.word	mk_time_to_max
+ 1231 01dc 13010000 		.word	.LC31
+ 1232 01e0 00000000 		.word	mk_wheel_max_speed
+ 1233 01e4 22010000 		.word	.LC32
+ 1234 01e8 00000000 		.word	mk_wheel_time_to_max
+ 1235 01ec 35010000 		.word	.LC33
+ 1236 01f0 51010000 		.word	.LC36
+ 1237 01f4 5B010000 		.word	.LC37
+ 1238 01f8 6A010000 		.word	.LC39
+ 1239              		.cfi_endproc
+ 1240              	.LFE311:
+ 1242              		.section	.text.command_extra,"ax",%progbits
+ 1243              		.align	1
+ 1244              		.weak	command_extra
+ 1245              		.syntax unified
+ 1246              		.thumb
+ 1247              		.thumb_func
+ 1249              	command_extra:
+ 1250              	.LVL99:
+ 1251              	.LFB296:
+  91:quantum/command.c ****     (void)code;
+ 1252              		.loc 1 91 34 is_stmt 1 view -0
+ 1253              		.cfi_startproc
+ 1254              		@ args = 0, pretend = 0, frame = 0
+ 1255              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1256              		@ link register save eliminated.
+  92:quantum/command.c ****     return false;
+ 1257              		.loc 1 92 5 view .LVU300
+  93:quantum/command.c **** }
+ 1258              		.loc 1 93 5 view .LVU301
+  94:quantum/command.c **** 
+ 1259              		.loc 1 94 1 is_stmt 0 view .LVU302
+ 1260 0000 0020     		movs	r0, #0
+ 1261              	.LVL100:
+  94:quantum/command.c **** 
+ 1262              		.loc 1 94 1 view .LVU303
+ 1263 0002 7047     		bx	lr
+ 1264              		.cfi_endproc
+ 1265              	.LFE296:
+ 1267              		.section	.text.command_console_extra,"ax",%progbits
+ 1268              		.align	1
+ 1269              		.weak	command_console_extra
+ 1270              		.syntax unified
+ 1271              		.thumb
+ 1272              		.thumb_func
+ 1274              	command_console_extra:
+ 1275              	.LFB310:
+ 1276              		.cfi_startproc
+  97:quantum/command.c ****     (void)code;
+ 1277              		.loc 1 97 6 is_stmt 1 view -0
+ 1278              		@ args = 0, pretend = 0, frame = 0
+ 1279              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1280              		@ link register save eliminated.
+ 1281 0000 0020     		movs	r0, #0
+ 1282 0002 7047     		bx	lr
+ 1283              		.cfi_endproc
+ 1284              	.LFE310:
+ 1286              		.section	.text.command_proc,"ax",%progbits
+ 1287              		.align	1
+ 1288              		.global	command_proc
+ 1289              		.syntax unified
+ 1290              		.thumb
+ 1291              		.thumb_func
+ 1293              	command_proc:
+ 1294              	.LVL101:
+ 1295              	.LFB295:
+  64:quantum/command.c ****     switch (command_state) {
+ 1296              		.loc 1 64 33 view -0
+ 1297              		.cfi_startproc
+ 1298              		@ args = 0, pretend = 0, frame = 0
+ 1299              		@ frame_needed = 0, uses_anonymous_args = 0
+  65:quantum/command.c ****         case ONESHOT:
+ 1300              		.loc 1 65 5 view .LVU306
+  64:quantum/command.c ****     switch (command_state) {
+ 1301              		.loc 1 64 33 is_stmt 0 view .LVU307
+ 1302 0000 70B5     		push	{r4, r5, r6, lr}
+ 1303              		.cfi_def_cfa_offset 16
+ 1304              		.cfi_offset 4, -16
+ 1305              		.cfi_offset 5, -12
+ 1306              		.cfi_offset 6, -8
+ 1307              		.cfi_offset 14, -4
+  65:quantum/command.c ****         case ONESHOT:
+ 1308              		.loc 1 65 5 view .LVU308
+ 1309 0002 244E     		ldr	r6, .L136
+ 1310 0004 3478     		ldrb	r4, [r6]	@ zero_extendqisi2
+ 1311 0006 012C     		cmp	r4, #1
+  64:quantum/command.c ****     switch (command_state) {
+ 1312              		.loc 1 64 33 view .LVU309
+ 1313 0008 0546     		mov	r5, r0
+  65:quantum/command.c ****         case ONESHOT:
+ 1314              		.loc 1 65 5 view .LVU310
+ 1315 000a 13D0     		beq	.L107
+ 1316 000c 022C     		cmp	r4, #2
+ 1317 000e 3AD0     		beq	.L108
+ 1318 0010 002C     		cmp	r4, #0
+ 1319 0012 3BD1     		bne	.L109
+  67:quantum/command.c ****             return (command_extra(code) || command_common(code));
+ 1320              		.loc 1 67 13 is_stmt 1 view .LVU311
+  67:quantum/command.c ****             return (command_extra(code) || command_common(code));
+ 1321              		.loc 1 67 18 is_stmt 0 view .LVU312
+ 1322 0014 FFF7FEFF 		bl	get_mods
+ 1323              	.LVL102:
+  67:quantum/command.c ****             return (command_extra(code) || command_common(code));
+ 1324              		.loc 1 67 16 view .LVU313
+ 1325 0018 2228     		cmp	r0, #34
+ 1326 001a 23D1     		bne	.L110
+  68:quantum/command.c ****             break;
+ 1327              		.loc 1 68 13 is_stmt 1 view .LVU314
+  68:quantum/command.c ****             break;
+ 1328              		.loc 1 68 21 is_stmt 0 view .LVU315
+ 1329 001c 2846     		mov	r0, r5
+ 1330 001e FFF7FEFF 		bl	command_extra
+ 1331              	.LVL103:
+  68:quantum/command.c ****             break;
+ 1332              		.loc 1 68 41 view .LVU316
+ 1333 0022 18B9     		cbnz	r0, .L123
+ 1334              	.L135:
+  72:quantum/command.c ****             else
+ 1335              		.loc 1 72 48 discriminator 2 view .LVU317
+ 1336 0024 2846     		mov	r0, r5
+ 1337 0026 FFF7FEFF 		bl	command_common
+ 1338              	.LVL104:
+ 1339 002a 00E0     		b	.L114
+ 1340              	.L123:
+  68:quantum/command.c ****             break;
+ 1341              		.loc 1 68 41 view .LVU318
+ 1342 002c 0120     		movs	r0, #1
+ 1343              	.L114:
+  72:quantum/command.c ****             else
+ 1344              		.loc 1 72 45 discriminator 6 view .LVU319
+ 1345 002e 00F00100 		and	r0, r0, #1
+ 1346              	.L112:
+  86:quantum/command.c **** 
+ 1347              		.loc 1 86 1 view .LVU320
+ 1348 0032 70BD     		pop	{r4, r5, r6, pc}
+ 1349              	.LVL105:
+ 1350              	.L107:
+  69:quantum/command.c ****         case CONSOLE:
+ 1351              		.loc 1 69 13 is_stmt 1 view .LVU321
+  71:quantum/command.c ****                 return (command_extra(code) || command_common(code));
+ 1352              		.loc 1 71 13 view .LVU322
+  71:quantum/command.c ****                 return (command_extra(code) || command_common(code));
+ 1353              		.loc 1 71 17 is_stmt 0 view .LVU323
+ 1354 0034 FFF7FEFF 		bl	get_mods
+ 1355              	.LVL106:
+  71:quantum/command.c ****                 return (command_extra(code) || command_common(code));
+ 1356              		.loc 1 71 16 view .LVU324
+ 1357 0038 2228     		cmp	r0, #34
+  72:quantum/command.c ****             else
+ 1358              		.loc 1 72 25 view .LVU325
+ 1359 003a 2846     		mov	r0, r5
+  71:quantum/command.c ****                 return (command_extra(code) || command_common(code));
+ 1360              		.loc 1 71 16 view .LVU326
+ 1361 003c 05D1     		bne	.L113
+  72:quantum/command.c ****             else
+ 1362              		.loc 1 72 17 is_stmt 1 view .LVU327
+  72:quantum/command.c ****             else
+ 1363              		.loc 1 72 25 is_stmt 0 view .LVU328
+ 1364 003e FFF7FEFF 		bl	command_extra
+ 1365              	.LVL107:
+  72:quantum/command.c ****             else
+ 1366              		.loc 1 72 45 view .LVU329
+ 1367 0042 0028     		cmp	r0, #0
+ 1368 0044 EED0     		beq	.L135
+ 1369 0046 2046     		mov	r0, r4
+ 1370 0048 F1E7     		b	.L114
+ 1371              	.L113:
+  74:quantum/command.c ****             break;
+ 1372              		.loc 1 74 17 is_stmt 1 view .LVU330
+  74:quantum/command.c ****             break;
+ 1373              		.loc 1 74 25 is_stmt 0 view .LVU331
+ 1374 004a FFF7FEFF 		bl	command_console_extra
+ 1375              	.LVL108:
+  74:quantum/command.c ****             break;
+ 1376              		.loc 1 74 53 view .LVU332
+ 1377 004e A8B9     		cbnz	r0, .L134
+ 1378              	.LVL109:
+ 1379              	.LBB38:
+ 1380              	.LBI38:
+ 547:quantum/command.c ****     switch (code) {
+ 1381              		.loc 1 547 13 is_stmt 1 view .LVU333
+ 1382              	.LBB39:
+ 548:quantum/command.c ****         case KC_H:
+ 1383              		.loc 1 548 5 view .LVU334
+ 1384 0050 142D     		cmp	r5, #20
+ 1385 0052 1BD0     		beq	.L109
+ 1386 0054 08D8     		bhi	.L117
+ 1387 0056 0B2D     		cmp	r5, #11
+ 1388 0058 0AD0     		beq	.L118
+ 1389 005a 102D     		cmp	r5, #16
+ 1390 005c 10D0     		beq	.L119
+ 1391              	.L120:
+ 565:quantum/command.c ****             return false;
+ 1392              		.loc 1 565 13 view .LVU335
+ 1393 005e 0E48     		ldr	r0, .L136+4
+ 1394 0060 FFF7FEFF 		bl	printf_
+ 1395              	.LVL110:
+ 566:quantum/command.c ****     }
+ 1396              		.loc 1 566 13 view .LVU336
+ 1397              	.L110:
+ 566:quantum/command.c ****     }
+ 1398              		.loc 1 566 13 is_stmt 0 view .LVU337
+ 1399              	.LBE39:
+ 1400              	.LBE38:
+  67:quantum/command.c ****             return (command_extra(code) || command_common(code));
+ 1401              		.loc 1 67 39 view .LVU338
+ 1402 0064 0020     		movs	r0, #0
+ 1403 0066 E4E7     		b	.L112
+ 1404              	.LVL111:
+ 1405              	.L117:
+ 1406              	.LBB44:
+ 1407              	.LBB42:
+ 548:quantum/command.c ****         case KC_H:
+ 1408              		.loc 1 548 5 view .LVU339
+ 1409 0068 292D     		cmp	r5, #41
+ 1410 006a 0FD0     		beq	.L109
+ 1411 006c 382D     		cmp	r5, #56
+ 1412 006e F6D1     		bne	.L120
+ 1413              	.L118:
+ 551:quantum/command.c ****             print("C> ");
+ 1414              		.loc 1 551 13 is_stmt 1 view .LVU340
+ 1415              	.LBB40:
+ 1416              	.LBI40:
+ 538:quantum/command.c ****     print("\n\t- Console -\n"
+ 1417              		.loc 1 538 13 view .LVU341
+ 1418              	.LBB41:
+ 539:quantum/command.c ****           "ESC/q:	quit\n"
+ 1419              		.loc 1 539 5 view .LVU342
+ 1420 0070 0A48     		ldr	r0, .L136+8
+ 1421 0072 FFF7FEFF 		bl	printf_
+ 1422              	.LVL112:
+ 1423              	.LBE41:
+ 1424              	.LBE40:
+ 552:quantum/command.c ****             return true;
+ 1425              		.loc 1 552 13 view .LVU343
+ 1426 0076 0A48     		ldr	r0, .L136+12
+ 1427 0078 FFF7FEFF 		bl	printf_
+ 1428              	.LVL113:
+ 553:quantum/command.c ****         case KC_Q:
+ 1429              		.loc 1 553 13 view .LVU344
+ 1430              	.L134:
+ 553:quantum/command.c ****         case KC_Q:
+ 1431              		.loc 1 553 13 is_stmt 0 view .LVU345
+ 1432              	.LBE42:
+ 1433              	.LBE44:
+  79:quantum/command.c **** #endif
+ 1434              		.loc 1 79 13 is_stmt 1 view .LVU346
+  85:quantum/command.c **** }
+ 1435              		.loc 1 85 5 view .LVU347
+  85:quantum/command.c **** }
+ 1436              		.loc 1 85 12 is_stmt 0 view .LVU348
+ 1437 007c 0120     		movs	r0, #1
+ 1438 007e D8E7     		b	.L112
+ 1439              	.LVL114:
+ 1440              	.L119:
+ 1441              	.LBB45:
+ 1442              	.LBB43:
+ 560:quantum/command.c ****             mousekey_console(KC_SLASH /* ? */);
+ 1443              		.loc 1 560 13 is_stmt 1 view .LVU349
+ 560:quantum/command.c ****             mousekey_console(KC_SLASH /* ? */);
+ 1444              		.loc 1 560 27 is_stmt 0 view .LVU350
+ 1445 0080 0223     		movs	r3, #2
+ 1446 0082 3370     		strb	r3, [r6]
+ 561:quantum/command.c ****             return true;
+ 1447              		.loc 1 561 13 is_stmt 1 view .LVU351
+ 1448 0084 3820     		movs	r0, #56
+ 1449              	.LVL115:
+ 1450              	.L108:
+ 561:quantum/command.c ****             return true;
+ 1451              		.loc 1 561 13 is_stmt 0 view .LVU352
+ 1452              	.LBE43:
+ 1453              	.LBE45:
+  75:quantum/command.c **** #if defined(MOUSEKEY_ENABLE)
+ 1454              		.loc 1 75 13 is_stmt 1 view .LVU353
+  78:quantum/command.c ****             break;
+ 1455              		.loc 1 78 13 view .LVU354
+ 1456 0086 FFF7FEFF 		bl	mousekey_console.isra.0
+ 1457              	.LVL116:
+ 1458 008a F7E7     		b	.L134
+ 1459              	.L109:
+  82:quantum/command.c ****             return false;
+ 1460              		.loc 1 82 13 view .LVU355
+  82:quantum/command.c ****             return false;
+ 1461              		.loc 1 82 27 is_stmt 0 view .LVU356
+ 1462 008c 0023     		movs	r3, #0
+ 1463 008e 3370     		strb	r3, [r6]
+  83:quantum/command.c ****     }
+ 1464              		.loc 1 83 13 is_stmt 1 view .LVU357
+  83:quantum/command.c ****     }
+ 1465              		.loc 1 83 20 is_stmt 0 view .LVU358
+ 1466 0090 E8E7     		b	.L110
+ 1467              	.L137:
+ 1468 0092 00BF     		.align	2
+ 1469              	.L136:
+ 1470 0094 00000000 		.word	command_state
+ 1471 0098 41050000 		.word	.LC22
+ 1472 009c 0E030000 		.word	.LC7
+ 1473 00a0 35030000 		.word	.LC8
+ 1474              		.cfi_endproc
+ 1475              	.LFE295:
+ 1477              		.section	.bss.desc.0,"aw",%nobits
+ 1478              		.align	2
+ 1481              	desc.0:
+ 1482 0000 00000000 		.space	4
+ 1483              		.section	.bss.pp.1,"aw",%nobits
+ 1484              		.align	2
+ 1487              	pp.1:
+ 1488 0000 00000000 		.space	4
+ 1489              		.section	.bss.param.2,"aw",%nobits
+ 1492              	param.2:
+ 1493 0000 00       		.space	1
+ 1494              		.global	command_state
+ 1495              		.section	.bss.command_state,"aw",%nobits
+ 1498              	command_state:
+ 1499 0000 00       		.space	1
+ 1500              		.text
+ 1501              	.Letext0:
+ 1502              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1503              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1504              		.file 4 "tmk_core/common/host.h"
+ 1505              		.file 5 "quantum/logging/debug.h"
+ 1506              		.file 6 "quantum/keycode_config.h"
+ 1507              		.file 7 "quantum/action_layer.h"
+ 1508              		.file 8 "quantum/sequencer/sequencer.h"
+ 1509              		.file 9 "quantum/command.h"
+ 1510              		.file 10 "quantum/mousekey.h"
+ 1511              		.file 11 "tmk_core/common/timer.h"
+ 1512              		.file 12 "quantum/eeconfig.h"
+ 1513              		.file 13 "quantum/action.h"
+ 1514              		.file 14 "quantum/quantum.h"
+ 1515              		.file 15 "quantum/action_util.h"
+ 1516              		.file 16 "lib/printf/printf.h"
+ 1517              		.file 17 "quantum/keycode.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 command.c
+     /tmp/ccLtp6GX.s:27     .text.mousekey_param_print:0000000000000000 $t
+     /tmp/ccLtp6GX.s:32     .text.mousekey_param_print:0000000000000000 mousekey_param_print
+     /tmp/ccLtp6GX.s:70     .text.mousekey_param_print:000000000000002c $d
+     /tmp/ccLtp6GX.s:84     .text.switch_default_layer:0000000000000000 $t
+     /tmp/ccLtp6GX.s:89     .text.switch_default_layer:0000000000000000 switch_default_layer
+     /tmp/ccLtp6GX.s:129    .text.switch_default_layer:000000000000001c $d
+     /tmp/ccLtp6GX.s:202    .text.command_common:0000000000000000 $t
+     /tmp/ccLtp6GX.s:207    .text.command_common:0000000000000000 command_common
+     /tmp/ccLtp6GX.s:233    .text.command_common:0000000000000010 $d
+     /tmp/ccLtp6GX.s:296    .text.command_common:000000000000008e $t
+     /tmp/ccLtp6GX.s:717    .text.command_common:000000000000023c $d
+     /tmp/ccLtp6GX.s:1498   .bss.command_state:0000000000000000 command_state
+     /tmp/ccLtp6GX.s:787    .text.mousekey_console.isra.0:0000000000000000 $t
+     /tmp/ccLtp6GX.s:792    .text.mousekey_console.isra.0:0000000000000000 mousekey_console.isra.0
+     /tmp/ccLtp6GX.s:848    .text.mousekey_console.isra.0:000000000000003a $d
+     /tmp/ccLtp6GX.s:855    .text.mousekey_console.isra.0:0000000000000040 $t
+     /tmp/ccLtp6GX.s:871    .text.mousekey_console.isra.0:000000000000005a $d
+     /tmp/ccLtp6GX.s:1213   .text.mousekey_console.isra.0:0000000000000194 $d
+     /tmp/ccLtp6GX.s:1492   .bss.param.2:0000000000000000 param.2
+     /tmp/ccLtp6GX.s:1487   .bss.pp.1:0000000000000000 pp.1
+     /tmp/ccLtp6GX.s:1481   .bss.desc.0:0000000000000000 desc.0
+     /tmp/ccLtp6GX.s:1243   .text.command_extra:0000000000000000 $t
+     /tmp/ccLtp6GX.s:1249   .text.command_extra:0000000000000000 command_extra
+     /tmp/ccLtp6GX.s:1268   .text.command_console_extra:0000000000000000 $t
+     /tmp/ccLtp6GX.s:1274   .text.command_console_extra:0000000000000000 command_console_extra
+     /tmp/ccLtp6GX.s:1287   .text.command_proc:0000000000000000 $t
+     /tmp/ccLtp6GX.s:1293   .text.command_proc:0000000000000000 command_proc
+     /tmp/ccLtp6GX.s:1470   .text.command_proc:0000000000000094 $d
+     /tmp/ccLtp6GX.s:1478   .bss.desc.0:0000000000000000 $d
+     /tmp/ccLtp6GX.s:1484   .bss.pp.1:0000000000000000 $d
+     /tmp/ccLtp6GX.s:1493   .bss.param.2:0000000000000000 $d
+     /tmp/ccLtp6GX.s:1499   .bss.command_state:0000000000000000 $d
+     /tmp/ccLtp6GX.s:875    .text.mousekey_console.isra.0:000000000000005d $d
+     /tmp/ccLtp6GX.s:875    .text.mousekey_console.isra.0:000000000000005e $t
+
+UNDEFINED SYMBOLS
+printf_
+mk_wheel_time_to_max
+mk_interval
+mk_wheel_max_speed
+mk_delay
+mk_time_to_max
+mk_max_speed
+default_layer_set
+clear_keyboard
+eeconfig_read_default_layer
+eeconfig_read_debug
+eeconfig_read_keymap
+eeconfig_init
+reset_keyboard
+host_keyboard_leds
+timer_read32
+debug_config
+keyboard_protocol
+keyboard_idle
+keymap_config
+get_mods

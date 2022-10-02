@@ -1,0 +1,1678 @@
+   1               		.file	"usb_descriptor.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.get_usb_descriptor,"ax",@progbits
+  11               	.global	get_usb_descriptor
+  13               	get_usb_descriptor:
+  14               	.LVL0:
+  15               	.LFB102:
+  16               		.file 1 "tmk_core/protocol/usb_descriptor.c"
+   1:tmk_core/protocol/usb_descriptor.c **** /*
+   2:tmk_core/protocol/usb_descriptor.c ****  * Copyright 2012 Jun Wako <wakojun@gmail.com>
+   3:tmk_core/protocol/usb_descriptor.c ****  * This file is based on:
+   4:tmk_core/protocol/usb_descriptor.c ****  *     LUFA-120219/Demos/Device/Lowlevel/KeyboardMouse
+   5:tmk_core/protocol/usb_descriptor.c ****  *     LUFA-120219/Demos/Device/Lowlevel/GenericHID
+   6:tmk_core/protocol/usb_descriptor.c ****  */
+   7:tmk_core/protocol/usb_descriptor.c **** 
+   8:tmk_core/protocol/usb_descriptor.c **** /*
+   9:tmk_core/protocol/usb_descriptor.c ****                          LUFA Library
+  10:tmk_core/protocol/usb_descriptor.c ****          Copyright (C) Dean Camera, 2012.
+  11:tmk_core/protocol/usb_descriptor.c **** 
+  12:tmk_core/protocol/usb_descriptor.c ****     dean [at] fourwalledcubicle [dot] com
+  13:tmk_core/protocol/usb_descriptor.c ****                      www.lufa-lib.org
+  14:tmk_core/protocol/usb_descriptor.c **** */
+  15:tmk_core/protocol/usb_descriptor.c **** 
+  16:tmk_core/protocol/usb_descriptor.c **** /*
+  17:tmk_core/protocol/usb_descriptor.c ****     Copyright 2012  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+  18:tmk_core/protocol/usb_descriptor.c ****     Copyright 2010  Denver Gingerich (denver [at] ossguy [dot] com)
+  19:tmk_core/protocol/usb_descriptor.c **** 
+  20:tmk_core/protocol/usb_descriptor.c ****     Permission to use, copy, modify, distribute, and sell this
+  21:tmk_core/protocol/usb_descriptor.c ****     software and its documentation for any purpose is hereby granted
+  22:tmk_core/protocol/usb_descriptor.c ****     without fee, provided that the above copyright notice appear in
+  23:tmk_core/protocol/usb_descriptor.c ****     all copies and that both that the copyright notice and this
+  24:tmk_core/protocol/usb_descriptor.c ****     permission notice and warranty disclaimer appear in supporting
+  25:tmk_core/protocol/usb_descriptor.c ****     documentation, and that the name of the author not be used in
+  26:tmk_core/protocol/usb_descriptor.c ****     advertising or publicity pertaining to distribution of the
+  27:tmk_core/protocol/usb_descriptor.c ****     software without specific, written prior permission.
+  28:tmk_core/protocol/usb_descriptor.c **** 
+  29:tmk_core/protocol/usb_descriptor.c ****     The author disclaim all warranties with regard to this
+  30:tmk_core/protocol/usb_descriptor.c ****     software, including all implied warranties of merchantability
+  31:tmk_core/protocol/usb_descriptor.c ****     and fitness.  In no event shall the author be liable for any
+  32:tmk_core/protocol/usb_descriptor.c ****     special, indirect or consequential damages or any damages
+  33:tmk_core/protocol/usb_descriptor.c ****     whatsoever resulting from loss of use, data or profits, whether
+  34:tmk_core/protocol/usb_descriptor.c ****     in an action of contract, negligence or other tortious action,
+  35:tmk_core/protocol/usb_descriptor.c ****     arising out of or in connection with the use or performance of
+  36:tmk_core/protocol/usb_descriptor.c ****     this software.
+  37:tmk_core/protocol/usb_descriptor.c **** */
+  38:tmk_core/protocol/usb_descriptor.c **** 
+  39:tmk_core/protocol/usb_descriptor.c **** #include "util.h"
+  40:tmk_core/protocol/usb_descriptor.c **** #include "report.h"
+  41:tmk_core/protocol/usb_descriptor.c **** #include "usb_descriptor.h"
+  42:tmk_core/protocol/usb_descriptor.c **** #include "usb_descriptor_common.h"
+  43:tmk_core/protocol/usb_descriptor.c **** 
+  44:tmk_core/protocol/usb_descriptor.c **** #ifdef JOYSTICK_ENABLE
+  45:tmk_core/protocol/usb_descriptor.c **** #    include "joystick.h"
+  46:tmk_core/protocol/usb_descriptor.c **** #endif
+  47:tmk_core/protocol/usb_descriptor.c **** 
+  48:tmk_core/protocol/usb_descriptor.c **** // clang-format off
+  49:tmk_core/protocol/usb_descriptor.c **** 
+  50:tmk_core/protocol/usb_descriptor.c **** /*
+  51:tmk_core/protocol/usb_descriptor.c ****  * HID report descriptors
+  52:tmk_core/protocol/usb_descriptor.c ****  */
+  53:tmk_core/protocol/usb_descriptor.c **** #ifdef KEYBOARD_SHARED_EP
+  54:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
+  55:tmk_core/protocol/usb_descriptor.c **** #    define SHARED_REPORT_STARTED
+  56:tmk_core/protocol/usb_descriptor.c **** #else
+  57:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM KeyboardReport[] = {
+  58:tmk_core/protocol/usb_descriptor.c **** #endif
+  59:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x01),        // Generic Desktop
+  60:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x06),             // Keyboard
+  61:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),        // Application
+  62:tmk_core/protocol/usb_descriptor.c **** #ifdef KEYBOARD_SHARED_EP
+  63:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_ID(8, REPORT_ID_KEYBOARD),
+  64:tmk_core/protocol/usb_descriptor.c **** #endif
+  65:tmk_core/protocol/usb_descriptor.c ****         // Modifiers (8 bits)
+  66:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_PAGE(8, 0x07),    // Keyboard/Keypad
+  67:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0xE0), // Keyboard Left Control
+  68:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(8, 0xE7), // Keyboard Right GUI
+  69:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+  70:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+  71:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x08),
+  72:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x01),
+  73:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+  74:tmk_core/protocol/usb_descriptor.c ****         // Reserved (1 byte)
+  75:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x01),
+  76:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x08),
+  77:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_CONSTANT),
+  78:tmk_core/protocol/usb_descriptor.c ****         // Keycodes (6 bytes)
+  79:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_PAGE(8, 0x07),    // Keyboard/Keypad
+  80:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0x00),
+  81:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(8, 0xFF),
+  82:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+  83:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+  84:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x06),
+  85:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x08),
+  86:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_ARRAY | HID_IOF_ABSOLUTE),
+  87:tmk_core/protocol/usb_descriptor.c **** 
+  88:tmk_core/protocol/usb_descriptor.c ****         // Status LEDs (5 bits)
+  89:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_PAGE(8, 0x08),    // LED
+  90:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0x01), // Num Lock
+  91:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(8, 0x05), // Kana
+  92:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x05),
+  93:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x01),
+  94:tmk_core/protocol/usb_descriptor.c ****         HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE)
+  95:tmk_core/protocol/usb_descriptor.c ****         // LED padding (3 bits)
+  96:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x01),
+  97:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x03),
+  98:tmk_core/protocol/usb_descriptor.c ****         HID_RI_OUTPUT(8, HID_IOF_CONSTANT),
+  99:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 100:tmk_core/protocol/usb_descriptor.c **** #ifndef KEYBOARD_SHARED_EP
+ 101:tmk_core/protocol/usb_descriptor.c **** };
+ 102:tmk_core/protocol/usb_descriptor.c **** #endif
+ 103:tmk_core/protocol/usb_descriptor.c **** 
+ 104:tmk_core/protocol/usb_descriptor.c **** #ifdef MOUSE_ENABLE
+ 105:tmk_core/protocol/usb_descriptor.c **** #    ifndef MOUSE_SHARED_EP
+ 106:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM MouseReport[] = {
+ 107:tmk_core/protocol/usb_descriptor.c **** #    elif !defined(SHARED_REPORT_STARTED)
+ 108:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
+ 109:tmk_core/protocol/usb_descriptor.c **** #        define SHARED_REPORT_STARTED
+ 110:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 111:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x01),            // Generic Desktop
+ 112:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x02),                 // Mouse
+ 113:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),            // Application
+ 114:tmk_core/protocol/usb_descriptor.c **** #    ifdef MOUSE_SHARED_EP
+ 115:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_ID(8, REPORT_ID_MOUSE),
+ 116:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 117:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE(8, 0x01),             // Pointer
+ 118:tmk_core/protocol/usb_descriptor.c ****         HID_RI_COLLECTION(8, 0x00),        // Physical
+ 119:tmk_core/protocol/usb_descriptor.c ****             // Buttons (8 bits)
+ 120:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_PAGE(8, 0x09),    // Button
+ 121:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_MINIMUM(8, 0x01), // Button 1
+ 122:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_MAXIMUM(8, 0x08), // Button 8
+ 123:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 124:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+ 125:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x08),
+ 126:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x01),
+ 127:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 128:tmk_core/protocol/usb_descriptor.c **** 
+ 129:tmk_core/protocol/usb_descriptor.c ****             // X/Y position (2 bytes)
+ 130:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_PAGE(8, 0x01),    // Generic Desktop
+ 131:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x30),         // X
+ 132:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x31),         // Y
+ 133:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, -127),
+ 134:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, 127),
+ 135:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x02),
+ 136:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x08),
+ 137:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+ 138:tmk_core/protocol/usb_descriptor.c **** 
+ 139:tmk_core/protocol/usb_descriptor.c ****             // Vertical wheel (1 byte)
+ 140:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x38),         // Wheel
+ 141:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, -127),
+ 142:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, 127),
+ 143:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x01),
+ 144:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x08),
+ 145:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+ 146:tmk_core/protocol/usb_descriptor.c ****             // Horizontal wheel (1 byte)
+ 147:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_PAGE(8, 0x0C),    // Consumer
+ 148:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(16, 0x0238),      // AC Pan
+ 149:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, -127),
+ 150:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, 127),
+ 151:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x01),
+ 152:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x08),
+ 153:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+ 154:tmk_core/protocol/usb_descriptor.c ****         HID_RI_END_COLLECTION(0),
+ 155:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 156:tmk_core/protocol/usb_descriptor.c **** #    ifndef MOUSE_SHARED_EP
+ 157:tmk_core/protocol/usb_descriptor.c **** };
+ 158:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 159:tmk_core/protocol/usb_descriptor.c **** #endif
+ 160:tmk_core/protocol/usb_descriptor.c **** 
+ 161:tmk_core/protocol/usb_descriptor.c **** #ifdef DIGITIZER_ENABLE
+ 162:tmk_core/protocol/usb_descriptor.c **** #    ifndef DIGITIZER_SHARED_EP
+ 163:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM DigitizerReport[] = {
+ 164:tmk_core/protocol/usb_descriptor.c **** #    elif !defined(SHARED_REPORT_STARTED)
+ 165:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
+ 166:tmk_core/protocol/usb_descriptor.c **** #        define SHARED_REPORT_STARTED
+ 167:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 168:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x0D),      // Digitizers
+ 169:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x01),           // Digitizer
+ 170:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),      // Application
+ 171:tmk_core/protocol/usb_descriptor.c **** #    ifdef DIGITIZER_SHARED_EP
+ 172:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER),
+ 173:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 174:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE(8, 0x20),       // Stylus
+ 175:tmk_core/protocol/usb_descriptor.c ****         HID_RI_COLLECTION(8, 0x00),  // Physical
+ 176:tmk_core/protocol/usb_descriptor.c ****             // Tip Switch (1 bit)
+ 177:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x42),   // Tip Switch
+ 178:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 179:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+ 180:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x01),
+ 181:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x01),
+ 182:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_VARIABLE),
+ 183:tmk_core/protocol/usb_descriptor.c ****             // In Range (1 bit)
+ 184:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x32),  // In Range
+ 185:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_VARIABLE),
+ 186:tmk_core/protocol/usb_descriptor.c ****             // Padding (6 bits)
+ 187:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x06),
+ 188:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_CONSTANT | HID_IOF_VARIABLE),
+ 189:tmk_core/protocol/usb_descriptor.c **** 
+ 190:tmk_core/protocol/usb_descriptor.c ****             // X/Y Position (4 bytes)
+ 191:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_PAGE(8, 0x01),     // Generic Desktop
+ 192:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(16, 0x7FFF),
+ 193:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x10),
+ 194:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 0x01),
+ 195:tmk_core/protocol/usb_descriptor.c ****             HID_RI_UNIT(8, 0x33),           // Inch, English Linear
+ 196:tmk_core/protocol/usb_descriptor.c ****             HID_RI_UNIT_EXPONENT(8, 0x0E),  // -2
+ 197:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x30),          // X
+ 198:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_VARIABLE),
+ 199:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x31),          // Y
+ 200:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_VARIABLE),
+ 201:tmk_core/protocol/usb_descriptor.c ****         HID_RI_END_COLLECTION(0),
+ 202:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 203:tmk_core/protocol/usb_descriptor.c **** #    ifndef DIGITIZER_SHARED_EP
+ 204:tmk_core/protocol/usb_descriptor.c **** };
+ 205:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 206:tmk_core/protocol/usb_descriptor.c **** #endif
+ 207:tmk_core/protocol/usb_descriptor.c **** 
+ 208:tmk_core/protocol/usb_descriptor.c **** #if defined(SHARED_EP_ENABLE) && !defined(SHARED_REPORT_STARTED)
+ 209:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
+ 210:tmk_core/protocol/usb_descriptor.c **** #endif
+ 211:tmk_core/protocol/usb_descriptor.c **** 
+ 212:tmk_core/protocol/usb_descriptor.c **** #ifdef EXTRAKEY_ENABLE
+ 213:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x01),           // Generic Desktop
+ 214:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x80),                // System Control
+ 215:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),           // Application
+ 216:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_ID(8, REPORT_ID_SYSTEM),
+ 217:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0x01),    // Pointer
+ 218:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(16, 0x00B7), // System Display LCD Autoscale
+ 219:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x01),
+ 220:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x00B7),
+ 221:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 1),
+ 222:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 16),
+ 223:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_ARRAY | HID_IOF_ABSOLUTE),
+ 224:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 225:tmk_core/protocol/usb_descriptor.c **** 
+ 226:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x0C),           // Consumer
+ 227:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x01),                // Consumer Control
+ 228:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),           // Application
+ 229:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_ID(8, REPORT_ID_CONSUMER),
+ 230:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0x01),    // Consumer Control
+ 231:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(16, 0x02A0), // AC Desktop Show All Applications
+ 232:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x01),
+ 233:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x02A0),
+ 234:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 1),
+ 235:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 16),
+ 236:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_ARRAY | HID_IOF_ABSOLUTE),
+ 237:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 238:tmk_core/protocol/usb_descriptor.c **** #endif
+ 239:tmk_core/protocol/usb_descriptor.c **** 
+ 240:tmk_core/protocol/usb_descriptor.c **** #ifdef NKRO_ENABLE
+ 241:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x01),        // Generic Desktop
+ 242:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x06),             // Keyboard
+ 243:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),        // Application
+ 244:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_ID(8, REPORT_ID_NKRO),
+ 245:tmk_core/protocol/usb_descriptor.c ****         // Modifiers (8 bits)
+ 246:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_PAGE(8, 0x07),    // Keyboard/Keypad
+ 247:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0xE0), // Keyboard Left Control
+ 248:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(8, 0xE7), // Keyboard Right GUI
+ 249:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 250:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+ 251:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x08),
+ 252:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x01),
+ 253:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 254:tmk_core/protocol/usb_descriptor.c ****         // Keycodes
+ 255:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_PAGE(8, 0x07),    // Keyboard/Keypad
+ 256:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0x00),
+ 257:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(8, KEYBOARD_REPORT_BITS * 8 - 1),
+ 258:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 259:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+ 260:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, KEYBOARD_REPORT_BITS * 8),
+ 261:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x01),
+ 262:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 263:tmk_core/protocol/usb_descriptor.c **** 
+ 264:tmk_core/protocol/usb_descriptor.c ****         // Status LEDs (5 bits)
+ 265:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_PAGE(8, 0x08),    // LED
+ 266:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MINIMUM(8, 0x01), // Num Lock
+ 267:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE_MAXIMUM(8, 0x05), // Kana
+ 268:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x05),
+ 269:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x01),
+ 270:tmk_core/protocol/usb_descriptor.c ****         HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE)
+ 271:tmk_core/protocol/usb_descriptor.c ****         // LED padding (3 bits)
+ 272:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, 0x01),
+ 273:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x03),
+ 274:tmk_core/protocol/usb_descriptor.c ****         HID_RI_OUTPUT(8, HID_IOF_CONSTANT),
+ 275:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 276:tmk_core/protocol/usb_descriptor.c **** #endif
+ 277:tmk_core/protocol/usb_descriptor.c **** 
+ 278:tmk_core/protocol/usb_descriptor.c **** #ifdef SHARED_EP_ENABLE
+ 279:tmk_core/protocol/usb_descriptor.c **** };
+ 280:tmk_core/protocol/usb_descriptor.c **** #endif
+ 281:tmk_core/protocol/usb_descriptor.c **** 
+ 282:tmk_core/protocol/usb_descriptor.c **** #ifdef RAW_ENABLE
+ 283:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM RawReport[] = {
+ 284:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(16, RAW_USAGE_PAGE), // Vendor Defined
+ 285:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, RAW_USAGE_ID),         // Vendor Defined
+ 286:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),    // Application
+ 287:tmk_core/protocol/usb_descriptor.c ****         // Data to host
+ 288:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE(8, 0x62),     // Vendor Defined
+ 289:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 290:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+ 291:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, RAW_EPSIZE),
+ 292:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x08),
+ 293:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 294:tmk_core/protocol/usb_descriptor.c **** 
+ 295:tmk_core/protocol/usb_descriptor.c ****         // Data from host
+ 296:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE(8, 0x63),     // Vendor Defined
+ 297:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 298:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+ 299:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, RAW_EPSIZE),
+ 300:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x08),
+ 301:tmk_core/protocol/usb_descriptor.c ****         HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE)
+ 302:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 303:tmk_core/protocol/usb_descriptor.c **** };
+ 304:tmk_core/protocol/usb_descriptor.c **** #endif
+ 305:tmk_core/protocol/usb_descriptor.c **** 
+ 306:tmk_core/protocol/usb_descriptor.c **** #ifdef CONSOLE_ENABLE
+ 307:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM ConsoleReport[] = {
+ 308:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(16, 0xFF31), // Vendor Defined (PJRC Teensy compatible)
+ 309:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x74),         // Vendor Defined (PJRC Teensy compatible)
+ 310:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),    // Application
+ 311:tmk_core/protocol/usb_descriptor.c ****         // Data to host
+ 312:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE(8, 0x75),     // Vendor Defined
+ 313:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 314:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+ 315:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, CONSOLE_EPSIZE),
+ 316:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x08),
+ 317:tmk_core/protocol/usb_descriptor.c ****         HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 318:tmk_core/protocol/usb_descriptor.c **** 
+ 319:tmk_core/protocol/usb_descriptor.c ****         // Data from host
+ 320:tmk_core/protocol/usb_descriptor.c ****         HID_RI_USAGE(8, 0x76),     // Vendor Defined
+ 321:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 322:tmk_core/protocol/usb_descriptor.c ****         HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+ 323:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_COUNT(8, CONSOLE_EPSIZE),
+ 324:tmk_core/protocol/usb_descriptor.c ****         HID_RI_REPORT_SIZE(8, 0x08),
+ 325:tmk_core/protocol/usb_descriptor.c ****         HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE)
+ 326:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0),
+ 327:tmk_core/protocol/usb_descriptor.c **** };
+ 328:tmk_core/protocol/usb_descriptor.c **** #endif
+ 329:tmk_core/protocol/usb_descriptor.c **** 
+ 330:tmk_core/protocol/usb_descriptor.c **** #ifdef JOYSTICK_ENABLE
+ 331:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT == 0 && JOYSTICK_BUTTON_COUNT == 0
+ 332:tmk_core/protocol/usb_descriptor.c **** #        error Need at least one axis or button for joystick
+ 333:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 334:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_HIDReport_Datatype_t PROGMEM JoystickReport[] = {
+ 335:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE_PAGE(8, 0x01),         // Generic Desktop
+ 336:tmk_core/protocol/usb_descriptor.c ****     HID_RI_USAGE(8, 0x04),              // Joystick
+ 337:tmk_core/protocol/usb_descriptor.c ****     HID_RI_COLLECTION(8, 0x01),         // Application
+ 338:tmk_core/protocol/usb_descriptor.c ****         HID_RI_COLLECTION(8, 0x00),     // Physical
+ 339:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_PAGE(8, 0x01), // Generic Desktop
+ 340:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 1
+ 341:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x30),      // X
+ 342:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 343:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 2
+ 344:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x31),      // Y
+ 345:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 346:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 3
+ 347:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x32),      // Z
+ 348:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 349:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 4
+ 350:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x33),      // Rx
+ 351:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 352:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 5
+ 353:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x34),      // Ry
+ 354:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 355:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 6
+ 356:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE(8, 0x35),      // Rz
+ 357:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 358:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_AXES_COUNT >= 1
+ 359:tmk_core/protocol/usb_descriptor.c ****      # if JOYSTICK_AXES_RESOLUTION == 8
+ 360:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, -JOYSTICK_RESOLUTION),
+ 361:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, JOYSTICK_RESOLUTION),
+ 362:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, JOYSTICK_AXES_COUNT),
+ 363:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x08),
+ 364:tmk_core/protocol/usb_descriptor.c ****      # else
+ 365:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(16, -JOYSTICK_RESOLUTION),
+ 366:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(16, JOYSTICK_RESOLUTION),
+ 367:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, JOYSTICK_AXES_COUNT),
+ 368:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x10),
+ 369:tmk_core/protocol/usb_descriptor.c ****      # endif
+ 370:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 371:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 372:tmk_core/protocol/usb_descriptor.c **** 
+ 373:tmk_core/protocol/usb_descriptor.c **** #    if JOYSTICK_BUTTON_COUNT >= 1
+ 374:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_PAGE(8, 0x09), // Button
+ 375:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_MINIMUM(8, 0x01),
+ 376:tmk_core/protocol/usb_descriptor.c ****             HID_RI_USAGE_MAXIMUM(8, JOYSTICK_BUTTON_COUNT),
+ 377:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MINIMUM(8, 0x00),
+ 378:tmk_core/protocol/usb_descriptor.c ****             HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+ 379:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, JOYSTICK_BUTTON_COUNT),
+ 380:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x01),
+ 381:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+ 382:tmk_core/protocol/usb_descriptor.c **** 
+ 383:tmk_core/protocol/usb_descriptor.c **** #        if (JOYSTICK_BUTTON_COUNT % 8) != 0
+ 384:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_COUNT(8, 8 - (JOYSTICK_BUTTON_COUNT % 8)),
+ 385:tmk_core/protocol/usb_descriptor.c ****             HID_RI_REPORT_SIZE(8, 0x01),
+ 386:tmk_core/protocol/usb_descriptor.c ****             HID_RI_INPUT(8, HID_IOF_CONSTANT),
+ 387:tmk_core/protocol/usb_descriptor.c **** #        endif
+ 388:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 389:tmk_core/protocol/usb_descriptor.c ****         HID_RI_END_COLLECTION(0),
+ 390:tmk_core/protocol/usb_descriptor.c ****     HID_RI_END_COLLECTION(0)
+ 391:tmk_core/protocol/usb_descriptor.c **** };
+ 392:tmk_core/protocol/usb_descriptor.c **** #endif
+ 393:tmk_core/protocol/usb_descriptor.c **** 
+ 394:tmk_core/protocol/usb_descriptor.c **** /*
+ 395:tmk_core/protocol/usb_descriptor.c ****  * Device descriptor
+ 396:tmk_core/protocol/usb_descriptor.c ****  */
+ 397:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_Device_t PROGMEM DeviceDescriptor = {
+ 398:tmk_core/protocol/usb_descriptor.c ****     .Header = {
+ 399:tmk_core/protocol/usb_descriptor.c ****         .Size                   = sizeof(USB_Descriptor_Device_t),
+ 400:tmk_core/protocol/usb_descriptor.c ****         .Type                   = DTYPE_Device
+ 401:tmk_core/protocol/usb_descriptor.c ****     },
+ 402:tmk_core/protocol/usb_descriptor.c ****     .USBSpecification           = VERSION_BCD(2, 0, 0),
+ 403:tmk_core/protocol/usb_descriptor.c **** 
+ 404:tmk_core/protocol/usb_descriptor.c **** #if VIRTSER_ENABLE
+ 405:tmk_core/protocol/usb_descriptor.c ****     .Class                      = USB_CSCP_IADDeviceClass,
+ 406:tmk_core/protocol/usb_descriptor.c ****     .SubClass                   = USB_CSCP_IADDeviceSubclass,
+ 407:tmk_core/protocol/usb_descriptor.c ****     .Protocol                   = USB_CSCP_IADDeviceProtocol,
+ 408:tmk_core/protocol/usb_descriptor.c **** #else
+ 409:tmk_core/protocol/usb_descriptor.c ****     .Class                      = USB_CSCP_NoDeviceClass,
+ 410:tmk_core/protocol/usb_descriptor.c ****     .SubClass                   = USB_CSCP_NoDeviceSubclass,
+ 411:tmk_core/protocol/usb_descriptor.c ****     .Protocol                   = USB_CSCP_NoDeviceProtocol,
+ 412:tmk_core/protocol/usb_descriptor.c **** #endif
+ 413:tmk_core/protocol/usb_descriptor.c **** 
+ 414:tmk_core/protocol/usb_descriptor.c ****     .Endpoint0Size              = FIXED_CONTROL_ENDPOINT_SIZE,
+ 415:tmk_core/protocol/usb_descriptor.c ****     // Specified in config.h
+ 416:tmk_core/protocol/usb_descriptor.c ****     .VendorID                   = VENDOR_ID,
+ 417:tmk_core/protocol/usb_descriptor.c ****     .ProductID                  = PRODUCT_ID,
+ 418:tmk_core/protocol/usb_descriptor.c ****     .ReleaseNumber              = DEVICE_VER,
+ 419:tmk_core/protocol/usb_descriptor.c ****     .ManufacturerStrIndex       = 0x01,
+ 420:tmk_core/protocol/usb_descriptor.c ****     .ProductStrIndex            = 0x02,
+ 421:tmk_core/protocol/usb_descriptor.c **** #if defined(SERIAL_NUMBER)
+ 422:tmk_core/protocol/usb_descriptor.c ****     .SerialNumStrIndex          = 0x03,
+ 423:tmk_core/protocol/usb_descriptor.c **** #else
+ 424:tmk_core/protocol/usb_descriptor.c ****     .SerialNumStrIndex          = 0x00,
+ 425:tmk_core/protocol/usb_descriptor.c **** #endif
+ 426:tmk_core/protocol/usb_descriptor.c ****     .NumberOfConfigurations     = FIXED_NUM_CONFIGURATIONS
+ 427:tmk_core/protocol/usb_descriptor.c **** };
+ 428:tmk_core/protocol/usb_descriptor.c **** 
+ 429:tmk_core/protocol/usb_descriptor.c **** #ifndef USB_MAX_POWER_CONSUMPTION
+ 430:tmk_core/protocol/usb_descriptor.c **** #    define USB_MAX_POWER_CONSUMPTION 500
+ 431:tmk_core/protocol/usb_descriptor.c **** #endif
+ 432:tmk_core/protocol/usb_descriptor.c **** 
+ 433:tmk_core/protocol/usb_descriptor.c **** #ifndef USB_POLLING_INTERVAL_MS
+ 434:tmk_core/protocol/usb_descriptor.c **** #    define USB_POLLING_INTERVAL_MS 10
+ 435:tmk_core/protocol/usb_descriptor.c **** #endif
+ 436:tmk_core/protocol/usb_descriptor.c **** 
+ 437:tmk_core/protocol/usb_descriptor.c **** /*
+ 438:tmk_core/protocol/usb_descriptor.c ****  * Configuration descriptors
+ 439:tmk_core/protocol/usb_descriptor.c ****  */
+ 440:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
+ 441:tmk_core/protocol/usb_descriptor.c ****     .Config = {
+ 442:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 443:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Configuration_Header_t),
+ 444:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Configuration
+ 445:tmk_core/protocol/usb_descriptor.c ****         },
+ 446:tmk_core/protocol/usb_descriptor.c ****         .TotalConfigurationSize = sizeof(USB_Descriptor_Configuration_t),
+ 447:tmk_core/protocol/usb_descriptor.c ****         .TotalInterfaces        = TOTAL_INTERFACES,
+ 448:tmk_core/protocol/usb_descriptor.c ****         .ConfigurationNumber    = 1,
+ 449:tmk_core/protocol/usb_descriptor.c ****         .ConfigurationStrIndex  = NO_DESCRIPTOR,
+ 450:tmk_core/protocol/usb_descriptor.c ****         .ConfigAttributes       = (USB_CONFIG_ATTR_RESERVED | USB_CONFIG_ATTR_REMOTEWAKEUP),
+ 451:tmk_core/protocol/usb_descriptor.c ****         .MaxPowerConsumption    = USB_CONFIG_POWER_MA(USB_MAX_POWER_CONSUMPTION)
+ 452:tmk_core/protocol/usb_descriptor.c ****     },
+ 453:tmk_core/protocol/usb_descriptor.c **** #ifndef KEYBOARD_SHARED_EP
+ 454:tmk_core/protocol/usb_descriptor.c ****     /*
+ 455:tmk_core/protocol/usb_descriptor.c ****      * Keyboard
+ 456:tmk_core/protocol/usb_descriptor.c ****      */
+ 457:tmk_core/protocol/usb_descriptor.c ****     .Keyboard_Interface = {
+ 458:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 459:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 460:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 461:tmk_core/protocol/usb_descriptor.c ****         },
+ 462:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = KEYBOARD_INTERFACE,
+ 463:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 464:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 1,
+ 465:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 466:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_BootSubclass,
+ 467:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_KeyboardBootProtocol,
+ 468:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 469:tmk_core/protocol/usb_descriptor.c ****     },
+ 470:tmk_core/protocol/usb_descriptor.c ****     .Keyboard_HID = {
+ 471:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 472:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 473:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 474:tmk_core/protocol/usb_descriptor.c ****         },
+ 475:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 476:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 477:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 478:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 479:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(KeyboardReport)
+ 480:tmk_core/protocol/usb_descriptor.c ****     },
+ 481:tmk_core/protocol/usb_descriptor.c ****     .Keyboard_INEndpoint = {
+ 482:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 483:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 484:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 485:tmk_core/protocol/usb_descriptor.c ****         },
+ 486:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | KEYBOARD_IN_EPNUM),
+ 487:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 488:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = KEYBOARD_EPSIZE,
+ 489:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+ 490:tmk_core/protocol/usb_descriptor.c ****     },
+ 491:tmk_core/protocol/usb_descriptor.c **** #endif
+ 492:tmk_core/protocol/usb_descriptor.c **** 
+ 493:tmk_core/protocol/usb_descriptor.c **** #ifdef RAW_ENABLE
+ 494:tmk_core/protocol/usb_descriptor.c ****     /*
+ 495:tmk_core/protocol/usb_descriptor.c ****      * Raw HID
+ 496:tmk_core/protocol/usb_descriptor.c ****      */
+ 497:tmk_core/protocol/usb_descriptor.c ****     .Raw_Interface = {
+ 498:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 499:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 500:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 501:tmk_core/protocol/usb_descriptor.c ****         },
+ 502:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = RAW_INTERFACE,
+ 503:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 504:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 2,
+ 505:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 506:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_NonBootSubclass,
+ 507:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_NonBootProtocol,
+ 508:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 509:tmk_core/protocol/usb_descriptor.c ****     },
+ 510:tmk_core/protocol/usb_descriptor.c ****     .Raw_HID = {
+ 511:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 512:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 513:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 514:tmk_core/protocol/usb_descriptor.c ****         },
+ 515:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 516:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 517:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 518:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 519:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(RawReport)
+ 520:tmk_core/protocol/usb_descriptor.c ****     },
+ 521:tmk_core/protocol/usb_descriptor.c ****     .Raw_INEndpoint = {
+ 522:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 523:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 524:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 525:tmk_core/protocol/usb_descriptor.c ****         },
+ 526:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | RAW_IN_EPNUM),
+ 527:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 528:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = RAW_EPSIZE,
+ 529:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0x01
+ 530:tmk_core/protocol/usb_descriptor.c ****     },
+ 531:tmk_core/protocol/usb_descriptor.c ****     .Raw_OUTEndpoint = {
+ 532:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 533:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 534:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 535:tmk_core/protocol/usb_descriptor.c ****         },
+ 536:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_OUT | RAW_OUT_EPNUM),
+ 537:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 538:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = RAW_EPSIZE,
+ 539:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0x01
+ 540:tmk_core/protocol/usb_descriptor.c ****     },
+ 541:tmk_core/protocol/usb_descriptor.c **** #endif
+ 542:tmk_core/protocol/usb_descriptor.c **** 
+ 543:tmk_core/protocol/usb_descriptor.c **** #if defined(MOUSE_ENABLE) && !defined(MOUSE_SHARED_EP)
+ 544:tmk_core/protocol/usb_descriptor.c ****     /*
+ 545:tmk_core/protocol/usb_descriptor.c ****      * Mouse
+ 546:tmk_core/protocol/usb_descriptor.c ****      */
+ 547:tmk_core/protocol/usb_descriptor.c ****     .Mouse_Interface  = {
+ 548:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 549:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 550:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 551:tmk_core/protocol/usb_descriptor.c ****         },
+ 552:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = MOUSE_INTERFACE,
+ 553:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 554:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 1,
+ 555:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 556:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_BootSubclass,
+ 557:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_MouseBootProtocol,
+ 558:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 559:tmk_core/protocol/usb_descriptor.c ****     },
+ 560:tmk_core/protocol/usb_descriptor.c ****     .Mouse_HID = {
+ 561:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 562:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 563:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 564:tmk_core/protocol/usb_descriptor.c ****         },
+ 565:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 566:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 567:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 568:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 569:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(MouseReport)
+ 570:tmk_core/protocol/usb_descriptor.c ****     },
+ 571:tmk_core/protocol/usb_descriptor.c ****     .Mouse_INEndpoint = {
+ 572:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 573:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 574:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 575:tmk_core/protocol/usb_descriptor.c ****         },
+ 576:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | MOUSE_IN_EPNUM),
+ 577:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 578:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = MOUSE_EPSIZE,
+ 579:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+ 580:tmk_core/protocol/usb_descriptor.c ****     },
+ 581:tmk_core/protocol/usb_descriptor.c **** #endif
+ 582:tmk_core/protocol/usb_descriptor.c **** 
+ 583:tmk_core/protocol/usb_descriptor.c **** #ifdef SHARED_EP_ENABLE
+ 584:tmk_core/protocol/usb_descriptor.c ****     /*
+ 585:tmk_core/protocol/usb_descriptor.c ****      * Shared
+ 586:tmk_core/protocol/usb_descriptor.c ****      */
+ 587:tmk_core/protocol/usb_descriptor.c ****     .Shared_Interface = {
+ 588:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 589:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 590:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 591:tmk_core/protocol/usb_descriptor.c ****         },
+ 592:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = SHARED_INTERFACE,
+ 593:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 594:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 1,
+ 595:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 596:tmk_core/protocol/usb_descriptor.c **** #    ifdef KEYBOARD_SHARED_EP
+ 597:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_BootSubclass,
+ 598:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_KeyboardBootProtocol,
+ 599:tmk_core/protocol/usb_descriptor.c **** #    else
+ 600:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_NonBootSubclass,
+ 601:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_NonBootProtocol,
+ 602:tmk_core/protocol/usb_descriptor.c **** #    endif
+ 603:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 604:tmk_core/protocol/usb_descriptor.c ****     },
+ 605:tmk_core/protocol/usb_descriptor.c ****     .Shared_HID = {
+ 606:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 607:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 608:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 609:tmk_core/protocol/usb_descriptor.c ****         },
+ 610:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 611:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 612:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 613:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 614:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(SharedReport)
+ 615:tmk_core/protocol/usb_descriptor.c ****     },
+ 616:tmk_core/protocol/usb_descriptor.c ****     .Shared_INEndpoint = {
+ 617:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 618:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 619:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 620:tmk_core/protocol/usb_descriptor.c ****         },
+ 621:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | SHARED_IN_EPNUM),
+ 622:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 623:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = SHARED_EPSIZE,
+ 624:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+ 625:tmk_core/protocol/usb_descriptor.c ****     },
+ 626:tmk_core/protocol/usb_descriptor.c **** #endif
+ 627:tmk_core/protocol/usb_descriptor.c **** 
+ 628:tmk_core/protocol/usb_descriptor.c **** #ifdef CONSOLE_ENABLE
+ 629:tmk_core/protocol/usb_descriptor.c ****     /*
+ 630:tmk_core/protocol/usb_descriptor.c ****      * Console
+ 631:tmk_core/protocol/usb_descriptor.c ****      */
+ 632:tmk_core/protocol/usb_descriptor.c ****     .Console_Interface = {
+ 633:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 634:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 635:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 636:tmk_core/protocol/usb_descriptor.c ****         },
+ 637:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = CONSOLE_INTERFACE,
+ 638:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 639:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 2,
+ 640:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 641:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_NonBootSubclass,
+ 642:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_NonBootProtocol,
+ 643:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 644:tmk_core/protocol/usb_descriptor.c ****     },
+ 645:tmk_core/protocol/usb_descriptor.c ****     .Console_HID = {
+ 646:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 647:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 648:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 649:tmk_core/protocol/usb_descriptor.c ****         },
+ 650:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 651:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 652:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 653:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 654:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(ConsoleReport)
+ 655:tmk_core/protocol/usb_descriptor.c ****     },
+ 656:tmk_core/protocol/usb_descriptor.c ****     .Console_INEndpoint = {
+ 657:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 658:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 659:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 660:tmk_core/protocol/usb_descriptor.c ****         },
+ 661:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | CONSOLE_IN_EPNUM),
+ 662:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 663:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = CONSOLE_EPSIZE,
+ 664:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0x01
+ 665:tmk_core/protocol/usb_descriptor.c ****     },
+ 666:tmk_core/protocol/usb_descriptor.c ****     .Console_OUTEndpoint = {
+ 667:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 668:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 669:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 670:tmk_core/protocol/usb_descriptor.c ****         },
+ 671:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_OUT | CONSOLE_OUT_EPNUM),
+ 672:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 673:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = CONSOLE_EPSIZE,
+ 674:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0x01
+ 675:tmk_core/protocol/usb_descriptor.c ****     },
+ 676:tmk_core/protocol/usb_descriptor.c **** #endif
+ 677:tmk_core/protocol/usb_descriptor.c **** 
+ 678:tmk_core/protocol/usb_descriptor.c **** #ifdef MIDI_ENABLE
+ 679:tmk_core/protocol/usb_descriptor.c ****     /*
+ 680:tmk_core/protocol/usb_descriptor.c ****      * MIDI
+ 681:tmk_core/protocol/usb_descriptor.c ****      */
+ 682:tmk_core/protocol/usb_descriptor.c ****     .Audio_Interface_Association = {
+ 683:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 684:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_Association_t),
+ 685:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_InterfaceAssociation
+ 686:tmk_core/protocol/usb_descriptor.c ****         },
+ 687:tmk_core/protocol/usb_descriptor.c ****         .FirstInterfaceIndex    = AC_INTERFACE,
+ 688:tmk_core/protocol/usb_descriptor.c ****         .TotalInterfaces        = 2,
+ 689:tmk_core/protocol/usb_descriptor.c ****         .Class                  = AUDIO_CSCP_AudioClass,
+ 690:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = AUDIO_CSCP_ControlSubclass,
+ 691:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = AUDIO_CSCP_ControlProtocol,
+ 692:tmk_core/protocol/usb_descriptor.c ****         .IADStrIndex            = NO_DESCRIPTOR,
+ 693:tmk_core/protocol/usb_descriptor.c ****     },
+ 694:tmk_core/protocol/usb_descriptor.c ****     .Audio_ControlInterface = {
+ 695:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 696:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 697:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 698:tmk_core/protocol/usb_descriptor.c ****         },
+ 699:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = AC_INTERFACE,
+ 700:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0,
+ 701:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 0,
+ 702:tmk_core/protocol/usb_descriptor.c ****         .Class                  = AUDIO_CSCP_AudioClass,
+ 703:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = AUDIO_CSCP_ControlSubclass,
+ 704:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = AUDIO_CSCP_ControlProtocol,
+ 705:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 706:tmk_core/protocol/usb_descriptor.c ****     },
+ 707:tmk_core/protocol/usb_descriptor.c ****     .Audio_ControlInterface_SPC = {
+ 708:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 709:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Audio_Descriptor_Interface_AC_t),
+ 710:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSInterface
+ 711:tmk_core/protocol/usb_descriptor.c ****         },
+ 712:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSInterface_Header,
+ 713:tmk_core/protocol/usb_descriptor.c ****         .ACSpecification        = VERSION_BCD(1, 0, 0),
+ 714:tmk_core/protocol/usb_descriptor.c ****         .TotalLength            = sizeof(USB_Audio_Descriptor_Interface_AC_t),
+ 715:tmk_core/protocol/usb_descriptor.c ****         .InCollection           = 1,
+ 716:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = AS_INTERFACE,
+ 717:tmk_core/protocol/usb_descriptor.c ****     },
+ 718:tmk_core/protocol/usb_descriptor.c ****     .Audio_StreamInterface = {
+ 719:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 720:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 721:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 722:tmk_core/protocol/usb_descriptor.c ****         },
+ 723:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = AS_INTERFACE,
+ 724:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0,
+ 725:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 2,
+ 726:tmk_core/protocol/usb_descriptor.c ****         .Class                  = AUDIO_CSCP_AudioClass,
+ 727:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = AUDIO_CSCP_MIDIStreamingSubclass,
+ 728:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = AUDIO_CSCP_StreamingProtocol,
+ 729:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 730:tmk_core/protocol/usb_descriptor.c ****     },
+ 731:tmk_core/protocol/usb_descriptor.c ****     .Audio_StreamInterface_SPC = {
+ 732:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 733:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_AudioInterface_AS_t),
+ 734:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSInterface
+ 735:tmk_core/protocol/usb_descriptor.c ****         },
+ 736:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSInterface_General,
+ 737:tmk_core/protocol/usb_descriptor.c ****         .AudioSpecification     = VERSION_BCD(1, 0, 0),
+ 738:tmk_core/protocol/usb_descriptor.c ****         .TotalLength            = offsetof(USB_Descriptor_Configuration_t, MIDI_Out_Jack_Endpoint_S
+ 739:tmk_core/protocol/usb_descriptor.c ****     },
+ 740:tmk_core/protocol/usb_descriptor.c ****     .MIDI_In_Jack_Emb = {
+ 741:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 742:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_InputJack_t),
+ 743:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSInterface
+ 744:tmk_core/protocol/usb_descriptor.c ****         },
+ 745:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSInterface_InputTerminal,
+ 746:tmk_core/protocol/usb_descriptor.c ****         .JackType               = MIDI_JACKTYPE_Embedded,
+ 747:tmk_core/protocol/usb_descriptor.c ****         .JackID = 0x01,
+ 748:tmk_core/protocol/usb_descriptor.c ****         .JackStrIndex           = NO_DESCRIPTOR
+ 749:tmk_core/protocol/usb_descriptor.c ****     },
+ 750:tmk_core/protocol/usb_descriptor.c ****     .MIDI_In_Jack_Ext = {
+ 751:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 752:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_InputJack_t),
+ 753:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSInterface
+ 754:tmk_core/protocol/usb_descriptor.c ****         },
+ 755:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSInterface_InputTerminal,
+ 756:tmk_core/protocol/usb_descriptor.c ****         .JackType               = MIDI_JACKTYPE_External,
+ 757:tmk_core/protocol/usb_descriptor.c ****         .JackID                 = 0x02,
+ 758:tmk_core/protocol/usb_descriptor.c ****         .JackStrIndex           = NO_DESCRIPTOR
+ 759:tmk_core/protocol/usb_descriptor.c ****     },
+ 760:tmk_core/protocol/usb_descriptor.c ****     .MIDI_Out_Jack_Emb = {
+ 761:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 762:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_OutputJack_t),
+ 763:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSInterface
+ 764:tmk_core/protocol/usb_descriptor.c ****         },
+ 765:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSInterface_OutputTerminal,
+ 766:tmk_core/protocol/usb_descriptor.c ****         .JackType               = MIDI_JACKTYPE_Embedded,
+ 767:tmk_core/protocol/usb_descriptor.c ****         .JackID                 = 0x03,
+ 768:tmk_core/protocol/usb_descriptor.c ****         .NumberOfPins           = 1,
+ 769:tmk_core/protocol/usb_descriptor.c ****         .SourceJackID           = {0x02},
+ 770:tmk_core/protocol/usb_descriptor.c ****         .SourcePinID            = {0x01},
+ 771:tmk_core/protocol/usb_descriptor.c ****         .JackStrIndex           = NO_DESCRIPTOR
+ 772:tmk_core/protocol/usb_descriptor.c ****     },
+ 773:tmk_core/protocol/usb_descriptor.c ****     .MIDI_Out_Jack_Ext = {
+ 774:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 775:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_OutputJack_t),
+ 776:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSInterface
+ 777:tmk_core/protocol/usb_descriptor.c ****         },
+ 778:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSInterface_OutputTerminal,
+ 779:tmk_core/protocol/usb_descriptor.c ****         .JackType               = MIDI_JACKTYPE_External,
+ 780:tmk_core/protocol/usb_descriptor.c ****         .JackID                 = 0x04,
+ 781:tmk_core/protocol/usb_descriptor.c ****         .NumberOfPins           = 1,
+ 782:tmk_core/protocol/usb_descriptor.c ****         .SourceJackID           = {0x01},
+ 783:tmk_core/protocol/usb_descriptor.c ****         .SourcePinID            = {0x01},
+ 784:tmk_core/protocol/usb_descriptor.c ****         .JackStrIndex           = NO_DESCRIPTOR
+ 785:tmk_core/protocol/usb_descriptor.c ****     },
+ 786:tmk_core/protocol/usb_descriptor.c ****     .MIDI_In_Jack_Endpoint = {
+ 787:tmk_core/protocol/usb_descriptor.c ****         .Endpoint = {
+ 788:tmk_core/protocol/usb_descriptor.c ****             .Header = {
+ 789:tmk_core/protocol/usb_descriptor.c ****                 .Size           = sizeof(USB_Audio_Descriptor_StreamEndpoint_Std_t),
+ 790:tmk_core/protocol/usb_descriptor.c ****                 .Type           = DTYPE_Endpoint
+ 791:tmk_core/protocol/usb_descriptor.c ****             },
+ 792:tmk_core/protocol/usb_descriptor.c ****             .EndpointAddress    = (ENDPOINT_DIR_OUT | MIDI_STREAM_OUT_EPNUM),
+ 793:tmk_core/protocol/usb_descriptor.c ****             .Attributes         = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+ 794:tmk_core/protocol/usb_descriptor.c ****             .EndpointSize       = MIDI_STREAM_EPSIZE,
+ 795:tmk_core/protocol/usb_descriptor.c ****             .PollingIntervalMS  = 0x05
+ 796:tmk_core/protocol/usb_descriptor.c ****         },
+ 797:tmk_core/protocol/usb_descriptor.c ****         .Refresh                = 0,
+ 798:tmk_core/protocol/usb_descriptor.c ****         .SyncEndpointNumber     = 0
+ 799:tmk_core/protocol/usb_descriptor.c ****     },
+ 800:tmk_core/protocol/usb_descriptor.c ****     .MIDI_In_Jack_Endpoint_SPC = {
+ 801:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 802:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_Jack_Endpoint_t),
+ 803:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSEndpoint
+ 804:tmk_core/protocol/usb_descriptor.c ****         },
+ 805:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSEndpoint_General,
+ 806:tmk_core/protocol/usb_descriptor.c ****         .TotalEmbeddedJacks     = 0x01,
+ 807:tmk_core/protocol/usb_descriptor.c ****         .AssociatedJackID       = {0x01}
+ 808:tmk_core/protocol/usb_descriptor.c ****     },
+ 809:tmk_core/protocol/usb_descriptor.c ****     .MIDI_Out_Jack_Endpoint = {
+ 810:tmk_core/protocol/usb_descriptor.c ****         .Endpoint = {
+ 811:tmk_core/protocol/usb_descriptor.c ****             .Header = {
+ 812:tmk_core/protocol/usb_descriptor.c ****                 .Size           = sizeof(USB_Audio_Descriptor_StreamEndpoint_Std_t),
+ 813:tmk_core/protocol/usb_descriptor.c ****                 .Type           = DTYPE_Endpoint
+ 814:tmk_core/protocol/usb_descriptor.c ****             },
+ 815:tmk_core/protocol/usb_descriptor.c ****             .EndpointAddress    = (ENDPOINT_DIR_IN | MIDI_STREAM_IN_EPNUM),
+ 816:tmk_core/protocol/usb_descriptor.c ****             .Attributes         = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+ 817:tmk_core/protocol/usb_descriptor.c ****             .EndpointSize       = MIDI_STREAM_EPSIZE,
+ 818:tmk_core/protocol/usb_descriptor.c ****             .PollingIntervalMS  = 0x05
+ 819:tmk_core/protocol/usb_descriptor.c ****         },
+ 820:tmk_core/protocol/usb_descriptor.c ****         .Refresh                = 0,
+ 821:tmk_core/protocol/usb_descriptor.c ****         .SyncEndpointNumber     = 0
+ 822:tmk_core/protocol/usb_descriptor.c ****     },
+ 823:tmk_core/protocol/usb_descriptor.c ****     .MIDI_Out_Jack_Endpoint_SPC = {
+ 824:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 825:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_MIDI_Descriptor_Jack_Endpoint_t),
+ 826:tmk_core/protocol/usb_descriptor.c ****             .Type               = AUDIO_DTYPE_CSEndpoint
+ 827:tmk_core/protocol/usb_descriptor.c ****         },
+ 828:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = AUDIO_DSUBTYPE_CSEndpoint_General,
+ 829:tmk_core/protocol/usb_descriptor.c ****         .TotalEmbeddedJacks     = 0x01,
+ 830:tmk_core/protocol/usb_descriptor.c ****         .AssociatedJackID       = {0x03}
+ 831:tmk_core/protocol/usb_descriptor.c ****     },
+ 832:tmk_core/protocol/usb_descriptor.c **** #endif
+ 833:tmk_core/protocol/usb_descriptor.c **** 
+ 834:tmk_core/protocol/usb_descriptor.c **** #ifdef VIRTSER_ENABLE
+ 835:tmk_core/protocol/usb_descriptor.c ****     /*
+ 836:tmk_core/protocol/usb_descriptor.c ****      * Virtual Serial
+ 837:tmk_core/protocol/usb_descriptor.c ****      */
+ 838:tmk_core/protocol/usb_descriptor.c ****     .CDC_Interface_Association = {
+ 839:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 840:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_Association_t),
+ 841:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_InterfaceAssociation
+ 842:tmk_core/protocol/usb_descriptor.c ****         },
+ 843:tmk_core/protocol/usb_descriptor.c ****         .FirstInterfaceIndex    = CCI_INTERFACE,
+ 844:tmk_core/protocol/usb_descriptor.c ****         .TotalInterfaces        = 2,
+ 845:tmk_core/protocol/usb_descriptor.c ****         .Class                  = CDC_CSCP_CDCClass,
+ 846:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = CDC_CSCP_ACMSubclass,
+ 847:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = CDC_CSCP_ATCommandProtocol,
+ 848:tmk_core/protocol/usb_descriptor.c ****         .IADStrIndex            = NO_DESCRIPTOR,
+ 849:tmk_core/protocol/usb_descriptor.c ****     },
+ 850:tmk_core/protocol/usb_descriptor.c ****     .CDC_CCI_Interface = {
+ 851:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 852:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 853:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 854:tmk_core/protocol/usb_descriptor.c ****         },
+ 855:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = CCI_INTERFACE,
+ 856:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0,
+ 857:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 1,
+ 858:tmk_core/protocol/usb_descriptor.c ****         .Class                  = CDC_CSCP_CDCClass,
+ 859:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = CDC_CSCP_ACMSubclass,
+ 860:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = CDC_CSCP_ATCommandProtocol,
+ 861:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 862:tmk_core/protocol/usb_descriptor.c ****     },
+ 863:tmk_core/protocol/usb_descriptor.c ****     .CDC_Functional_Header = {
+ 864:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 865:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_CDC_Descriptor_FunctionalHeader_t),
+ 866:tmk_core/protocol/usb_descriptor.c ****             .Type               = CDC_DTYPE_CSInterface
+ 867:tmk_core/protocol/usb_descriptor.c ****         },
+ 868:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = 0x00,
+ 869:tmk_core/protocol/usb_descriptor.c ****         .CDCSpecification       = VERSION_BCD(1, 1, 0),
+ 870:tmk_core/protocol/usb_descriptor.c ****     },
+ 871:tmk_core/protocol/usb_descriptor.c ****     .CDC_Functional_ACM = {
+ 872:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 873:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_CDC_Descriptor_FunctionalACM_t),
+ 874:tmk_core/protocol/usb_descriptor.c ****             .Type               = CDC_DTYPE_CSInterface
+ 875:tmk_core/protocol/usb_descriptor.c ****         },
+ 876:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = 0x02,
+ 877:tmk_core/protocol/usb_descriptor.c ****         .Capabilities           = 0x02,
+ 878:tmk_core/protocol/usb_descriptor.c ****     },
+ 879:tmk_core/protocol/usb_descriptor.c ****     .CDC_Functional_Union = {
+ 880:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 881:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_CDC_Descriptor_FunctionalUnion_t),
+ 882:tmk_core/protocol/usb_descriptor.c ****             .Type               = CDC_DTYPE_CSInterface
+ 883:tmk_core/protocol/usb_descriptor.c ****         },
+ 884:tmk_core/protocol/usb_descriptor.c ****         .Subtype                = 0x06,
+ 885:tmk_core/protocol/usb_descriptor.c ****         .MasterInterfaceNumber  = CCI_INTERFACE,
+ 886:tmk_core/protocol/usb_descriptor.c ****         .SlaveInterfaceNumber   = CDI_INTERFACE,
+ 887:tmk_core/protocol/usb_descriptor.c ****     },
+ 888:tmk_core/protocol/usb_descriptor.c ****     .CDC_NotificationEndpoint = {
+ 889:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 890:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 891:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 892:tmk_core/protocol/usb_descriptor.c ****         },
+ 893:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | CDC_NOTIFICATION_EPNUM),
+ 894:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 895:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = CDC_NOTIFICATION_EPSIZE,
+ 896:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0xFF
+ 897:tmk_core/protocol/usb_descriptor.c ****     },
+ 898:tmk_core/protocol/usb_descriptor.c ****     .CDC_DCI_Interface = {
+ 899:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 900:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 901:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 902:tmk_core/protocol/usb_descriptor.c ****         },
+ 903:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = CDI_INTERFACE,
+ 904:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0,
+ 905:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 2,
+ 906:tmk_core/protocol/usb_descriptor.c ****         .Class                  = CDC_CSCP_CDCDataClass,
+ 907:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = CDC_CSCP_NoDataSubclass,
+ 908:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = CDC_CSCP_NoDataProtocol,
+ 909:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 910:tmk_core/protocol/usb_descriptor.c ****     },
+ 911:tmk_core/protocol/usb_descriptor.c ****     .CDC_DataOutEndpoint = {
+ 912:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 913:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 914:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 915:tmk_core/protocol/usb_descriptor.c ****         },
+ 916:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_OUT | CDC_OUT_EPNUM),
+ 917:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+ 918:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = CDC_EPSIZE,
+ 919:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0x05
+ 920:tmk_core/protocol/usb_descriptor.c ****     },
+ 921:tmk_core/protocol/usb_descriptor.c ****     .CDC_DataInEndpoint = {
+ 922:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 923:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 924:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 925:tmk_core/protocol/usb_descriptor.c ****         },
+ 926:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | CDC_IN_EPNUM),
+ 927:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+ 928:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = CDC_EPSIZE,
+ 929:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = 0x05
+ 930:tmk_core/protocol/usb_descriptor.c ****     },
+ 931:tmk_core/protocol/usb_descriptor.c **** #endif
+ 932:tmk_core/protocol/usb_descriptor.c **** 
+ 933:tmk_core/protocol/usb_descriptor.c ****     /*
+ 934:tmk_core/protocol/usb_descriptor.c ****      * Joystick
+ 935:tmk_core/protocol/usb_descriptor.c ****      */
+ 936:tmk_core/protocol/usb_descriptor.c **** #ifdef JOYSTICK_ENABLE
+ 937:tmk_core/protocol/usb_descriptor.c ****     .Joystick_Interface = {
+ 938:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 939:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 940:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 941:tmk_core/protocol/usb_descriptor.c ****         },
+ 942:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = JOYSTICK_INTERFACE,
+ 943:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 944:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 1,
+ 945:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 946:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_NonBootSubclass,
+ 947:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_NonBootProtocol,
+ 948:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 949:tmk_core/protocol/usb_descriptor.c ****     },
+ 950:tmk_core/protocol/usb_descriptor.c ****     .Joystick_HID = {
+ 951:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 952:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 953:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 954:tmk_core/protocol/usb_descriptor.c ****         },
+ 955:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 956:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 957:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 958:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 959:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(JoystickReport)
+ 960:tmk_core/protocol/usb_descriptor.c ****     },
+ 961:tmk_core/protocol/usb_descriptor.c ****     .Joystick_INEndpoint = {
+ 962:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 963:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+ 964:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+ 965:tmk_core/protocol/usb_descriptor.c ****         },
+ 966:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | JOYSTICK_IN_EPNUM),
+ 967:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+ 968:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = JOYSTICK_EPSIZE,
+ 969:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+ 970:tmk_core/protocol/usb_descriptor.c ****     }
+ 971:tmk_core/protocol/usb_descriptor.c **** #endif
+ 972:tmk_core/protocol/usb_descriptor.c **** 
+ 973:tmk_core/protocol/usb_descriptor.c **** #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
+ 974:tmk_core/protocol/usb_descriptor.c ****     /*
+ 975:tmk_core/protocol/usb_descriptor.c ****      * Digitizer
+ 976:tmk_core/protocol/usb_descriptor.c ****      */
+ 977:tmk_core/protocol/usb_descriptor.c ****     .Digitizer_Interface  = {
+ 978:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 979:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Interface_t),
+ 980:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Interface
+ 981:tmk_core/protocol/usb_descriptor.c ****         },
+ 982:tmk_core/protocol/usb_descriptor.c ****         .InterfaceNumber        = DIGITIZER_INTERFACE,
+ 983:tmk_core/protocol/usb_descriptor.c ****         .AlternateSetting       = 0x00,
+ 984:tmk_core/protocol/usb_descriptor.c ****         .TotalEndpoints         = 1,
+ 985:tmk_core/protocol/usb_descriptor.c ****         .Class                  = HID_CSCP_HIDClass,
+ 986:tmk_core/protocol/usb_descriptor.c ****         .SubClass               = HID_CSCP_NonBootSubclass,
+ 987:tmk_core/protocol/usb_descriptor.c ****         .Protocol               = HID_CSCP_NonBootProtocol,
+ 988:tmk_core/protocol/usb_descriptor.c ****         .InterfaceStrIndex      = NO_DESCRIPTOR
+ 989:tmk_core/protocol/usb_descriptor.c ****     },
+ 990:tmk_core/protocol/usb_descriptor.c ****     .Digitizer_HID = {
+ 991:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+ 992:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_HID_Descriptor_HID_t),
+ 993:tmk_core/protocol/usb_descriptor.c ****             .Type               = HID_DTYPE_HID
+ 994:tmk_core/protocol/usb_descriptor.c ****         },
+ 995:tmk_core/protocol/usb_descriptor.c ****         .HIDSpec                = VERSION_BCD(1, 1, 1),
+ 996:tmk_core/protocol/usb_descriptor.c ****         .CountryCode            = 0x00,
+ 997:tmk_core/protocol/usb_descriptor.c ****         .TotalReportDescriptors = 1,
+ 998:tmk_core/protocol/usb_descriptor.c ****         .HIDReportType          = HID_DTYPE_Report,
+ 999:tmk_core/protocol/usb_descriptor.c ****         .HIDReportLength        = sizeof(DigitizerReport)
+1000:tmk_core/protocol/usb_descriptor.c ****     },
+1001:tmk_core/protocol/usb_descriptor.c ****     .Digitizer_INEndpoint = {
+1002:tmk_core/protocol/usb_descriptor.c ****         .Header = {
+1003:tmk_core/protocol/usb_descriptor.c ****             .Size               = sizeof(USB_Descriptor_Endpoint_t),
+1004:tmk_core/protocol/usb_descriptor.c ****             .Type               = DTYPE_Endpoint
+1005:tmk_core/protocol/usb_descriptor.c ****         },
+1006:tmk_core/protocol/usb_descriptor.c ****         .EndpointAddress        = (ENDPOINT_DIR_IN | DIGITIZER_IN_EPNUM),
+1007:tmk_core/protocol/usb_descriptor.c ****         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA)
+1008:tmk_core/protocol/usb_descriptor.c ****         .EndpointSize           = DIGITIZER_EPSIZE,
+1009:tmk_core/protocol/usb_descriptor.c ****         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+1010:tmk_core/protocol/usb_descriptor.c ****     },
+1011:tmk_core/protocol/usb_descriptor.c **** #endif
+1012:tmk_core/protocol/usb_descriptor.c **** };
+1013:tmk_core/protocol/usb_descriptor.c **** 
+1014:tmk_core/protocol/usb_descriptor.c **** /*
+1015:tmk_core/protocol/usb_descriptor.c ****  * String descriptors
+1016:tmk_core/protocol/usb_descriptor.c ****  */
+1017:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_String_t PROGMEM LanguageString = {
+1018:tmk_core/protocol/usb_descriptor.c ****     .Header = {
+1019:tmk_core/protocol/usb_descriptor.c ****         .Size                   = USB_STRING_LEN(1),
+1020:tmk_core/protocol/usb_descriptor.c ****         .Type                   = DTYPE_String
+1021:tmk_core/protocol/usb_descriptor.c ****     },
+1022:tmk_core/protocol/usb_descriptor.c ****     .UnicodeString              = {LANGUAGE_ID_ENG}
+1023:tmk_core/protocol/usb_descriptor.c **** };
+1024:tmk_core/protocol/usb_descriptor.c **** 
+1025:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_String_t PROGMEM ManufacturerString = {
+1026:tmk_core/protocol/usb_descriptor.c ****     .Header = {
+1027:tmk_core/protocol/usb_descriptor.c ****         .Size                   = USB_STRING_LEN(sizeof(STR(MANUFACTURER)) - 1), // Subtract 1 for 
+1028:tmk_core/protocol/usb_descriptor.c ****         .Type                   = DTYPE_String
+1029:tmk_core/protocol/usb_descriptor.c ****     },
+1030:tmk_core/protocol/usb_descriptor.c ****     .UnicodeString              = LSTR(MANUFACTURER)
+1031:tmk_core/protocol/usb_descriptor.c **** };
+1032:tmk_core/protocol/usb_descriptor.c **** 
+1033:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_String_t PROGMEM ProductString = {
+1034:tmk_core/protocol/usb_descriptor.c ****     .Header = {
+1035:tmk_core/protocol/usb_descriptor.c ****         .Size                   = USB_STRING_LEN(sizeof(STR(PRODUCT)) - 1), // Subtract 1 for null 
+1036:tmk_core/protocol/usb_descriptor.c ****         .Type                   = DTYPE_String
+1037:tmk_core/protocol/usb_descriptor.c ****     },
+1038:tmk_core/protocol/usb_descriptor.c ****     .UnicodeString              = LSTR(PRODUCT)
+1039:tmk_core/protocol/usb_descriptor.c **** };
+1040:tmk_core/protocol/usb_descriptor.c **** 
+1041:tmk_core/protocol/usb_descriptor.c **** #if defined(SERIAL_NUMBER)
+1042:tmk_core/protocol/usb_descriptor.c **** const USB_Descriptor_String_t PROGMEM SerialNumberString = {
+1043:tmk_core/protocol/usb_descriptor.c ****     .Header = {
+1044:tmk_core/protocol/usb_descriptor.c ****         .Size                   = USB_STRING_LEN(sizeof(SERIAL_NUMBER) - 1), // Subtract 1 for null
+1045:tmk_core/protocol/usb_descriptor.c ****         .Type                   = DTYPE_String
+1046:tmk_core/protocol/usb_descriptor.c ****     },
+1047:tmk_core/protocol/usb_descriptor.c ****     .UnicodeString              = USBSTR(SERIAL_NUMBER)
+1048:tmk_core/protocol/usb_descriptor.c **** };
+1049:tmk_core/protocol/usb_descriptor.c **** #endif
+1050:tmk_core/protocol/usb_descriptor.c **** 
+1051:tmk_core/protocol/usb_descriptor.c **** // clang-format on
+1052:tmk_core/protocol/usb_descriptor.c **** 
+1053:tmk_core/protocol/usb_descriptor.c **** /**
+1054:tmk_core/protocol/usb_descriptor.c ****  * This function is called by the library when in device mode, and must be overridden (see library 
+1055:tmk_core/protocol/usb_descriptor.c ****  * documentation) by the application code so that the address and size of a requested descriptor ca
+1056:tmk_core/protocol/usb_descriptor.c ****  * to the USB library. When the device receives a Get Descriptor request on the control endpoint, t
+1057:tmk_core/protocol/usb_descriptor.c ****  * is called so that the descriptor details can be passed back and the appropriate descriptor sent 
+1058:tmk_core/protocol/usb_descriptor.c ****  * USB host.
+1059:tmk_core/protocol/usb_descriptor.c ****  */
+1060:tmk_core/protocol/usb_descriptor.c **** uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const void** const Descri
+  17               		.loc 1 1060 113 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  23               		.loc 1 1060 113 is_stmt 0 view .LVU1
+  24 0000 FC01      		movw r30,r24
+  25 0002 CB01      		movw r24,r22
+  26               	.LVL1:
+  27               		.loc 1 1060 113 view .LVU2
+  28 0004 DA01      		movw r26,r20
+1061:tmk_core/protocol/usb_descriptor.c ****     const uint8_t DescriptorType  = (wValue >> 8);
+  29               		.loc 1 1061 5 is_stmt 1 view .LVU3
+  30               		.loc 1 1061 45 is_stmt 0 view .LVU4
+  31 0006 2F2F      		mov r18,r31
+  32 0008 3327      		clr r19
+  33               	.LVL2:
+1062:tmk_core/protocol/usb_descriptor.c ****     const uint8_t DescriptorIndex = (wValue & 0xFF);
+  34               		.loc 1 1062 5 is_stmt 1 view .LVU5
+1063:tmk_core/protocol/usb_descriptor.c ****     const void*   Address         = NULL;
+  35               		.loc 1 1063 5 view .LVU6
+1064:tmk_core/protocol/usb_descriptor.c ****     uint16_t      Size            = NO_DESCRIPTOR;
+  36               		.loc 1 1064 5 view .LVU7
+1065:tmk_core/protocol/usb_descriptor.c **** 
+1066:tmk_core/protocol/usb_descriptor.c ****     switch (DescriptorType) {
+  37               		.loc 1 1066 5 view .LVU8
+  38 000a 2330      		cpi r18,3
+  39 000c 3105      		cpc r19,__zero_reg__
+  40 000e 01F0      		breq .L2
+  41 0010 00F4      		brsh .L3
+  42 0012 2130      		cpi r18,1
+  43 0014 3105      		cpc r19,__zero_reg__
+  44 0016 01F4      		brne .+2
+  45 0018 00C0      		rjmp .L9
+  46 001a 2230      		cpi r18,2
+  47 001c 3105      		cpc r19,__zero_reg__
+  48 001e 01F4      		brne .L15
+1067:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+1068:tmk_core/protocol/usb_descriptor.c ****             Address = &DeviceDescriptor;
+1069:tmk_core/protocol/usb_descriptor.c ****             Size    = sizeof(USB_Descriptor_Device_t);
+1070:tmk_core/protocol/usb_descriptor.c **** 
+1071:tmk_core/protocol/usb_descriptor.c ****             break;
+1072:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Configuration:
+1073:tmk_core/protocol/usb_descriptor.c ****             Address = &ConfigurationDescriptor;
+1074:tmk_core/protocol/usb_descriptor.c ****             Size    = sizeof(USB_Descriptor_Configuration_t);
+  49               		.loc 1 1074 21 is_stmt 0 view .LVU9
+  50 0020 8BE3      		ldi r24,lo8(59)
+  51 0022 90E0      		ldi r25,0
+1073:tmk_core/protocol/usb_descriptor.c ****             Size    = sizeof(USB_Descriptor_Configuration_t);
+  52               		.loc 1 1073 21 view .LVU10
+  53 0024 20E0      		ldi r18,lo8(ConfigurationDescriptor)
+  54 0026 30E0      		ldi r19,hi8(ConfigurationDescriptor)
+  55               	.LVL3:
+  56               	.L4:
+1075:tmk_core/protocol/usb_descriptor.c **** 
+1076:tmk_core/protocol/usb_descriptor.c ****             break;
+1077:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_String:
+1078:tmk_core/protocol/usb_descriptor.c ****             switch (DescriptorIndex) {
+1079:tmk_core/protocol/usb_descriptor.c ****                 case 0x00:
+1080:tmk_core/protocol/usb_descriptor.c ****                     Address = &LanguageString;
+1081:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&LanguageString.Header.Size);
+1082:tmk_core/protocol/usb_descriptor.c **** 
+1083:tmk_core/protocol/usb_descriptor.c ****                     break;
+1084:tmk_core/protocol/usb_descriptor.c ****                 case 0x01:
+1085:tmk_core/protocol/usb_descriptor.c ****                     Address = &ManufacturerString;
+1086:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&ManufacturerString.Header.Size);
+1087:tmk_core/protocol/usb_descriptor.c **** 
+1088:tmk_core/protocol/usb_descriptor.c ****                     break;
+1089:tmk_core/protocol/usb_descriptor.c ****                 case 0x02:
+1090:tmk_core/protocol/usb_descriptor.c ****                     Address = &ProductString;
+1091:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&ProductString.Header.Size);
+1092:tmk_core/protocol/usb_descriptor.c **** 
+1093:tmk_core/protocol/usb_descriptor.c ****                     break;
+1094:tmk_core/protocol/usb_descriptor.c **** #if defined(SERIAL_NUMBER)
+1095:tmk_core/protocol/usb_descriptor.c ****                 case 0x03:
+1096:tmk_core/protocol/usb_descriptor.c ****                     Address = &SerialNumberString;
+1097:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&SerialNumberString.Header.Size);
+1098:tmk_core/protocol/usb_descriptor.c **** 
+1099:tmk_core/protocol/usb_descriptor.c ****                     break;
+1100:tmk_core/protocol/usb_descriptor.c **** #endif
+1101:tmk_core/protocol/usb_descriptor.c ****             }
+1102:tmk_core/protocol/usb_descriptor.c **** 
+1103:tmk_core/protocol/usb_descriptor.c ****             break;
+1104:tmk_core/protocol/usb_descriptor.c ****         case HID_DTYPE_HID:
+1105:tmk_core/protocol/usb_descriptor.c ****             switch (wIndex) {
+1106:tmk_core/protocol/usb_descriptor.c **** #ifndef KEYBOARD_SHARED_EP
+1107:tmk_core/protocol/usb_descriptor.c ****                 case KEYBOARD_INTERFACE:
+1108:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Keyboard_HID;
+1109:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1110:tmk_core/protocol/usb_descriptor.c ****                     break;
+1111:tmk_core/protocol/usb_descriptor.c **** #endif
+1112:tmk_core/protocol/usb_descriptor.c **** 
+1113:tmk_core/protocol/usb_descriptor.c **** #if defined(MOUSE_ENABLE) && !defined(MOUSE_SHARED_EP)
+1114:tmk_core/protocol/usb_descriptor.c ****                 case MOUSE_INTERFACE:
+1115:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Mouse_HID;
+1116:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1117:tmk_core/protocol/usb_descriptor.c **** 
+1118:tmk_core/protocol/usb_descriptor.c ****                     break;
+1119:tmk_core/protocol/usb_descriptor.c **** #endif
+1120:tmk_core/protocol/usb_descriptor.c **** 
+1121:tmk_core/protocol/usb_descriptor.c **** #ifdef SHARED_EP_ENABLE
+1122:tmk_core/protocol/usb_descriptor.c ****                 case SHARED_INTERFACE:
+1123:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Shared_HID;
+1124:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1125:tmk_core/protocol/usb_descriptor.c **** 
+1126:tmk_core/protocol/usb_descriptor.c ****                     break;
+1127:tmk_core/protocol/usb_descriptor.c **** #endif
+1128:tmk_core/protocol/usb_descriptor.c **** 
+1129:tmk_core/protocol/usb_descriptor.c **** #ifdef RAW_ENABLE
+1130:tmk_core/protocol/usb_descriptor.c ****                 case RAW_INTERFACE:
+1131:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Raw_HID;
+1132:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1133:tmk_core/protocol/usb_descriptor.c **** 
+1134:tmk_core/protocol/usb_descriptor.c ****                     break;
+1135:tmk_core/protocol/usb_descriptor.c **** #endif
+1136:tmk_core/protocol/usb_descriptor.c **** 
+1137:tmk_core/protocol/usb_descriptor.c **** #ifdef CONSOLE_ENABLE
+1138:tmk_core/protocol/usb_descriptor.c ****                 case CONSOLE_INTERFACE:
+1139:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Console_HID;
+1140:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1141:tmk_core/protocol/usb_descriptor.c **** 
+1142:tmk_core/protocol/usb_descriptor.c ****                     break;
+1143:tmk_core/protocol/usb_descriptor.c **** #endif
+1144:tmk_core/protocol/usb_descriptor.c **** #ifdef JOYSTICK_ENABLE
+1145:tmk_core/protocol/usb_descriptor.c ****                 case JOYSTICK_INTERFACE:
+1146:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Joystick_HID;
+1147:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1148:tmk_core/protocol/usb_descriptor.c ****                     break;
+1149:tmk_core/protocol/usb_descriptor.c **** #endif
+1150:tmk_core/protocol/usb_descriptor.c **** #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
+1151:tmk_core/protocol/usb_descriptor.c ****                 case DIGITIZER_INTERFACE:
+1152:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConfigurationDescriptor.Digitizer_HID;
+1153:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+1154:tmk_core/protocol/usb_descriptor.c **** 
+1155:tmk_core/protocol/usb_descriptor.c ****                     break;
+1156:tmk_core/protocol/usb_descriptor.c **** #endif
+1157:tmk_core/protocol/usb_descriptor.c ****             }
+1158:tmk_core/protocol/usb_descriptor.c **** 
+1159:tmk_core/protocol/usb_descriptor.c ****             break;
+1160:tmk_core/protocol/usb_descriptor.c ****         case HID_DTYPE_Report:
+1161:tmk_core/protocol/usb_descriptor.c ****             switch (wIndex) {
+1162:tmk_core/protocol/usb_descriptor.c **** #ifndef KEYBOARD_SHARED_EP
+1163:tmk_core/protocol/usb_descriptor.c ****                 case KEYBOARD_INTERFACE:
+1164:tmk_core/protocol/usb_descriptor.c ****                     Address = &KeyboardReport;
+1165:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(KeyboardReport);
+1166:tmk_core/protocol/usb_descriptor.c **** 
+1167:tmk_core/protocol/usb_descriptor.c ****                     break;
+1168:tmk_core/protocol/usb_descriptor.c **** #endif
+1169:tmk_core/protocol/usb_descriptor.c **** 
+1170:tmk_core/protocol/usb_descriptor.c **** #if defined(MOUSE_ENABLE) && !defined(MOUSE_SHARED_EP)
+1171:tmk_core/protocol/usb_descriptor.c ****                 case MOUSE_INTERFACE:
+1172:tmk_core/protocol/usb_descriptor.c ****                     Address = &MouseReport;
+1173:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(MouseReport);
+1174:tmk_core/protocol/usb_descriptor.c **** 
+1175:tmk_core/protocol/usb_descriptor.c ****                     break;
+1176:tmk_core/protocol/usb_descriptor.c **** #endif
+1177:tmk_core/protocol/usb_descriptor.c **** 
+1178:tmk_core/protocol/usb_descriptor.c **** #ifdef SHARED_EP_ENABLE
+1179:tmk_core/protocol/usb_descriptor.c ****                 case SHARED_INTERFACE:
+1180:tmk_core/protocol/usb_descriptor.c ****                     Address = &SharedReport;
+1181:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(SharedReport);
+1182:tmk_core/protocol/usb_descriptor.c **** 
+1183:tmk_core/protocol/usb_descriptor.c ****                     break;
+1184:tmk_core/protocol/usb_descriptor.c **** #endif
+1185:tmk_core/protocol/usb_descriptor.c **** 
+1186:tmk_core/protocol/usb_descriptor.c **** #ifdef RAW_ENABLE
+1187:tmk_core/protocol/usb_descriptor.c ****                 case RAW_INTERFACE:
+1188:tmk_core/protocol/usb_descriptor.c ****                     Address = &RawReport;
+1189:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(RawReport);
+1190:tmk_core/protocol/usb_descriptor.c **** 
+1191:tmk_core/protocol/usb_descriptor.c ****                     break;
+1192:tmk_core/protocol/usb_descriptor.c **** #endif
+1193:tmk_core/protocol/usb_descriptor.c **** 
+1194:tmk_core/protocol/usb_descriptor.c **** #ifdef CONSOLE_ENABLE
+1195:tmk_core/protocol/usb_descriptor.c ****                 case CONSOLE_INTERFACE:
+1196:tmk_core/protocol/usb_descriptor.c ****                     Address = &ConsoleReport;
+1197:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(ConsoleReport);
+1198:tmk_core/protocol/usb_descriptor.c **** 
+1199:tmk_core/protocol/usb_descriptor.c ****                     break;
+1200:tmk_core/protocol/usb_descriptor.c **** #endif
+1201:tmk_core/protocol/usb_descriptor.c **** #ifdef JOYSTICK_ENABLE
+1202:tmk_core/protocol/usb_descriptor.c ****                 case JOYSTICK_INTERFACE:
+1203:tmk_core/protocol/usb_descriptor.c ****                     Address = &JoystickReport;
+1204:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(JoystickReport);
+1205:tmk_core/protocol/usb_descriptor.c ****                     break;
+1206:tmk_core/protocol/usb_descriptor.c **** #endif
+1207:tmk_core/protocol/usb_descriptor.c **** #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
+1208:tmk_core/protocol/usb_descriptor.c ****                 case DIGITIZER_INTERFACE:
+1209:tmk_core/protocol/usb_descriptor.c ****                     Address = &DigitizerReport;
+1210:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(DigitizerReport);
+1211:tmk_core/protocol/usb_descriptor.c ****                     break;
+1212:tmk_core/protocol/usb_descriptor.c **** #endif
+1213:tmk_core/protocol/usb_descriptor.c ****             }
+1214:tmk_core/protocol/usb_descriptor.c **** 
+1215:tmk_core/protocol/usb_descriptor.c ****             break;
+1216:tmk_core/protocol/usb_descriptor.c ****     }
+1217:tmk_core/protocol/usb_descriptor.c **** 
+1218:tmk_core/protocol/usb_descriptor.c ****     *DescriptorAddress = Address;
+  57               		.loc 1 1218 5 is_stmt 1 view .LVU11
+  58               		.loc 1 1218 24 is_stmt 0 view .LVU12
+  59 0028 2D93      		st X+,r18
+  60 002a 3C93      		st X,r19
+1219:tmk_core/protocol/usb_descriptor.c **** 
+1220:tmk_core/protocol/usb_descriptor.c ****     return Size;
+  61               		.loc 1 1220 5 is_stmt 1 view .LVU13
+  62               	/* epilogue start */
+1221:tmk_core/protocol/usb_descriptor.c **** }
+  63               		.loc 1 1221 1 is_stmt 0 view .LVU14
+  64 002c 0895      		ret
+  65               	.LVL4:
+  66               	.L3:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+  67               		.loc 1 1066 5 view .LVU15
+  68 002e 2132      		cpi r18,33
+  69 0030 3105      		cpc r19,__zero_reg__
+  70 0032 01F0      		breq .L5
+  71 0034 2232      		cpi r18,34
+  72 0036 3105      		cpc r19,__zero_reg__
+  73 0038 01F0      		breq .L6
+  74               	.LVL5:
+  75               	.L15:
+1064:tmk_core/protocol/usb_descriptor.c **** 
+  76               		.loc 1 1064 19 view .LVU16
+  77 003a 90E0      		ldi r25,0
+  78 003c 80E0      		ldi r24,0
+1063:tmk_core/protocol/usb_descriptor.c ****     uint16_t      Size            = NO_DESCRIPTOR;
+  79               		.loc 1 1063 19 view .LVU17
+  80 003e 30E0      		ldi r19,0
+  81 0040 20E0      		ldi r18,0
+  82               	.LVL6:
+1063:tmk_core/protocol/usb_descriptor.c ****     uint16_t      Size            = NO_DESCRIPTOR;
+  83               		.loc 1 1063 19 view .LVU18
+  84 0042 00C0      		rjmp .L4
+  85               	.LVL7:
+  86               	.L2:
+1078:tmk_core/protocol/usb_descriptor.c ****                 case 0x00:
+  87               		.loc 1 1078 13 is_stmt 1 view .LVU19
+  88 0044 CF01      		movw r24,r30
+  89 0046 9927      		clr r25
+  90 0048 E130      		cpi r30,lo8(1)
+  91 004a 01F0      		breq .L7
+  92 004c 8230      		cpi r24,2
+  93 004e 9105      		cpc r25,__zero_reg__
+  94 0050 01F0      		breq .L8
+  95               	.LBB2:
+1081:tmk_core/protocol/usb_descriptor.c **** 
+  96               		.loc 1 1081 31 is_stmt 0 view .LVU20
+  97 0052 E0E0      		ldi r30,lo8(LanguageString)
+  98 0054 F0E0      		ldi r31,hi8(LanguageString)
+  99               	.LVL8:
+1081:tmk_core/protocol/usb_descriptor.c **** 
+ 100               		.loc 1 1081 31 view .LVU21
+ 101               	.LBE2:
+ 102 0056 892B      		or r24,r25
+ 103 0058 01F4      		brne .L15
+ 104               	.LVL9:
+ 105               	.L16:
+ 106               	.LBB3:
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 107               		.loc 1 1091 31 view .LVU22
+ 108               	/* #APP */
+ 109               	 ;  1091 "tmk_core/protocol/usb_descriptor.c" 1
+ 110 005a 8491      		lpm r24, Z
+ 111               		
+ 112               	 ;  0 "" 2
+ 113               	.LVL10:
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 114               		.loc 1 1091 31 is_stmt 1 view .LVU23
+ 115               	/* #NOAPP */
+ 116               	.LBE3:
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 117               		.loc 1 1091 29 is_stmt 0 view .LVU24
+ 118 005c 90E0      		ldi r25,0
+ 119               	.LVL11:
+1093:tmk_core/protocol/usb_descriptor.c **** #if defined(SERIAL_NUMBER)
+ 120               		.loc 1 1093 21 is_stmt 1 view .LVU25
+1090:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&ProductString.Header.Size);
+ 121               		.loc 1 1090 29 is_stmt 0 view .LVU26
+ 122 005e 9F01      		movw r18,r30
+ 123               	.LVL12:
+1093:tmk_core/protocol/usb_descriptor.c **** #if defined(SERIAL_NUMBER)
+ 124               		.loc 1 1093 21 view .LVU27
+ 125 0060 00C0      		rjmp .L4
+ 126               	.LVL13:
+ 127               	.L7:
+1085:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&ManufacturerString.Header.Size);
+ 128               		.loc 1 1085 21 is_stmt 1 view .LVU28
+1086:tmk_core/protocol/usb_descriptor.c **** 
+ 129               		.loc 1 1086 21 view .LVU29
+ 130               	.LBB4:
+1086:tmk_core/protocol/usb_descriptor.c **** 
+ 131               		.loc 1 1086 31 view .LVU30
+1086:tmk_core/protocol/usb_descriptor.c **** 
+ 132               		.loc 1 1086 31 view .LVU31
+1086:tmk_core/protocol/usb_descriptor.c **** 
+ 133               		.loc 1 1086 31 view .LVU32
+ 134 0062 E0E0      		ldi r30,lo8(ManufacturerString)
+ 135 0064 F0E0      		ldi r31,hi8(ManufacturerString)
+ 136               	.LVL14:
+1086:tmk_core/protocol/usb_descriptor.c **** 
+ 137               		.loc 1 1086 31 is_stmt 0 view .LVU33
+ 138 0066 00C0      		rjmp .L16
+ 139               	.LVL15:
+ 140               	.L8:
+1086:tmk_core/protocol/usb_descriptor.c **** 
+ 141               		.loc 1 1086 31 view .LVU34
+ 142               	.LBE4:
+1090:tmk_core/protocol/usb_descriptor.c ****                     Size    = pgm_read_byte(&ProductString.Header.Size);
+ 143               		.loc 1 1090 21 is_stmt 1 view .LVU35
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 144               		.loc 1 1091 21 view .LVU36
+ 145               	.LBB5:
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 146               		.loc 1 1091 31 view .LVU37
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 147               		.loc 1 1091 31 view .LVU38
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 148               		.loc 1 1091 31 view .LVU39
+ 149 0068 E0E0      		ldi r30,lo8(ProductString)
+ 150 006a F0E0      		ldi r31,hi8(ProductString)
+ 151               	.LVL16:
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 152               		.loc 1 1091 31 is_stmt 0 view .LVU40
+ 153 006c 00C0      		rjmp .L16
+ 154               	.LVL17:
+ 155               	.L5:
+1091:tmk_core/protocol/usb_descriptor.c **** 
+ 156               		.loc 1 1091 31 view .LVU41
+ 157               	.LBE5:
+1105:tmk_core/protocol/usb_descriptor.c **** #ifndef KEYBOARD_SHARED_EP
+ 158               		.loc 1 1105 13 is_stmt 1 view .LVU42
+ 159 006e 892B      		or r24,r25
+ 160 0070 01F0      		breq .L12
+ 161 0072 6130      		cpi r22,1
+ 162 0074 7105      		cpc r23,__zero_reg__
+ 163 0076 01F4      		brne .L15
+1124:tmk_core/protocol/usb_descriptor.c **** 
+ 164               		.loc 1 1124 29 is_stmt 0 view .LVU43
+ 165 0078 89E0      		ldi r24,lo8(9)
+ 166 007a 90E0      		ldi r25,0
+1123:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+ 167               		.loc 1 1123 29 view .LVU44
+ 168 007c 20E0      		ldi r18,lo8(ConfigurationDescriptor+43)
+ 169 007e 30E0      		ldi r19,hi8(ConfigurationDescriptor+43)
+ 170               	.LVL18:
+1123:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(USB_HID_Descriptor_HID_t);
+ 171               		.loc 1 1123 29 view .LVU45
+ 172 0080 00C0      		rjmp .L4
+ 173               	.LVL19:
+ 174               	.L6:
+1161:tmk_core/protocol/usb_descriptor.c **** #ifndef KEYBOARD_SHARED_EP
+ 175               		.loc 1 1161 13 is_stmt 1 view .LVU46
+ 176 0082 892B      		or r24,r25
+ 177 0084 01F0      		breq .L14
+ 178 0086 6130      		cpi r22,1
+ 179 0088 7105      		cpc r23,__zero_reg__
+ 180 008a 01F4      		brne .L15
+1181:tmk_core/protocol/usb_descriptor.c **** 
+ 181               		.loc 1 1181 29 is_stmt 0 view .LVU47
+ 182 008c 86EB      		ldi r24,lo8(-74)
+ 183 008e 90E0      		ldi r25,0
+1180:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(SharedReport);
+ 184               		.loc 1 1180 29 view .LVU48
+ 185 0090 20E0      		ldi r18,lo8(SharedReport)
+ 186 0092 30E0      		ldi r19,hi8(SharedReport)
+ 187               	.LVL20:
+1180:tmk_core/protocol/usb_descriptor.c ****                     Size    = sizeof(SharedReport);
+ 188               		.loc 1 1180 29 view .LVU49
+ 189 0094 00C0      		rjmp .L4
+ 190               	.LVL21:
+ 191               	.L9:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+ 192               		.loc 1 1066 5 view .LVU50
+ 193 0096 82E1      		ldi r24,lo8(18)
+ 194 0098 90E0      		ldi r25,0
+ 195 009a 20E0      		ldi r18,lo8(DeviceDescriptor)
+ 196 009c 30E0      		ldi r19,hi8(DeviceDescriptor)
+ 197               	.LVL22:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+ 198               		.loc 1 1066 5 view .LVU51
+ 199 009e 00C0      		rjmp .L4
+ 200               	.LVL23:
+ 201               	.L12:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+ 202               		.loc 1 1066 5 view .LVU52
+ 203 00a0 89E0      		ldi r24,lo8(9)
+ 204 00a2 90E0      		ldi r25,0
+ 205 00a4 20E0      		ldi r18,lo8(ConfigurationDescriptor+18)
+ 206 00a6 30E0      		ldi r19,hi8(ConfigurationDescriptor+18)
+ 207               	.LVL24:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+ 208               		.loc 1 1066 5 view .LVU53
+ 209 00a8 00C0      		rjmp .L4
+ 210               	.LVL25:
+ 211               	.L14:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+ 212               		.loc 1 1066 5 view .LVU54
+ 213 00aa 80E4      		ldi r24,lo8(64)
+ 214 00ac 90E0      		ldi r25,0
+ 215 00ae 20E0      		ldi r18,lo8(KeyboardReport)
+ 216 00b0 30E0      		ldi r19,hi8(KeyboardReport)
+ 217               	.LVL26:
+1066:tmk_core/protocol/usb_descriptor.c ****         case DTYPE_Device:
+ 218               		.loc 1 1066 5 view .LVU55
+ 219 00b2 00C0      		rjmp .L4
+ 220               		.cfi_endproc
+ 221               	.LFE102:
+ 223               	.global	ProductString
+ 224               		.section	.progmem.data.ProductString,"a"
+ 227               	ProductString:
+ 228 0000 12        		.byte	18
+ 229 0001 03        		.byte	3
+ 230 0002 6B00      		.string	"k"
+ 231 0004 6500      		.string	"e"
+ 232 0006 7900      		.string	"y"
+ 233 0008 6200      		.string	"b"
+ 234 000a 6F00      		.string	"o"
+ 235 000c 6100      		.string	"a"
+ 236 000e 7200      		.string	"r"
+ 237 0010 6400      		.string	"d"
+ 238 0012 00        		.string	""
+ 239 0013 00        		.string	""
+ 240               	.global	ManufacturerString
+ 241               		.section	.progmem.data.ManufacturerString,"a"
+ 244               	ManufacturerString:
+ 245 0000 16        		.byte	22
+ 246 0001 03        		.byte	3
+ 247 0002 7100      		.string	"q"
+ 248 0004 6D00      		.string	"m"
+ 249 0006 6B00      		.string	"k"
+ 250 0008 6200      		.string	"b"
+ 251 000a 7500      		.string	"u"
+ 252 000c 6900      		.string	"i"
+ 253 000e 6C00      		.string	"l"
+ 254 0010 6400      		.string	"d"
+ 255 0012 6500      		.string	"e"
+ 256 0014 7200      		.string	"r"
+ 257 0016 00        		.string	""
+ 258 0017 00        		.string	""
+ 259               	.global	LanguageString
+ 260               		.section	.progmem.data.LanguageString,"a"
+ 263               	LanguageString:
+ 264 0000 04        		.byte	4
+ 265 0001 03        		.byte	3
+ 266 0002 0904      		.word	1033
+ 267               	.global	ConfigurationDescriptor
+ 268               		.section	.progmem.data.ConfigurationDescriptor,"a"
+ 271               	ConfigurationDescriptor:
+ 272 0000 09        		.byte	9
+ 273 0001 02        		.byte	2
+ 274 0002 3B00      		.word	59
+ 275 0004 02        		.byte	2
+ 276 0005 01        		.byte	1
+ 277 0006 00        		.byte	0
+ 278 0007 A0        		.byte	-96
+ 279 0008 FA        		.byte	-6
+ 280 0009 09        		.byte	9
+ 281 000a 04        		.byte	4
+ 282 000b 00        		.byte	0
+ 283 000c 00        		.byte	0
+ 284 000d 01        		.byte	1
+ 285 000e 03        		.byte	3
+ 286 000f 01        		.byte	1
+ 287 0010 01        		.byte	1
+ 288 0011 00        		.byte	0
+ 289 0012 09        		.byte	9
+ 290 0013 21        		.byte	33
+ 291 0014 1101      		.word	273
+ 292 0016 00        		.byte	0
+ 293 0017 01        		.byte	1
+ 294 0018 22        		.byte	34
+ 295 0019 4000      		.word	64
+ 296 001b 07        		.byte	7
+ 297 001c 05        		.byte	5
+ 298 001d 81        		.byte	-127
+ 299 001e 03        		.byte	3
+ 300 001f 0800      		.word	8
+ 301 0021 0A        		.byte	10
+ 302 0022 09        		.byte	9
+ 303 0023 04        		.byte	4
+ 304 0024 01        		.byte	1
+ 305 0025 00        		.byte	0
+ 306 0026 01        		.byte	1
+ 307 0027 03        		.byte	3
+ 308 0028 00        		.byte	0
+ 309 0029 00        		.byte	0
+ 310 002a 00        		.byte	0
+ 311 002b 09        		.byte	9
+ 312 002c 21        		.byte	33
+ 313 002d 1101      		.word	273
+ 314 002f 00        		.byte	0
+ 315 0030 01        		.byte	1
+ 316 0031 22        		.byte	34
+ 317 0032 B600      		.word	182
+ 318 0034 07        		.byte	7
+ 319 0035 05        		.byte	5
+ 320 0036 82        		.byte	-126
+ 321 0037 03        		.byte	3
+ 322 0038 2000      		.word	32
+ 323 003a 0A        		.byte	10
+ 324               	.global	DeviceDescriptor
+ 325               		.section	.progmem.data.DeviceDescriptor,"a"
+ 328               	DeviceDescriptor:
+ 329 0000 12        		.byte	18
+ 330 0001 01        		.byte	1
+ 331 0002 0002      		.word	512
+ 332 0004 00        		.byte	0
+ 333 0005 00        		.byte	0
+ 334 0006 00        		.byte	0
+ 335 0007 08        		.byte	8
+ 336 0008 EDFE      		.word	-275
+ 337 000a 6060      		.word	24672
+ 338 000c 0100      		.word	1
+ 339 000e 01        		.byte	1
+ 340 000f 02        		.byte	2
+ 341 0010 00        		.byte	0
+ 342 0011 01        		.byte	1
+ 343               	.global	SharedReport
+ 344               		.section	.progmem.data.SharedReport,"a"
+ 347               	SharedReport:
+ 348 0000 0501 0902 		.string	"\005\001\t\002\241\001\205\002\t\001\241"
+ 348      A101 8502 
+ 348      0901 A100 
+ 349 000c 0509 1901 		.string	"\005\t\031\001)\b\025"
+ 349      2908 1500 
+ 350 0014 2501 9508 		.string	"%\001\225\bu\001\201\002\005\001\t0\t1\025\201%\177\225\002u\b\201\006\t8\025\201%\177\22
+ 350      7501 8102 
+ 350      0501 0930 
+ 350      0931 1581 
+ 350      257F 9502 
+ 351 0056 1501 26B7 		.string	"\025\001&\267"
+ 351      00
+ 352 005b 9501 7510 		.string	"\225\001u\020\201"
+ 352      8100 
+ 353 0061 C005 0C09 		.string	"\300\005\f\t\001\241\001\205\004\031\001*\240\002\025\001&\240\002\225\001u\020\201"
+ 353      01A1 0185 
+ 353      0419 012A 
+ 353      A002 1501 
+ 353      26A0 0295 
+ 354 007a C005 0109 		.string	"\300\005\001\t\006\241\001\205\005\005\007\031\340)\347\025"
+ 354      06A1 0185 
+ 354      0505 0719 
+ 354      E029 E715 
+ 354      00
+ 355 008b 2501 9508 		.string	"%\001\225\bu\001\201\002\005\007\031"
+ 355      7501 8102 
+ 355      0507 1900 
+ 356 0097 29EF 1500 		.string	")\357\025"
+ 357 009b 2501 95F0 		.ascii	"%\001\225\360u\001\201\002\005\b\031\001)\005\225\005u\001\221"
+ 357      7501 8102 
+ 357      0508 1901 
+ 357      2905 9505 
+ 357      7501 91
+ 358 00ae 0295 0175 		.ascii	"\002\225\001u\003\221\001\300"
+ 358      0391 01C0 
+ 359               	.global	KeyboardReport
+ 360               		.section	.progmem.data.KeyboardReport,"a"
+ 363               	KeyboardReport:
+ 364 0000 0501 0906 		.string	"\005\001\t\006\241\001\005\007\031\340)\347\025"
+ 364      A101 0507 
+ 364      19E0 29E7 
+ 364      1500 
+ 365 000e 2501 9508 		.string	"%\001\225\bu\001\201\002\225\001u\b\201\001\005\007\031"
+ 365      7501 8102 
+ 365      9501 7508 
+ 365      8101 0507 
+ 365      1900 
+ 366 0020 29FF 1500 		.string	")\377\025"
+ 367 0024 26FF 00   		.string	"&\377"
+ 368 0027 9506 7508 		.string	"\225\006u\b\201"
+ 368      8100 
+ 369 002d 0508 1901 		.ascii	"\005\b\031\001)\005\225\005u\001\221\002\225\001u\003\221\001"
+ 369      2905 9505 
+ 369      7501 9102 
+ 369      9501 7503 
+ 369      9101 
+ 370 003f C0        		.ascii	"\300"
+ 371               		.text
+ 372               	.Letext0:
+ 373               		.file 2 "/usr/avr/include/stdint.h"
+ 374               		.file 3 "/usr/lib/gcc/avr/11.2.0/include/stddef.h"
+ 375               		.file 4 "tmk_core/common/report.h"
+ 376               		.file 5 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../StdDescriptors.h"
+ 377               		.file 6 "lib/lufa/LUFA/Drivers/USB/Class/Device/../Common/HIDClassCommon.h"
+ 378               		.file 7 "tmk_core/protocol/usb_descriptor.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 usb_descriptor.c
+     /tmp/cc0jCLL5.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc0jCLL5.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc0jCLL5.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc0jCLL5.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc0jCLL5.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc0jCLL5.s:13     .text.get_usb_descriptor:0000000000000000 get_usb_descriptor
+     /tmp/cc0jCLL5.s:271    .progmem.data.ConfigurationDescriptor:0000000000000000 ConfigurationDescriptor
+     /tmp/cc0jCLL5.s:263    .progmem.data.LanguageString:0000000000000000 LanguageString
+     /tmp/cc0jCLL5.s:244    .progmem.data.ManufacturerString:0000000000000000 ManufacturerString
+     /tmp/cc0jCLL5.s:227    .progmem.data.ProductString:0000000000000000 ProductString
+     /tmp/cc0jCLL5.s:347    .progmem.data.SharedReport:0000000000000000 SharedReport
+     /tmp/cc0jCLL5.s:328    .progmem.data.DeviceDescriptor:0000000000000000 DeviceDescriptor
+     /tmp/cc0jCLL5.s:363    .progmem.data.KeyboardReport:0000000000000000 KeyboardReport
+
+NO UNDEFINED SYMBOLS

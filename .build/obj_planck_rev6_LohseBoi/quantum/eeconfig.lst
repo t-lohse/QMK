@@ -1,0 +1,1076 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"eeconfig.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/eeconfig.c"
+  20              		.section	.text.eeconfig_enable,"ax",%progbits
+  21              		.align	1
+  22              		.global	eeconfig_enable
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	eeconfig_enable:
+  28              	.LFB335:
+   1:quantum/eeconfig.c **** #include <stdint.h>
+   2:quantum/eeconfig.c **** #include <stdbool.h>
+   3:quantum/eeconfig.c **** #include "eeprom.h"
+   4:quantum/eeconfig.c **** #include "eeconfig.h"
+   5:quantum/eeconfig.c **** #include "action_layer.h"
+   6:quantum/eeconfig.c **** 
+   7:quantum/eeconfig.c **** #ifdef STM32_EEPROM_ENABLE
+   8:quantum/eeconfig.c **** #    include <hal.h>
+   9:quantum/eeconfig.c **** #    include "eeprom_stm32.h"
+  10:quantum/eeconfig.c **** #endif
+  11:quantum/eeconfig.c **** 
+  12:quantum/eeconfig.c **** #if defined(EEPROM_DRIVER)
+  13:quantum/eeconfig.c **** #    include "eeprom_driver.h"
+  14:quantum/eeconfig.c **** #endif
+  15:quantum/eeconfig.c **** 
+  16:quantum/eeconfig.c **** #if defined(HAPTIC_ENABLE)
+  17:quantum/eeconfig.c **** #    include "haptic.h"
+  18:quantum/eeconfig.c **** #endif
+  19:quantum/eeconfig.c **** 
+  20:quantum/eeconfig.c **** #if defined(VIA_ENABLE)
+  21:quantum/eeconfig.c **** bool via_eeprom_is_valid(void);
+  22:quantum/eeconfig.c **** void via_eeprom_set_valid(bool valid);
+  23:quantum/eeconfig.c **** void eeconfig_init_via(void);
+  24:quantum/eeconfig.c **** #endif
+  25:quantum/eeconfig.c **** 
+  26:quantum/eeconfig.c **** /** \brief eeconfig enable
+  27:quantum/eeconfig.c ****  *
+  28:quantum/eeconfig.c ****  * FIXME: needs doc
+  29:quantum/eeconfig.c ****  */
+  30:quantum/eeconfig.c **** __attribute__((weak)) void eeconfig_init_user(void) {
+  31:quantum/eeconfig.c ****     // Reset user EEPROM value to blank, rather than to a set value
+  32:quantum/eeconfig.c ****     eeconfig_update_user(0);
+  33:quantum/eeconfig.c **** }
+  34:quantum/eeconfig.c **** 
+  35:quantum/eeconfig.c **** __attribute__((weak)) void eeconfig_init_kb(void) {
+  36:quantum/eeconfig.c ****     // Reset Keyboard EEPROM value to blank, rather than to a set value
+  37:quantum/eeconfig.c ****     eeconfig_update_kb(0);
+  38:quantum/eeconfig.c **** 
+  39:quantum/eeconfig.c ****     eeconfig_init_user();
+  40:quantum/eeconfig.c **** }
+  41:quantum/eeconfig.c **** 
+  42:quantum/eeconfig.c **** /*
+  43:quantum/eeconfig.c ****  * FIXME: needs doc
+  44:quantum/eeconfig.c ****  */
+  45:quantum/eeconfig.c **** void eeconfig_init_quantum(void) {
+  46:quantum/eeconfig.c **** #ifdef STM32_EEPROM_ENABLE
+  47:quantum/eeconfig.c ****     EEPROM_Erase();
+  48:quantum/eeconfig.c **** #endif
+  49:quantum/eeconfig.c **** #if defined(EEPROM_DRIVER)
+  50:quantum/eeconfig.c ****     eeprom_driver_erase();
+  51:quantum/eeconfig.c **** #endif
+  52:quantum/eeconfig.c ****     eeprom_update_word(EECONFIG_MAGIC, EECONFIG_MAGIC_NUMBER);
+  53:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_DEBUG, 0);
+  54:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_DEFAULT_LAYER, 0);
+  55:quantum/eeconfig.c ****     default_layer_state = 0;
+  56:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, 0);
+  57:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_UPPER_BYTE, 0);
+  58:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_MOUSEKEY_ACCEL, 0);
+  59:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_BACKLIGHT, 0);
+  60:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_AUDIO, 0xFF);  // On by default
+  61:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_RGBLIGHT, 0);
+  62:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_STENOMODE, 0);
+  63:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_HAPTIC, 0);
+  64:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_VELOCIKEY, 0);
+  65:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_RGB_MATRIX, 0);
+  66:quantum/eeconfig.c ****     eeprom_update_word(EECONFIG_RGB_MATRIX_EXTENDED, 0);
+  67:quantum/eeconfig.c **** 
+  68:quantum/eeconfig.c ****     // TODO: Remove once ARM has a way to configure EECONFIG_HANDEDNESS
+  69:quantum/eeconfig.c ****     //        within the emulated eeprom via dfu-util or another tool
+  70:quantum/eeconfig.c **** #if defined INIT_EE_HANDS_LEFT
+  71:quantum/eeconfig.c **** #    pragma message "Faking EE_HANDS for left hand"
+  72:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_HANDEDNESS, 1);
+  73:quantum/eeconfig.c **** #elif defined INIT_EE_HANDS_RIGHT
+  74:quantum/eeconfig.c **** #    pragma message "Faking EE_HANDS for right hand"
+  75:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_HANDEDNESS, 0);
+  76:quantum/eeconfig.c **** #endif
+  77:quantum/eeconfig.c **** 
+  78:quantum/eeconfig.c **** #if defined(HAPTIC_ENABLE)
+  79:quantum/eeconfig.c ****     haptic_reset();
+  80:quantum/eeconfig.c **** #else
+  81:quantum/eeconfig.c ****     // this is used in case haptic is disabled, but we still want sane defaults
+  82:quantum/eeconfig.c ****     // in the haptic configuration eeprom. All zero will trigger a haptic_reset
+  83:quantum/eeconfig.c ****     // when a haptic-enabled firmware is loaded onto the keyboard.
+  84:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_HAPTIC, 0);
+  85:quantum/eeconfig.c **** #endif
+  86:quantum/eeconfig.c **** #if defined(VIA_ENABLE)
+  87:quantum/eeconfig.c ****     // Invalidate VIA eeprom config, and then reset.
+  88:quantum/eeconfig.c ****     // Just in case if power is lost mid init, this makes sure that it pets
+  89:quantum/eeconfig.c ****     // properly re-initialized.
+  90:quantum/eeconfig.c ****     via_eeprom_set_valid(false);
+  91:quantum/eeconfig.c ****     eeconfig_init_via();
+  92:quantum/eeconfig.c **** #endif
+  93:quantum/eeconfig.c **** 
+  94:quantum/eeconfig.c ****     eeconfig_init_kb();
+  95:quantum/eeconfig.c **** }
+  96:quantum/eeconfig.c **** 
+  97:quantum/eeconfig.c **** /** \brief eeconfig initialization
+  98:quantum/eeconfig.c ****  *
+  99:quantum/eeconfig.c ****  * FIXME: needs doc
+ 100:quantum/eeconfig.c ****  */
+ 101:quantum/eeconfig.c **** void eeconfig_init(void) { eeconfig_init_quantum(); }
+ 102:quantum/eeconfig.c **** 
+ 103:quantum/eeconfig.c **** /** \brief eeconfig enable
+ 104:quantum/eeconfig.c ****  *
+ 105:quantum/eeconfig.c ****  * FIXME: needs doc
+ 106:quantum/eeconfig.c ****  */
+ 107:quantum/eeconfig.c **** void eeconfig_enable(void) { eeprom_update_word(EECONFIG_MAGIC, EECONFIG_MAGIC_NUMBER); }
+  29              		.loc 1 107 28 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34              		.loc 1 107 30 view .LVU1
+  35 0000 4FF6E961 		movw	r1, #65257
+  36 0004 0020     		movs	r0, #0
+  37 0006 FFF7FEBF 		b	eeprom_update_word
+  38              	.LVL0:
+  39              		.cfi_endproc
+  40              	.LFE335:
+  42              		.section	.text.eeconfig_disable,"ax",%progbits
+  43              		.align	1
+  44              		.global	eeconfig_disable
+  45              		.syntax unified
+  46              		.thumb
+  47              		.thumb_func
+  49              	eeconfig_disable:
+  50              	.LFB336:
+ 108:quantum/eeconfig.c **** 
+ 109:quantum/eeconfig.c **** /** \brief eeconfig disable
+ 110:quantum/eeconfig.c ****  *
+ 111:quantum/eeconfig.c ****  * FIXME: needs doc
+ 112:quantum/eeconfig.c ****  */
+ 113:quantum/eeconfig.c **** void eeconfig_disable(void) {
+  51              		.loc 1 113 29 view -0
+  52              		.cfi_startproc
+  53              		@ args = 0, pretend = 0, frame = 0
+  54              		@ frame_needed = 0, uses_anonymous_args = 0
+ 114:quantum/eeconfig.c **** #ifdef STM32_EEPROM_ENABLE
+ 115:quantum/eeconfig.c ****     EEPROM_Erase();
+  55              		.loc 1 115 5 view .LVU3
+ 113:quantum/eeconfig.c **** #ifdef STM32_EEPROM_ENABLE
+  56              		.loc 1 113 29 is_stmt 0 view .LVU4
+  57 0000 08B5     		push	{r3, lr}
+  58              		.cfi_def_cfa_offset 8
+  59              		.cfi_offset 3, -8
+  60              		.cfi_offset 14, -4
+  61              		.loc 1 115 5 view .LVU5
+  62 0002 FFF7FEFF 		bl	EEPROM_Erase
+  63              	.LVL1:
+ 116:quantum/eeconfig.c **** #endif
+ 117:quantum/eeconfig.c **** #if defined(EEPROM_DRIVER)
+ 118:quantum/eeconfig.c ****     eeprom_driver_erase();
+ 119:quantum/eeconfig.c **** #endif
+ 120:quantum/eeconfig.c ****     eeprom_update_word(EECONFIG_MAGIC, EECONFIG_MAGIC_NUMBER_OFF);
+  64              		.loc 1 120 5 is_stmt 1 view .LVU6
+ 121:quantum/eeconfig.c **** }
+  65              		.loc 1 121 1 is_stmt 0 view .LVU7
+  66 0006 BDE80840 		pop	{r3, lr}
+  67              		.cfi_restore 14
+  68              		.cfi_restore 3
+  69              		.cfi_def_cfa_offset 0
+ 120:quantum/eeconfig.c **** }
+  70              		.loc 1 120 5 view .LVU8
+  71 000a 4FF6FF71 		movw	r1, #65535
+  72 000e 0020     		movs	r0, #0
+  73 0010 FFF7FEBF 		b	eeprom_update_word
+  74              	.LVL2:
+  75              		.cfi_endproc
+  76              	.LFE336:
+  78              		.section	.text.eeconfig_is_enabled,"ax",%progbits
+  79              		.align	1
+  80              		.global	eeconfig_is_enabled
+  81              		.syntax unified
+  82              		.thumb
+  83              		.thumb_func
+  85              	eeconfig_is_enabled:
+  86              	.LFB337:
+ 122:quantum/eeconfig.c **** 
+ 123:quantum/eeconfig.c **** /** \brief eeconfig is enabled
+ 124:quantum/eeconfig.c ****  *
+ 125:quantum/eeconfig.c ****  * FIXME: needs doc
+ 126:quantum/eeconfig.c ****  */
+ 127:quantum/eeconfig.c **** bool eeconfig_is_enabled(void) {
+  87              		.loc 1 127 32 is_stmt 1 view -0
+  88              		.cfi_startproc
+  89              		@ args = 0, pretend = 0, frame = 0
+  90              		@ frame_needed = 0, uses_anonymous_args = 0
+ 128:quantum/eeconfig.c ****     bool is_eeprom_enabled = (eeprom_read_word(EECONFIG_MAGIC) == EECONFIG_MAGIC_NUMBER);
+  91              		.loc 1 128 5 view .LVU10
+ 127:quantum/eeconfig.c ****     bool is_eeprom_enabled = (eeprom_read_word(EECONFIG_MAGIC) == EECONFIG_MAGIC_NUMBER);
+  92              		.loc 1 127 32 is_stmt 0 view .LVU11
+  93 0000 08B5     		push	{r3, lr}
+  94              		.cfi_def_cfa_offset 8
+  95              		.cfi_offset 3, -8
+  96              		.cfi_offset 14, -4
+  97              		.loc 1 128 31 view .LVU12
+  98 0002 0020     		movs	r0, #0
+  99 0004 FFF7FEFF 		bl	eeprom_read_word
+ 100              	.LVL3:
+ 129:quantum/eeconfig.c **** #ifdef VIA_ENABLE
+ 130:quantum/eeconfig.c ****     if (is_eeprom_enabled) {
+ 131:quantum/eeconfig.c ****         is_eeprom_enabled = via_eeprom_is_valid();
+ 132:quantum/eeconfig.c ****     }
+ 133:quantum/eeconfig.c **** #endif
+ 134:quantum/eeconfig.c ****     return is_eeprom_enabled;
+ 101              		.loc 1 134 5 is_stmt 1 view .LVU13
+ 135:quantum/eeconfig.c **** }
+ 102              		.loc 1 135 1 is_stmt 0 view .LVU14
+ 103 0008 4FF6E963 		movw	r3, #65257
+ 104 000c C31A     		subs	r3, r0, r3
+ 105 000e 5842     		rsbs	r0, r3, #0
+ 106              	.LVL4:
+ 107              		.loc 1 135 1 view .LVU15
+ 108 0010 5841     		adcs	r0, r0, r3
+ 109 0012 08BD     		pop	{r3, pc}
+ 110              		.cfi_endproc
+ 111              	.LFE337:
+ 113              		.section	.text.eeconfig_is_disabled,"ax",%progbits
+ 114              		.align	1
+ 115              		.global	eeconfig_is_disabled
+ 116              		.syntax unified
+ 117              		.thumb
+ 118              		.thumb_func
+ 120              	eeconfig_is_disabled:
+ 121              	.LFB338:
+ 136:quantum/eeconfig.c **** 
+ 137:quantum/eeconfig.c **** /** \brief eeconfig is disabled
+ 138:quantum/eeconfig.c ****  *
+ 139:quantum/eeconfig.c ****  * FIXME: needs doc
+ 140:quantum/eeconfig.c ****  */
+ 141:quantum/eeconfig.c **** bool eeconfig_is_disabled(void) {
+ 122              		.loc 1 141 33 is_stmt 1 view -0
+ 123              		.cfi_startproc
+ 124              		@ args = 0, pretend = 0, frame = 0
+ 125              		@ frame_needed = 0, uses_anonymous_args = 0
+ 142:quantum/eeconfig.c ****     bool is_eeprom_disabled = (eeprom_read_word(EECONFIG_MAGIC) == EECONFIG_MAGIC_NUMBER_OFF);
+ 126              		.loc 1 142 5 view .LVU17
+ 141:quantum/eeconfig.c ****     bool is_eeprom_disabled = (eeprom_read_word(EECONFIG_MAGIC) == EECONFIG_MAGIC_NUMBER_OFF);
+ 127              		.loc 1 141 33 is_stmt 0 view .LVU18
+ 128 0000 08B5     		push	{r3, lr}
+ 129              		.cfi_def_cfa_offset 8
+ 130              		.cfi_offset 3, -8
+ 131              		.cfi_offset 14, -4
+ 132              		.loc 1 142 32 view .LVU19
+ 133 0002 0020     		movs	r0, #0
+ 134 0004 FFF7FEFF 		bl	eeprom_read_word
+ 135              	.LVL5:
+ 143:quantum/eeconfig.c **** #ifdef VIA_ENABLE
+ 144:quantum/eeconfig.c ****     if (!is_eeprom_disabled) {
+ 145:quantum/eeconfig.c ****         is_eeprom_disabled = !via_eeprom_is_valid();
+ 146:quantum/eeconfig.c ****     }
+ 147:quantum/eeconfig.c **** #endif
+ 148:quantum/eeconfig.c ****     return is_eeprom_disabled;
+ 136              		.loc 1 148 5 is_stmt 1 view .LVU20
+ 149:quantum/eeconfig.c **** }
+ 137              		.loc 1 149 1 is_stmt 0 view .LVU21
+ 138 0008 4FF6FF73 		movw	r3, #65535
+ 139 000c C31A     		subs	r3, r0, r3
+ 140 000e 5842     		rsbs	r0, r3, #0
+ 141              	.LVL6:
+ 142              		.loc 1 149 1 view .LVU22
+ 143 0010 5841     		adcs	r0, r0, r3
+ 144 0012 08BD     		pop	{r3, pc}
+ 145              		.cfi_endproc
+ 146              	.LFE338:
+ 148              		.section	.text.eeconfig_read_debug,"ax",%progbits
+ 149              		.align	1
+ 150              		.global	eeconfig_read_debug
+ 151              		.syntax unified
+ 152              		.thumb
+ 153              		.thumb_func
+ 155              	eeconfig_read_debug:
+ 156              	.LFB339:
+ 150:quantum/eeconfig.c **** 
+ 151:quantum/eeconfig.c **** /** \brief eeconfig read debug
+ 152:quantum/eeconfig.c ****  *
+ 153:quantum/eeconfig.c ****  * FIXME: needs doc
+ 154:quantum/eeconfig.c ****  */
+ 155:quantum/eeconfig.c **** uint8_t eeconfig_read_debug(void) { return eeprom_read_byte(EECONFIG_DEBUG); }
+ 157              		.loc 1 155 35 is_stmt 1 view -0
+ 158              		.cfi_startproc
+ 159              		@ args = 0, pretend = 0, frame = 0
+ 160              		@ frame_needed = 0, uses_anonymous_args = 0
+ 161              		@ link register save eliminated.
+ 162              		.loc 1 155 37 view .LVU24
+ 163              		.loc 1 155 44 is_stmt 0 view .LVU25
+ 164 0000 0220     		movs	r0, #2
+ 165 0002 FFF7FEBF 		b	eeprom_read_byte
+ 166              	.LVL7:
+ 167              		.cfi_endproc
+ 168              	.LFE339:
+ 170              		.section	.text.eeconfig_update_debug,"ax",%progbits
+ 171              		.align	1
+ 172              		.global	eeconfig_update_debug
+ 173              		.syntax unified
+ 174              		.thumb
+ 175              		.thumb_func
+ 177              	eeconfig_update_debug:
+ 178              	.LVL8:
+ 179              	.LFB340:
+ 156:quantum/eeconfig.c **** /** \brief eeconfig update debug
+ 157:quantum/eeconfig.c ****  *
+ 158:quantum/eeconfig.c ****  * FIXME: needs doc
+ 159:quantum/eeconfig.c ****  */
+ 160:quantum/eeconfig.c **** void eeconfig_update_debug(uint8_t val) { eeprom_update_byte(EECONFIG_DEBUG, val); }
+ 180              		.loc 1 160 41 is_stmt 1 view -0
+ 181              		.cfi_startproc
+ 182              		@ args = 0, pretend = 0, frame = 0
+ 183              		@ frame_needed = 0, uses_anonymous_args = 0
+ 184              		@ link register save eliminated.
+ 185              		.loc 1 160 43 view .LVU27
+ 186              		.loc 1 160 41 is_stmt 0 view .LVU28
+ 187 0000 0146     		mov	r1, r0
+ 188              		.loc 1 160 43 view .LVU29
+ 189 0002 0220     		movs	r0, #2
+ 190              	.LVL9:
+ 191              		.loc 1 160 43 view .LVU30
+ 192 0004 FFF7FEBF 		b	eeprom_update_byte
+ 193              	.LVL10:
+ 194              		.cfi_endproc
+ 195              	.LFE340:
+ 197              		.section	.text.eeconfig_read_default_layer,"ax",%progbits
+ 198              		.align	1
+ 199              		.global	eeconfig_read_default_layer
+ 200              		.syntax unified
+ 201              		.thumb
+ 202              		.thumb_func
+ 204              	eeconfig_read_default_layer:
+ 205              	.LFB341:
+ 161:quantum/eeconfig.c **** 
+ 162:quantum/eeconfig.c **** /** \brief eeconfig read default layer
+ 163:quantum/eeconfig.c ****  *
+ 164:quantum/eeconfig.c ****  * FIXME: needs doc
+ 165:quantum/eeconfig.c ****  */
+ 166:quantum/eeconfig.c **** uint8_t eeconfig_read_default_layer(void) { return eeprom_read_byte(EECONFIG_DEFAULT_LAYER); }
+ 206              		.loc 1 166 43 is_stmt 1 view -0
+ 207              		.cfi_startproc
+ 208              		@ args = 0, pretend = 0, frame = 0
+ 209              		@ frame_needed = 0, uses_anonymous_args = 0
+ 210              		@ link register save eliminated.
+ 211              		.loc 1 166 45 view .LVU32
+ 212              		.loc 1 166 52 is_stmt 0 view .LVU33
+ 213 0000 0320     		movs	r0, #3
+ 214 0002 FFF7FEBF 		b	eeprom_read_byte
+ 215              	.LVL11:
+ 216              		.cfi_endproc
+ 217              	.LFE341:
+ 219              		.section	.text.eeconfig_update_default_layer,"ax",%progbits
+ 220              		.align	1
+ 221              		.global	eeconfig_update_default_layer
+ 222              		.syntax unified
+ 223              		.thumb
+ 224              		.thumb_func
+ 226              	eeconfig_update_default_layer:
+ 227              	.LVL12:
+ 228              	.LFB342:
+ 167:quantum/eeconfig.c **** /** \brief eeconfig update default layer
+ 168:quantum/eeconfig.c ****  *
+ 169:quantum/eeconfig.c ****  * FIXME: needs doc
+ 170:quantum/eeconfig.c ****  */
+ 171:quantum/eeconfig.c **** void eeconfig_update_default_layer(uint8_t val) { eeprom_update_byte(EECONFIG_DEFAULT_LAYER, val); 
+ 229              		.loc 1 171 49 is_stmt 1 view -0
+ 230              		.cfi_startproc
+ 231              		@ args = 0, pretend = 0, frame = 0
+ 232              		@ frame_needed = 0, uses_anonymous_args = 0
+ 233              		@ link register save eliminated.
+ 234              		.loc 1 171 51 view .LVU35
+ 235              		.loc 1 171 49 is_stmt 0 view .LVU36
+ 236 0000 0146     		mov	r1, r0
+ 237              		.loc 1 171 51 view .LVU37
+ 238 0002 0320     		movs	r0, #3
+ 239              	.LVL13:
+ 240              		.loc 1 171 51 view .LVU38
+ 241 0004 FFF7FEBF 		b	eeprom_update_byte
+ 242              	.LVL14:
+ 243              		.cfi_endproc
+ 244              	.LFE342:
+ 246              		.section	.text.eeconfig_read_keymap,"ax",%progbits
+ 247              		.align	1
+ 248              		.global	eeconfig_read_keymap
+ 249              		.syntax unified
+ 250              		.thumb
+ 251              		.thumb_func
+ 253              	eeconfig_read_keymap:
+ 254              	.LFB343:
+ 172:quantum/eeconfig.c **** 
+ 173:quantum/eeconfig.c **** /** \brief eeconfig read keymap
+ 174:quantum/eeconfig.c ****  *
+ 175:quantum/eeconfig.c ****  * FIXME: needs doc
+ 176:quantum/eeconfig.c ****  */
+ 177:quantum/eeconfig.c **** uint16_t eeconfig_read_keymap(void) { return (eeprom_read_byte(EECONFIG_KEYMAP_LOWER_BYTE) | (eepro
+ 255              		.loc 1 177 37 is_stmt 1 view -0
+ 256              		.cfi_startproc
+ 257              		@ args = 0, pretend = 0, frame = 0
+ 258              		@ frame_needed = 0, uses_anonymous_args = 0
+ 259              		.loc 1 177 39 view .LVU40
+ 260              		.loc 1 177 37 is_stmt 0 view .LVU41
+ 261 0000 10B5     		push	{r4, lr}
+ 262              		.cfi_def_cfa_offset 8
+ 263              		.cfi_offset 4, -8
+ 264              		.cfi_offset 14, -4
+ 265              		.loc 1 177 47 view .LVU42
+ 266 0002 0420     		movs	r0, #4
+ 267 0004 FFF7FEFF 		bl	eeprom_read_byte
+ 268              	.LVL15:
+ 269 0008 0446     		mov	r4, r0
+ 270              		.loc 1 177 95 view .LVU43
+ 271 000a 2220     		movs	r0, #34
+ 272 000c FFF7FEFF 		bl	eeprom_read_byte
+ 273              	.LVL16:
+ 274              		.loc 1 177 92 view .LVU44
+ 275 0010 44EA0020 		orr	r0, r4, r0, lsl #8
+ 276              		.loc 1 177 148 view .LVU45
+ 277 0014 80B2     		uxth	r0, r0
+ 278 0016 10BD     		pop	{r4, pc}
+ 279              		.cfi_endproc
+ 280              	.LFE343:
+ 282              		.section	.text.eeconfig_update_keymap,"ax",%progbits
+ 283              		.align	1
+ 284              		.global	eeconfig_update_keymap
+ 285              		.syntax unified
+ 286              		.thumb
+ 287              		.thumb_func
+ 289              	eeconfig_update_keymap:
+ 290              	.LVL17:
+ 291              	.LFB344:
+ 178:quantum/eeconfig.c **** /** \brief eeconfig update keymap
+ 179:quantum/eeconfig.c ****  *
+ 180:quantum/eeconfig.c ****  * FIXME: needs doc
+ 181:quantum/eeconfig.c ****  */
+ 182:quantum/eeconfig.c **** void eeconfig_update_keymap(uint16_t val) {
+ 292              		.loc 1 182 43 is_stmt 1 view -0
+ 293              		.cfi_startproc
+ 294              		@ args = 0, pretend = 0, frame = 0
+ 295              		@ frame_needed = 0, uses_anonymous_args = 0
+ 183:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, val & 0xFF);
+ 296              		.loc 1 183 5 view .LVU47
+ 182:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, val & 0xFF);
+ 297              		.loc 1 182 43 is_stmt 0 view .LVU48
+ 298 0000 10B5     		push	{r4, lr}
+ 299              		.cfi_def_cfa_offset 8
+ 300              		.cfi_offset 4, -8
+ 301              		.cfi_offset 14, -4
+ 302              		.loc 1 183 5 view .LVU49
+ 303 0002 C1B2     		uxtb	r1, r0
+ 182:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, val & 0xFF);
+ 304              		.loc 1 182 43 view .LVU50
+ 305 0004 0446     		mov	r4, r0
+ 306              		.loc 1 183 5 view .LVU51
+ 307 0006 0420     		movs	r0, #4
+ 308              	.LVL18:
+ 309              		.loc 1 183 5 view .LVU52
+ 310 0008 FFF7FEFF 		bl	eeprom_update_byte
+ 311              	.LVL19:
+ 184:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_UPPER_BYTE, (val >> 8) & 0xFF);
+ 312              		.loc 1 184 5 is_stmt 1 view .LVU53
+ 313 000c 210A     		lsrs	r1, r4, #8
+ 314 000e 2220     		movs	r0, #34
+ 185:quantum/eeconfig.c **** }
+ 315              		.loc 1 185 1 is_stmt 0 view .LVU54
+ 316 0010 BDE81040 		pop	{r4, lr}
+ 317              		.cfi_restore 14
+ 318              		.cfi_restore 4
+ 319              		.cfi_def_cfa_offset 0
+ 184:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_UPPER_BYTE, (val >> 8) & 0xFF);
+ 320              		.loc 1 184 5 view .LVU55
+ 321 0014 FFF7FEBF 		b	eeprom_update_byte
+ 322              	.LVL20:
+ 323              		.cfi_endproc
+ 324              	.LFE344:
+ 326              		.section	.text.eeconfig_read_audio,"ax",%progbits
+ 327              		.align	1
+ 328              		.global	eeconfig_read_audio
+ 329              		.syntax unified
+ 330              		.thumb
+ 331              		.thumb_func
+ 333              	eeconfig_read_audio:
+ 334              	.LFB345:
+ 186:quantum/eeconfig.c **** 
+ 187:quantum/eeconfig.c **** /** \brief eeconfig read audio
+ 188:quantum/eeconfig.c ****  *
+ 189:quantum/eeconfig.c ****  * FIXME: needs doc
+ 190:quantum/eeconfig.c ****  */
+ 191:quantum/eeconfig.c **** uint8_t eeconfig_read_audio(void) { return eeprom_read_byte(EECONFIG_AUDIO); }
+ 335              		.loc 1 191 35 is_stmt 1 view -0
+ 336              		.cfi_startproc
+ 337              		@ args = 0, pretend = 0, frame = 0
+ 338              		@ frame_needed = 0, uses_anonymous_args = 0
+ 339              		@ link register save eliminated.
+ 340              		.loc 1 191 37 view .LVU57
+ 341              		.loc 1 191 44 is_stmt 0 view .LVU58
+ 342 0000 0720     		movs	r0, #7
+ 343 0002 FFF7FEBF 		b	eeprom_read_byte
+ 344              	.LVL21:
+ 345              		.cfi_endproc
+ 346              	.LFE345:
+ 348              		.section	.text.eeconfig_update_audio,"ax",%progbits
+ 349              		.align	1
+ 350              		.global	eeconfig_update_audio
+ 351              		.syntax unified
+ 352              		.thumb
+ 353              		.thumb_func
+ 355              	eeconfig_update_audio:
+ 356              	.LVL22:
+ 357              	.LFB346:
+ 192:quantum/eeconfig.c **** /** \brief eeconfig update audio
+ 193:quantum/eeconfig.c ****  *
+ 194:quantum/eeconfig.c ****  * FIXME: needs doc
+ 195:quantum/eeconfig.c ****  */
+ 196:quantum/eeconfig.c **** void eeconfig_update_audio(uint8_t val) { eeprom_update_byte(EECONFIG_AUDIO, val); }
+ 358              		.loc 1 196 41 is_stmt 1 view -0
+ 359              		.cfi_startproc
+ 360              		@ args = 0, pretend = 0, frame = 0
+ 361              		@ frame_needed = 0, uses_anonymous_args = 0
+ 362              		@ link register save eliminated.
+ 363              		.loc 1 196 43 view .LVU60
+ 364              		.loc 1 196 41 is_stmt 0 view .LVU61
+ 365 0000 0146     		mov	r1, r0
+ 366              		.loc 1 196 43 view .LVU62
+ 367 0002 0720     		movs	r0, #7
+ 368              	.LVL23:
+ 369              		.loc 1 196 43 view .LVU63
+ 370 0004 FFF7FEBF 		b	eeprom_update_byte
+ 371              	.LVL24:
+ 372              		.cfi_endproc
+ 373              	.LFE346:
+ 375              		.section	.text.eeconfig_read_kb,"ax",%progbits
+ 376              		.align	1
+ 377              		.global	eeconfig_read_kb
+ 378              		.syntax unified
+ 379              		.thumb
+ 380              		.thumb_func
+ 382              	eeconfig_read_kb:
+ 383              	.LFB347:
+ 197:quantum/eeconfig.c **** 
+ 198:quantum/eeconfig.c **** /** \brief eeconfig read kb
+ 199:quantum/eeconfig.c ****  *
+ 200:quantum/eeconfig.c ****  * FIXME: needs doc
+ 201:quantum/eeconfig.c ****  */
+ 202:quantum/eeconfig.c **** uint32_t eeconfig_read_kb(void) { return eeprom_read_dword(EECONFIG_KEYBOARD); }
+ 384              		.loc 1 202 33 is_stmt 1 view -0
+ 385              		.cfi_startproc
+ 386              		@ args = 0, pretend = 0, frame = 0
+ 387              		@ frame_needed = 0, uses_anonymous_args = 0
+ 388              		@ link register save eliminated.
+ 389              		.loc 1 202 35 view .LVU65
+ 390              		.loc 1 202 42 is_stmt 0 view .LVU66
+ 391 0000 0F20     		movs	r0, #15
+ 392 0002 FFF7FEBF 		b	eeprom_read_dword
+ 393              	.LVL25:
+ 394              		.cfi_endproc
+ 395              	.LFE347:
+ 397              		.section	.text.eeconfig_update_kb,"ax",%progbits
+ 398              		.align	1
+ 399              		.global	eeconfig_update_kb
+ 400              		.syntax unified
+ 401              		.thumb
+ 402              		.thumb_func
+ 404              	eeconfig_update_kb:
+ 405              	.LVL26:
+ 406              	.LFB348:
+ 203:quantum/eeconfig.c **** /** \brief eeconfig update kb
+ 204:quantum/eeconfig.c ****  *
+ 205:quantum/eeconfig.c ****  * FIXME: needs doc
+ 206:quantum/eeconfig.c ****  */
+ 207:quantum/eeconfig.c **** void eeconfig_update_kb(uint32_t val) { eeprom_update_dword(EECONFIG_KEYBOARD, val); }
+ 407              		.loc 1 207 39 is_stmt 1 view -0
+ 408              		.cfi_startproc
+ 409              		@ args = 0, pretend = 0, frame = 0
+ 410              		@ frame_needed = 0, uses_anonymous_args = 0
+ 411              		@ link register save eliminated.
+ 412              		.loc 1 207 41 view .LVU68
+ 413              		.loc 1 207 39 is_stmt 0 view .LVU69
+ 414 0000 0146     		mov	r1, r0
+ 415              		.loc 1 207 41 view .LVU70
+ 416 0002 0F20     		movs	r0, #15
+ 417              	.LVL27:
+ 418              		.loc 1 207 41 view .LVU71
+ 419 0004 FFF7FEBF 		b	eeprom_update_dword
+ 420              	.LVL28:
+ 421              		.loc 1 207 41 view .LVU72
+ 422              		.cfi_endproc
+ 423              	.LFE348:
+ 425              		.section	.text.eeconfig_read_user,"ax",%progbits
+ 426              		.align	1
+ 427              		.global	eeconfig_read_user
+ 428              		.syntax unified
+ 429              		.thumb
+ 430              		.thumb_func
+ 432              	eeconfig_read_user:
+ 433              	.LFB349:
+ 208:quantum/eeconfig.c **** 
+ 209:quantum/eeconfig.c **** /** \brief eeconfig read user
+ 210:quantum/eeconfig.c ****  *
+ 211:quantum/eeconfig.c ****  * FIXME: needs doc
+ 212:quantum/eeconfig.c ****  */
+ 213:quantum/eeconfig.c **** uint32_t eeconfig_read_user(void) { return eeprom_read_dword(EECONFIG_USER); }
+ 434              		.loc 1 213 35 is_stmt 1 view -0
+ 435              		.cfi_startproc
+ 436              		@ args = 0, pretend = 0, frame = 0
+ 437              		@ frame_needed = 0, uses_anonymous_args = 0
+ 438              		@ link register save eliminated.
+ 439              		.loc 1 213 37 view .LVU74
+ 440              		.loc 1 213 44 is_stmt 0 view .LVU75
+ 441 0000 1320     		movs	r0, #19
+ 442 0002 FFF7FEBF 		b	eeprom_read_dword
+ 443              	.LVL29:
+ 444              		.cfi_endproc
+ 445              	.LFE349:
+ 447              		.section	.text.eeconfig_update_user,"ax",%progbits
+ 448              		.align	1
+ 449              		.global	eeconfig_update_user
+ 450              		.syntax unified
+ 451              		.thumb
+ 452              		.thumb_func
+ 454              	eeconfig_update_user:
+ 455              	.LVL30:
+ 456              	.LFB350:
+ 214:quantum/eeconfig.c **** /** \brief eeconfig update user
+ 215:quantum/eeconfig.c ****  *
+ 216:quantum/eeconfig.c ****  * FIXME: needs doc
+ 217:quantum/eeconfig.c ****  */
+ 218:quantum/eeconfig.c **** void eeconfig_update_user(uint32_t val) { eeprom_update_dword(EECONFIG_USER, val); }
+ 457              		.loc 1 218 41 is_stmt 1 view -0
+ 458              		.cfi_startproc
+ 459              		@ args = 0, pretend = 0, frame = 0
+ 460              		@ frame_needed = 0, uses_anonymous_args = 0
+ 461              		@ link register save eliminated.
+ 462              		.loc 1 218 43 view .LVU77
+ 463              		.loc 1 218 41 is_stmt 0 view .LVU78
+ 464 0000 0146     		mov	r1, r0
+ 465              		.loc 1 218 43 view .LVU79
+ 466 0002 1320     		movs	r0, #19
+ 467              	.LVL31:
+ 468              		.loc 1 218 43 view .LVU80
+ 469 0004 FFF7FEBF 		b	eeprom_update_dword
+ 470              	.LVL32:
+ 471              		.loc 1 218 43 view .LVU81
+ 472              		.cfi_endproc
+ 473              	.LFE350:
+ 475              		.section	.text.eeconfig_init_user,"ax",%progbits
+ 476              		.align	1
+ 477              		.weak	eeconfig_init_user
+ 478              		.syntax unified
+ 479              		.thumb
+ 480              		.thumb_func
+ 482              	eeconfig_init_user:
+ 483              	.LFB331:
+  30:quantum/eeconfig.c ****     // Reset user EEPROM value to blank, rather than to a set value
+ 484              		.loc 1 30 53 is_stmt 1 view -0
+ 485              		.cfi_startproc
+ 486              		@ args = 0, pretend = 0, frame = 0
+ 487              		@ frame_needed = 0, uses_anonymous_args = 0
+ 488              		@ link register save eliminated.
+  32:quantum/eeconfig.c **** }
+ 489              		.loc 1 32 5 view .LVU83
+ 490 0000 0020     		movs	r0, #0
+ 491 0002 FFF7FEBF 		b	eeconfig_update_user
+ 492              	.LVL33:
+ 493              		.cfi_endproc
+ 494              	.LFE331:
+ 496              		.section	.text.eeconfig_init_kb,"ax",%progbits
+ 497              		.align	1
+ 498              		.weak	eeconfig_init_kb
+ 499              		.syntax unified
+ 500              		.thumb
+ 501              		.thumb_func
+ 503              	eeconfig_init_kb:
+ 504              	.LFB332:
+  35:quantum/eeconfig.c ****     // Reset Keyboard EEPROM value to blank, rather than to a set value
+ 505              		.loc 1 35 51 view -0
+ 506              		.cfi_startproc
+ 507              		@ args = 0, pretend = 0, frame = 0
+ 508              		@ frame_needed = 0, uses_anonymous_args = 0
+  37:quantum/eeconfig.c **** 
+ 509              		.loc 1 37 5 view .LVU85
+  35:quantum/eeconfig.c ****     // Reset Keyboard EEPROM value to blank, rather than to a set value
+ 510              		.loc 1 35 51 is_stmt 0 view .LVU86
+ 511 0000 08B5     		push	{r3, lr}
+ 512              		.cfi_def_cfa_offset 8
+ 513              		.cfi_offset 3, -8
+ 514              		.cfi_offset 14, -4
+  37:quantum/eeconfig.c **** 
+ 515              		.loc 1 37 5 view .LVU87
+ 516 0002 0020     		movs	r0, #0
+ 517 0004 FFF7FEFF 		bl	eeconfig_update_kb
+ 518              	.LVL34:
+  39:quantum/eeconfig.c **** }
+ 519              		.loc 1 39 5 is_stmt 1 view .LVU88
+ 520 0008 FFF7FEFF 		bl	eeconfig_init_user
+ 521              	.LVL35:
+  40:quantum/eeconfig.c **** 
+ 522              		.loc 1 40 1 is_stmt 0 view .LVU89
+ 523 000c 08BD     		pop	{r3, pc}
+ 524              		.cfi_endproc
+ 525              	.LFE332:
+ 527              		.section	.text.eeconfig_init_quantum,"ax",%progbits
+ 528              		.align	1
+ 529              		.global	eeconfig_init_quantum
+ 530              		.syntax unified
+ 531              		.thumb
+ 532              		.thumb_func
+ 534              	eeconfig_init_quantum:
+ 535              	.LFB333:
+  45:quantum/eeconfig.c **** #ifdef STM32_EEPROM_ENABLE
+ 536              		.loc 1 45 34 is_stmt 1 view -0
+ 537              		.cfi_startproc
+ 538              		@ args = 0, pretend = 0, frame = 0
+ 539              		@ frame_needed = 0, uses_anonymous_args = 0
+  47:quantum/eeconfig.c **** #endif
+ 540              		.loc 1 47 5 view .LVU91
+  45:quantum/eeconfig.c **** #ifdef STM32_EEPROM_ENABLE
+ 541              		.loc 1 45 34 is_stmt 0 view .LVU92
+ 542 0000 10B5     		push	{r4, lr}
+ 543              		.cfi_def_cfa_offset 8
+ 544              		.cfi_offset 4, -8
+ 545              		.cfi_offset 14, -4
+  47:quantum/eeconfig.c **** #endif
+ 546              		.loc 1 47 5 view .LVU93
+ 547 0002 FFF7FEFF 		bl	EEPROM_Erase
+ 548              	.LVL36:
+  52:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_DEBUG, 0);
+ 549              		.loc 1 52 5 is_stmt 1 view .LVU94
+ 550 0006 4FF6E961 		movw	r1, #65257
+ 551 000a 0020     		movs	r0, #0
+ 552 000c FFF7FEFF 		bl	eeprom_update_word
+ 553              	.LVL37:
+  53:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_DEFAULT_LAYER, 0);
+ 554              		.loc 1 53 5 view .LVU95
+ 555 0010 0021     		movs	r1, #0
+ 556 0012 0220     		movs	r0, #2
+ 557 0014 FFF7FEFF 		bl	eeprom_update_byte
+ 558              	.LVL38:
+  54:quantum/eeconfig.c ****     default_layer_state = 0;
+ 559              		.loc 1 54 5 view .LVU96
+ 560 0018 0021     		movs	r1, #0
+ 561 001a 0320     		movs	r0, #3
+  55:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, 0);
+ 562              		.loc 1 55 25 is_stmt 0 view .LVU97
+ 563 001c 0024     		movs	r4, #0
+  54:quantum/eeconfig.c ****     default_layer_state = 0;
+ 564              		.loc 1 54 5 view .LVU98
+ 565 001e FFF7FEFF 		bl	eeprom_update_byte
+ 566              	.LVL39:
+  55:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, 0);
+ 567              		.loc 1 55 5 is_stmt 1 view .LVU99
+  55:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, 0);
+ 568              		.loc 1 55 25 is_stmt 0 view .LVU100
+ 569 0022 1A4B     		ldr	r3, .L20
+  56:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_UPPER_BYTE, 0);
+ 570              		.loc 1 56 5 view .LVU101
+ 571 0024 2146     		mov	r1, r4
+ 572 0026 0420     		movs	r0, #4
+  55:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_LOWER_BYTE, 0);
+ 573              		.loc 1 55 25 view .LVU102
+ 574 0028 1C60     		str	r4, [r3]
+  56:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_KEYMAP_UPPER_BYTE, 0);
+ 575              		.loc 1 56 5 is_stmt 1 view .LVU103
+ 576 002a FFF7FEFF 		bl	eeprom_update_byte
+ 577              	.LVL40:
+  57:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_MOUSEKEY_ACCEL, 0);
+ 578              		.loc 1 57 5 view .LVU104
+ 579 002e 2146     		mov	r1, r4
+ 580 0030 2220     		movs	r0, #34
+ 581 0032 FFF7FEFF 		bl	eeprom_update_byte
+ 582              	.LVL41:
+  58:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_BACKLIGHT, 0);
+ 583              		.loc 1 58 5 view .LVU105
+ 584 0036 2146     		mov	r1, r4
+ 585 0038 0520     		movs	r0, #5
+ 586 003a FFF7FEFF 		bl	eeprom_update_byte
+ 587              	.LVL42:
+  59:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_AUDIO, 0xFF);  // On by default
+ 588              		.loc 1 59 5 view .LVU106
+ 589 003e 2146     		mov	r1, r4
+ 590 0040 0620     		movs	r0, #6
+ 591 0042 FFF7FEFF 		bl	eeprom_update_byte
+ 592              	.LVL43:
+  60:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_RGBLIGHT, 0);
+ 593              		.loc 1 60 5 view .LVU107
+ 594 0046 FF21     		movs	r1, #255
+ 595 0048 0720     		movs	r0, #7
+ 596 004a FFF7FEFF 		bl	eeprom_update_byte
+ 597              	.LVL44:
+  61:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_STENOMODE, 0);
+ 598              		.loc 1 61 5 view .LVU108
+ 599 004e 2146     		mov	r1, r4
+ 600 0050 0820     		movs	r0, #8
+ 601 0052 FFF7FEFF 		bl	eeprom_update_dword
+ 602              	.LVL45:
+  62:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_HAPTIC, 0);
+ 603              		.loc 1 62 5 view .LVU109
+ 604 0056 2146     		mov	r1, r4
+ 605 0058 0D20     		movs	r0, #13
+ 606 005a FFF7FEFF 		bl	eeprom_update_byte
+ 607              	.LVL46:
+  63:quantum/eeconfig.c ****     eeprom_update_byte(EECONFIG_VELOCIKEY, 0);
+ 608              		.loc 1 63 5 view .LVU110
+ 609 005e 2146     		mov	r1, r4
+ 610 0060 1820     		movs	r0, #24
+ 611 0062 FFF7FEFF 		bl	eeprom_update_dword
+ 612              	.LVL47:
+  64:quantum/eeconfig.c ****     eeprom_update_dword(EECONFIG_RGB_MATRIX, 0);
+ 613              		.loc 1 64 5 view .LVU111
+ 614 0066 2146     		mov	r1, r4
+ 615 0068 1720     		movs	r0, #23
+ 616 006a FFF7FEFF 		bl	eeprom_update_byte
+ 617              	.LVL48:
+  65:quantum/eeconfig.c ****     eeprom_update_word(EECONFIG_RGB_MATRIX_EXTENDED, 0);
+ 618              		.loc 1 65 5 view .LVU112
+ 619 006e 2146     		mov	r1, r4
+ 620 0070 1C20     		movs	r0, #28
+ 621 0072 FFF7FEFF 		bl	eeprom_update_dword
+ 622              	.LVL49:
+  66:quantum/eeconfig.c **** 
+ 623              		.loc 1 66 5 view .LVU113
+ 624 0076 2146     		mov	r1, r4
+ 625 0078 2020     		movs	r0, #32
+ 626 007a FFF7FEFF 		bl	eeprom_update_word
+ 627              	.LVL50:
+  84:quantum/eeconfig.c **** #endif
+ 628              		.loc 1 84 5 view .LVU114
+ 629 007e 2146     		mov	r1, r4
+ 630 0080 1820     		movs	r0, #24
+ 631 0082 FFF7FEFF 		bl	eeprom_update_dword
+ 632              	.LVL51:
+  94:quantum/eeconfig.c **** }
+ 633              		.loc 1 94 5 view .LVU115
+ 634 0086 FFF7FEFF 		bl	eeconfig_init_kb
+ 635              	.LVL52:
+  95:quantum/eeconfig.c **** 
+ 636              		.loc 1 95 1 is_stmt 0 view .LVU116
+ 637 008a 10BD     		pop	{r4, pc}
+ 638              	.L21:
+ 639              		.align	2
+ 640              	.L20:
+ 641 008c 00000000 		.word	default_layer_state
+ 642              		.cfi_endproc
+ 643              	.LFE333:
+ 645              		.section	.text.eeconfig_init,"ax",%progbits
+ 646              		.align	1
+ 647              		.global	eeconfig_init
+ 648              		.syntax unified
+ 649              		.thumb
+ 650              		.thumb_func
+ 652              	eeconfig_init:
+ 653              	.LFB334:
+ 101:quantum/eeconfig.c **** 
+ 654              		.loc 1 101 26 is_stmt 1 view -0
+ 655              		.cfi_startproc
+ 656              		@ args = 0, pretend = 0, frame = 0
+ 657              		@ frame_needed = 0, uses_anonymous_args = 0
+ 658              		@ link register save eliminated.
+ 101:quantum/eeconfig.c **** 
+ 659              		.loc 1 101 28 view .LVU118
+ 660 0000 FFF7FEBF 		b	eeconfig_init_quantum
+ 661              	.LVL53:
+ 662              		.cfi_endproc
+ 663              	.LFE334:
+ 665              		.section	.text.eeconfig_read_haptic,"ax",%progbits
+ 666              		.align	1
+ 667              		.global	eeconfig_read_haptic
+ 668              		.syntax unified
+ 669              		.thumb
+ 670              		.thumb_func
+ 672              	eeconfig_read_haptic:
+ 673              	.LFB351:
+ 219:quantum/eeconfig.c **** 
+ 220:quantum/eeconfig.c **** /** \brief eeconfig read haptic
+ 221:quantum/eeconfig.c ****  *
+ 222:quantum/eeconfig.c ****  * FIXME: needs doc
+ 223:quantum/eeconfig.c ****  */
+ 224:quantum/eeconfig.c **** uint32_t eeconfig_read_haptic(void) { return eeprom_read_dword(EECONFIG_HAPTIC); }
+ 674              		.loc 1 224 37 view -0
+ 675              		.cfi_startproc
+ 676              		@ args = 0, pretend = 0, frame = 0
+ 677              		@ frame_needed = 0, uses_anonymous_args = 0
+ 678              		@ link register save eliminated.
+ 679              		.loc 1 224 39 view .LVU120
+ 680              		.loc 1 224 46 is_stmt 0 view .LVU121
+ 681 0000 1820     		movs	r0, #24
+ 682 0002 FFF7FEBF 		b	eeprom_read_dword
+ 683              	.LVL54:
+ 684              		.cfi_endproc
+ 685              	.LFE351:
+ 687              		.section	.text.eeconfig_update_haptic,"ax",%progbits
+ 688              		.align	1
+ 689              		.global	eeconfig_update_haptic
+ 690              		.syntax unified
+ 691              		.thumb
+ 692              		.thumb_func
+ 694              	eeconfig_update_haptic:
+ 695              	.LVL55:
+ 696              	.LFB352:
+ 225:quantum/eeconfig.c **** /** \brief eeconfig update haptic
+ 226:quantum/eeconfig.c ****  *
+ 227:quantum/eeconfig.c ****  * FIXME: needs doc
+ 228:quantum/eeconfig.c ****  */
+ 229:quantum/eeconfig.c **** void eeconfig_update_haptic(uint32_t val) { eeprom_update_dword(EECONFIG_HAPTIC, val); }
+ 697              		.loc 1 229 43 is_stmt 1 view -0
+ 698              		.cfi_startproc
+ 699              		@ args = 0, pretend = 0, frame = 0
+ 700              		@ frame_needed = 0, uses_anonymous_args = 0
+ 701              		@ link register save eliminated.
+ 702              		.loc 1 229 45 view .LVU123
+ 703              		.loc 1 229 43 is_stmt 0 view .LVU124
+ 704 0000 0146     		mov	r1, r0
+ 705              		.loc 1 229 45 view .LVU125
+ 706 0002 1820     		movs	r0, #24
+ 707              	.LVL56:
+ 708              		.loc 1 229 45 view .LVU126
+ 709 0004 FFF7FEBF 		b	eeprom_update_dword
+ 710              	.LVL57:
+ 711              		.loc 1 229 45 view .LVU127
+ 712              		.cfi_endproc
+ 713              	.LFE352:
+ 715              		.section	.text.eeconfig_read_handedness,"ax",%progbits
+ 716              		.align	1
+ 717              		.global	eeconfig_read_handedness
+ 718              		.syntax unified
+ 719              		.thumb
+ 720              		.thumb_func
+ 722              	eeconfig_read_handedness:
+ 723              	.LFB353:
+ 230:quantum/eeconfig.c **** 
+ 231:quantum/eeconfig.c **** /** \brief eeconfig read split handedness
+ 232:quantum/eeconfig.c ****  *
+ 233:quantum/eeconfig.c ****  * FIXME: needs doc
+ 234:quantum/eeconfig.c ****  */
+ 235:quantum/eeconfig.c **** bool eeconfig_read_handedness(void) { return !!eeprom_read_byte(EECONFIG_HANDEDNESS); }
+ 724              		.loc 1 235 37 is_stmt 1 view -0
+ 725              		.cfi_startproc
+ 726              		@ args = 0, pretend = 0, frame = 0
+ 727              		@ frame_needed = 0, uses_anonymous_args = 0
+ 728              		.loc 1 235 39 view .LVU129
+ 729              		.loc 1 235 37 is_stmt 0 view .LVU130
+ 730 0000 08B5     		push	{r3, lr}
+ 731              		.cfi_def_cfa_offset 8
+ 732              		.cfi_offset 3, -8
+ 733              		.cfi_offset 14, -4
+ 734              		.loc 1 235 48 view .LVU131
+ 735 0002 0E20     		movs	r0, #14
+ 736 0004 FFF7FEFF 		bl	eeprom_read_byte
+ 737              	.LVL58:
+ 738              		.loc 1 235 87 view .LVU132
+ 739 0008 0038     		subs	r0, r0, #0
+ 740 000a 18BF     		it	ne
+ 741 000c 0120     		movne	r0, #1
+ 742 000e 08BD     		pop	{r3, pc}
+ 743              		.cfi_endproc
+ 744              	.LFE353:
+ 746              		.section	.text.eeconfig_update_handedness,"ax",%progbits
+ 747              		.align	1
+ 748              		.global	eeconfig_update_handedness
+ 749              		.syntax unified
+ 750              		.thumb
+ 751              		.thumb_func
+ 753              	eeconfig_update_handedness:
+ 754              	.LVL59:
+ 755              	.LFB354:
+ 236:quantum/eeconfig.c **** /** \brief eeconfig update split handedness
+ 237:quantum/eeconfig.c ****  *
+ 238:quantum/eeconfig.c ****  * FIXME: needs doc
+ 239:quantum/eeconfig.c ****  */
+ 240:quantum/eeconfig.c **** void eeconfig_update_handedness(bool val) { eeprom_update_byte(EECONFIG_HANDEDNESS, !!val); }
+ 756              		.loc 1 240 43 is_stmt 1 view -0
+ 757              		.cfi_startproc
+ 758              		@ args = 0, pretend = 0, frame = 0
+ 759              		@ frame_needed = 0, uses_anonymous_args = 0
+ 760              		@ link register save eliminated.
+ 761              		.loc 1 240 45 view .LVU134
+ 762              		.loc 1 240 43 is_stmt 0 view .LVU135
+ 763 0000 0146     		mov	r1, r0
+ 764              		.loc 1 240 45 view .LVU136
+ 765 0002 0E20     		movs	r0, #14
+ 766              	.LVL60:
+ 767              		.loc 1 240 45 view .LVU137
+ 768 0004 FFF7FEBF 		b	eeprom_update_byte
+ 769              	.LVL61:
+ 770              		.cfi_endproc
+ 771              	.LFE354:
+ 773              		.text
+ 774              	.Letext0:
+ 775              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 776              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 777              		.file 4 "quantum/action_layer.h"
+ 778              		.file 5 "tmk_core/common/eeprom.h"
+ 779              		.file 6 "tmk_core/common/chibios/eeprom_stm32.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 eeconfig.c
+     /tmp/ccxN5a9o.s:21     .text.eeconfig_enable:0000000000000000 $t
+     /tmp/ccxN5a9o.s:27     .text.eeconfig_enable:0000000000000000 eeconfig_enable
+     /tmp/ccxN5a9o.s:43     .text.eeconfig_disable:0000000000000000 $t
+     /tmp/ccxN5a9o.s:49     .text.eeconfig_disable:0000000000000000 eeconfig_disable
+     /tmp/ccxN5a9o.s:79     .text.eeconfig_is_enabled:0000000000000000 $t
+     /tmp/ccxN5a9o.s:85     .text.eeconfig_is_enabled:0000000000000000 eeconfig_is_enabled
+     /tmp/ccxN5a9o.s:114    .text.eeconfig_is_disabled:0000000000000000 $t
+     /tmp/ccxN5a9o.s:120    .text.eeconfig_is_disabled:0000000000000000 eeconfig_is_disabled
+     /tmp/ccxN5a9o.s:149    .text.eeconfig_read_debug:0000000000000000 $t
+     /tmp/ccxN5a9o.s:155    .text.eeconfig_read_debug:0000000000000000 eeconfig_read_debug
+     /tmp/ccxN5a9o.s:171    .text.eeconfig_update_debug:0000000000000000 $t
+     /tmp/ccxN5a9o.s:177    .text.eeconfig_update_debug:0000000000000000 eeconfig_update_debug
+     /tmp/ccxN5a9o.s:198    .text.eeconfig_read_default_layer:0000000000000000 $t
+     /tmp/ccxN5a9o.s:204    .text.eeconfig_read_default_layer:0000000000000000 eeconfig_read_default_layer
+     /tmp/ccxN5a9o.s:220    .text.eeconfig_update_default_layer:0000000000000000 $t
+     /tmp/ccxN5a9o.s:226    .text.eeconfig_update_default_layer:0000000000000000 eeconfig_update_default_layer
+     /tmp/ccxN5a9o.s:247    .text.eeconfig_read_keymap:0000000000000000 $t
+     /tmp/ccxN5a9o.s:253    .text.eeconfig_read_keymap:0000000000000000 eeconfig_read_keymap
+     /tmp/ccxN5a9o.s:283    .text.eeconfig_update_keymap:0000000000000000 $t
+     /tmp/ccxN5a9o.s:289    .text.eeconfig_update_keymap:0000000000000000 eeconfig_update_keymap
+     /tmp/ccxN5a9o.s:327    .text.eeconfig_read_audio:0000000000000000 $t
+     /tmp/ccxN5a9o.s:333    .text.eeconfig_read_audio:0000000000000000 eeconfig_read_audio
+     /tmp/ccxN5a9o.s:349    .text.eeconfig_update_audio:0000000000000000 $t
+     /tmp/ccxN5a9o.s:355    .text.eeconfig_update_audio:0000000000000000 eeconfig_update_audio
+     /tmp/ccxN5a9o.s:376    .text.eeconfig_read_kb:0000000000000000 $t
+     /tmp/ccxN5a9o.s:382    .text.eeconfig_read_kb:0000000000000000 eeconfig_read_kb
+     /tmp/ccxN5a9o.s:398    .text.eeconfig_update_kb:0000000000000000 $t
+     /tmp/ccxN5a9o.s:404    .text.eeconfig_update_kb:0000000000000000 eeconfig_update_kb
+     /tmp/ccxN5a9o.s:426    .text.eeconfig_read_user:0000000000000000 $t
+     /tmp/ccxN5a9o.s:432    .text.eeconfig_read_user:0000000000000000 eeconfig_read_user
+     /tmp/ccxN5a9o.s:448    .text.eeconfig_update_user:0000000000000000 $t
+     /tmp/ccxN5a9o.s:454    .text.eeconfig_update_user:0000000000000000 eeconfig_update_user
+     /tmp/ccxN5a9o.s:476    .text.eeconfig_init_user:0000000000000000 $t
+     /tmp/ccxN5a9o.s:482    .text.eeconfig_init_user:0000000000000000 eeconfig_init_user
+     /tmp/ccxN5a9o.s:497    .text.eeconfig_init_kb:0000000000000000 $t
+     /tmp/ccxN5a9o.s:503    .text.eeconfig_init_kb:0000000000000000 eeconfig_init_kb
+     /tmp/ccxN5a9o.s:528    .text.eeconfig_init_quantum:0000000000000000 $t
+     /tmp/ccxN5a9o.s:534    .text.eeconfig_init_quantum:0000000000000000 eeconfig_init_quantum
+     /tmp/ccxN5a9o.s:641    .text.eeconfig_init_quantum:000000000000008c $d
+     /tmp/ccxN5a9o.s:646    .text.eeconfig_init:0000000000000000 $t
+     /tmp/ccxN5a9o.s:652    .text.eeconfig_init:0000000000000000 eeconfig_init
+     /tmp/ccxN5a9o.s:666    .text.eeconfig_read_haptic:0000000000000000 $t
+     /tmp/ccxN5a9o.s:672    .text.eeconfig_read_haptic:0000000000000000 eeconfig_read_haptic
+     /tmp/ccxN5a9o.s:688    .text.eeconfig_update_haptic:0000000000000000 $t
+     /tmp/ccxN5a9o.s:694    .text.eeconfig_update_haptic:0000000000000000 eeconfig_update_haptic
+     /tmp/ccxN5a9o.s:716    .text.eeconfig_read_handedness:0000000000000000 $t
+     /tmp/ccxN5a9o.s:722    .text.eeconfig_read_handedness:0000000000000000 eeconfig_read_handedness
+     /tmp/ccxN5a9o.s:747    .text.eeconfig_update_handedness:0000000000000000 $t
+     /tmp/ccxN5a9o.s:753    .text.eeconfig_update_handedness:0000000000000000 eeconfig_update_handedness
+
+UNDEFINED SYMBOLS
+eeprom_update_word
+EEPROM_Erase
+eeprom_read_word
+eeprom_read_byte
+eeprom_update_byte
+eeprom_read_dword
+eeprom_update_dword
+default_layer_state

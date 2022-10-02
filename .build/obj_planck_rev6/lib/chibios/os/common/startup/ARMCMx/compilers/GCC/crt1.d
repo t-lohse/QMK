@@ -6,7 +6,7 @@
  quantum/audio/song_list.h quantum/audio/musical_notes.h \
  keyboards/planck/rev6/config.h .build/obj_planck_rev6/src/info_config.h \
  .build/obj_planck_rev6/src/layouts.h \
- keyboards/planck/keymaps/default/config.h \
+ keyboards/planck/keymaps/LohseBoi/config.h \
  platforms/chibios/boards/QMK_PROTON_C/configs/config.h \
  lib/chibios/os/common/startup/ARMCMx/devices/STM32F3xx/cmparams.h \
  platforms/chibios/boards/QMK_PROTON_C/configs/board.h \
@@ -29,7 +29,7 @@ quantum/audio/musical_notes.h:
 keyboards/planck/rev6/config.h:
 .build/obj_planck_rev6/src/info_config.h:
 .build/obj_planck_rev6/src/layouts.h:
-keyboards/planck/keymaps/default/config.h:
+keyboards/planck/keymaps/LohseBoi/config.h:
 platforms/chibios/boards/QMK_PROTON_C/configs/config.h:
 lib/chibios/os/common/startup/ARMCMx/devices/STM32F3xx/cmparams.h:
 platforms/chibios/boards/QMK_PROTON_C/configs/board.h:

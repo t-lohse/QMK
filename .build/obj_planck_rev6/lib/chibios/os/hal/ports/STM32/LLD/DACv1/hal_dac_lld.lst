@@ -1,30 +1,30 @@
    1              		.cpu cortex-m4
-   2              		.eabi_attribute 27, 1
-   3              		.eabi_attribute 28, 1
-   4              		.eabi_attribute 20, 1
-   5              		.eabi_attribute 21, 1
-   6              		.eabi_attribute 23, 3
-   7              		.eabi_attribute 24, 1
-   8              		.eabi_attribute 25, 1
-   9              		.eabi_attribute 26, 1
-  10              		.eabi_attribute 30, 4
-  11              		.eabi_attribute 34, 1
-  12              		.eabi_attribute 18, 2
-  13              		.file	"hal_dac_lld.c"
-  14              		.text
-  15              	.Ltext0:
-  16              		.cfi_sections	.debug_frame
-  17              		.section	.text.dac_lld_init,"ax",%progbits
-  18              		.align	1
-  19              		.global	dac_lld_init
-  20              		.arch armv7e-m
-  21              		.syntax unified
-  22              		.thumb
-  23              		.thumb_func
-  24              		.fpu fpv4-sp-d16
-  26              	dac_lld_init:
-  27              	.LFB329:
-  28              		.file 1 "lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c"
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"hal_dac_lld.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c"
+  20              		.section	.text.dac_lld_init,"ax",%progbits
+  21              		.align	1
+  22              		.global	dac_lld_init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	dac_lld_init:
+  28              	.LFB329:
    1:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** /*
    2:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
    3:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
@@ -432,9 +432,9 @@
   68 0022 00BF     		.align	2
   69              	.L2:
   70 0024 00000000 		.word	DACD1
-  71 0028 00000000 		.word	.LANCHOR0
+  71 0028 00000000 		.word	dac1_ch1_params
   72 002c 00000000 		.word	DACD2
-  73 0030 00000000 		.word	.LANCHOR1
+  73 0030 00000000 		.word	dac1_ch2_params
   74              		.cfi_endproc
   75              	.LFE329:
   77              		.section	.text.dac_lld_stop,"ax",%progbits
@@ -443,10 +443,9 @@
   80              		.syntax unified
   81              		.thumb
   82              		.thumb_func
-  83              		.fpu fpv4-sp-d16
-  85              	dac_lld_stop:
-  86              	.LVL2:
-  87              	.LFB331:
+  84              	dac_lld_stop:
+  85              	.LVL2:
+  86              	.LFB331:
  364:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  365:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** /**
  366:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  * @brief   Configures and activates the DAC peripheral.
@@ -550,85 +549,87 @@
  464:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  * @notapi
  465:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  */
  466:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** void dac_lld_stop(DACDriver *dacp) {
-  88              		.loc 1 466 36 is_stmt 1 view -0
-  89              		.cfi_startproc
-  90              		@ args = 0, pretend = 0, frame = 0
-  91              		@ frame_needed = 0, uses_anonymous_args = 0
-  92              		@ link register save eliminated.
+  87              		.loc 1 466 36 is_stmt 1 view -0
+  88              		.cfi_startproc
+  89              		@ args = 0, pretend = 0, frame = 0
+  90              		@ frame_needed = 0, uses_anonymous_args = 0
+  91              		@ link register save eliminated.
  467:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  468:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* If in ready state then disables the DAC clock.*/
  469:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   if (dacp->state == DAC_READY) {
-  93              		.loc 1 469 3 view .LVU15
-  94              		.loc 1 469 6 is_stmt 0 view .LVU16
-  95 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
-  96 0002 022B     		cmp	r3, #2
-  97 0004 1DD1     		bne	.L4
+  92              		.loc 1 469 3 view .LVU15
+  93              		.loc 1 469 6 is_stmt 0 view .LVU16
+  94 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+  95 0002 022B     		cmp	r3, #2
+  96 0004 1DD1     		bne	.L4
  470:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  471:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     /* Disabling DAC.*/
  472:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dacp->params->dac->CR &= dacp->params->regmask;
-  98              		.loc 1 472 5 is_stmt 1 view .LVU17
-  99              		.loc 1 472 9 is_stmt 0 view .LVU18
- 100 0006 816A     		ldr	r1, [r0, #40]
- 101              		.loc 1 472 17 view .LVU19
- 102 0008 0B68     		ldr	r3, [r1]
- 103              		.loc 1 472 27 view .LVU20
- 104 000a C968     		ldr	r1, [r1, #12]
+  97              		.loc 1 472 5 is_stmt 1 view .LVU17
+  98              		.loc 1 472 9 is_stmt 0 view .LVU18
+  99 0006 816A     		ldr	r1, [r0, #40]
+ 100              		.loc 1 472 17 view .LVU19
+ 101 0008 0B68     		ldr	r3, [r1]
+ 102              		.loc 1 472 27 view .LVU20
+ 103 000a C968     		ldr	r1, [r1, #12]
+ 104              		.loc 1 472 22 view .LVU21
  105 000c 1A68     		ldr	r2, [r3]
- 106 000e 0A40     		ands	r2, r2, r1
- 107 0010 1A60     		str	r2, [r3]
+ 106              		.loc 1 472 27 view .LVU22
+ 107 000e 0A40     		ands	r2, r2, r1
+ 108 0010 1A60     		str	r2, [r3]
  473:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  474:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_USE_DAC1_CH1
  475:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     if (&DACD1 == dacp) {
- 108              		.loc 1 475 5 is_stmt 1 view .LVU21
- 109              		.loc 1 475 8 is_stmt 0 view .LVU22
- 110 0012 0C4A     		ldr	r2, .L9
- 111 0014 9042     		cmp	r0, r2
- 112 0016 08D1     		bne	.L7
+ 109              		.loc 1 475 5 is_stmt 1 view .LVU23
+ 110              		.loc 1 475 8 is_stmt 0 view .LVU24
+ 111 0012 0C4A     		ldr	r2, .L9
+ 112 0014 9042     		cmp	r0, r2
+ 113 0016 08D1     		bne	.L7
  476:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       if ((dacp->params->dac->CR & DAC_CR_EN2) == 0U) {
- 113              		.loc 1 476 7 is_stmt 1 view .LVU23
- 114              		.loc 1 476 29 is_stmt 0 view .LVU24
- 115 0018 1A68     		ldr	r2, [r3]
- 116              		.loc 1 476 10 view .LVU25
- 117 001a D203     		lsls	r2, r2, #15
- 118 001c 05D4     		bmi	.L7
+ 114              		.loc 1 476 7 is_stmt 1 view .LVU25
+ 115              		.loc 1 476 29 is_stmt 0 view .LVU26
+ 116 0018 1A68     		ldr	r2, [r3]
+ 117              		.loc 1 476 10 view .LVU27
+ 118 001a D203     		lsls	r2, r2, #15
+ 119 001c 05D4     		bmi	.L7
  477:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****         rccDisableDAC1();
- 119              		.loc 1 477 9 is_stmt 1 view .LVU26
- 120 001e 0A4A     		ldr	r2, .L9+4
- 121 0020 D169     		ldr	r1, [r2, #28]
- 122 0022 21F00051 		bic	r1, r1, #536870912
- 123 0026 D161     		str	r1, [r2, #28]
- 124              		.loc 1 477 9 view .LVU27
- 125 0028 D269     		ldr	r2, [r2, #28]
- 126              	.L7:
- 127              		.loc 1 477 25 discriminator 1 view .LVU28
+ 120              		.loc 1 477 9 is_stmt 1 view .LVU28
+ 121 001e 0A4A     		ldr	r2, .L9+4
+ 122 0020 D169     		ldr	r1, [r2, #28]
+ 123 0022 21F00051 		bic	r1, r1, #536870912
+ 124 0026 D161     		str	r1, [r2, #28]
+ 125              		.loc 1 477 9 view .LVU29
+ 126 0028 D269     		ldr	r2, [r2, #28]
+ 127              	.L7:
+ 128              		.loc 1 477 25 discriminator 1 view .LVU30
  478:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       }
  479:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
  480:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
  481:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  482:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_USE_DAC1_CH2
  483:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     if (&DACD2 == dacp) {
- 128              		.loc 1 483 5 discriminator 1 view .LVU29
- 129              		.loc 1 483 8 is_stmt 0 discriminator 1 view .LVU30
- 130 002a 084A     		ldr	r2, .L9+8
- 131 002c 9042     		cmp	r0, r2
- 132 002e 08D1     		bne	.L4
+ 129              		.loc 1 483 5 discriminator 1 view .LVU31
+ 130              		.loc 1 483 8 is_stmt 0 discriminator 1 view .LVU32
+ 131 002a 084A     		ldr	r2, .L9+8
+ 132 002c 9042     		cmp	r0, r2
+ 133 002e 08D1     		bne	.L4
  484:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       if ((dacp->params->dac->CR & DAC_CR_EN1) == 0U) {
- 133              		.loc 1 484 7 is_stmt 1 view .LVU31
- 134              		.loc 1 484 29 is_stmt 0 view .LVU32
- 135 0030 1B68     		ldr	r3, [r3]
- 136              		.loc 1 484 10 view .LVU33
- 137 0032 DB07     		lsls	r3, r3, #31
- 138 0034 05D4     		bmi	.L4
+ 134              		.loc 1 484 7 is_stmt 1 view .LVU33
+ 135              		.loc 1 484 29 is_stmt 0 view .LVU34
+ 136 0030 1B68     		ldr	r3, [r3]
+ 137              		.loc 1 484 10 view .LVU35
+ 138 0032 DB07     		lsls	r3, r3, #31
+ 139 0034 05D4     		bmi	.L4
  485:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****         rccDisableDAC1();
- 139              		.loc 1 485 9 is_stmt 1 view .LVU34
- 140 0036 044B     		ldr	r3, .L9+4
- 141 0038 DA69     		ldr	r2, [r3, #28]
- 142 003a 22F00052 		bic	r2, r2, #536870912
- 143 003e DA61     		str	r2, [r3, #28]
- 144              		.loc 1 485 9 view .LVU35
- 145 0040 DB69     		ldr	r3, [r3, #28]
- 146              		.loc 1 485 25 view .LVU36
- 147              	.L4:
+ 140              		.loc 1 485 9 is_stmt 1 view .LVU36
+ 141 0036 044B     		ldr	r3, .L9+4
+ 142 0038 DA69     		ldr	r2, [r3, #28]
+ 143 003a 22F00052 		bic	r2, r2, #536870912
+ 144 003e DA61     		str	r2, [r3, #28]
+ 145              		.loc 1 485 9 view .LVU37
+ 146 0040 DB69     		ldr	r3, [r3, #28]
+ 147              		.loc 1 485 25 view .LVU38
+ 148              	.L4:
  486:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       }
  487:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
  488:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
@@ -682,23 +683,22 @@
  536:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
  537:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
  538:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** }
- 148              		.loc 1 538 1 is_stmt 0 view .LVU37
- 149 0042 7047     		bx	lr
- 150              	.L10:
- 151              		.align	2
- 152              	.L9:
- 153 0044 00000000 		.word	DACD1
- 154 0048 00100240 		.word	1073876992
- 155 004c 00000000 		.word	DACD2
- 156              		.cfi_endproc
- 157              	.LFE331:
- 159              		.section	.text.dac_lld_put_channel,"ax",%progbits
- 160              		.align	1
- 161              		.global	dac_lld_put_channel
- 162              		.syntax unified
- 163              		.thumb
- 164              		.thumb_func
- 165              		.fpu fpv4-sp-d16
+ 149              		.loc 1 538 1 is_stmt 0 view .LVU39
+ 150 0042 7047     		bx	lr
+ 151              	.L10:
+ 152              		.align	2
+ 153              	.L9:
+ 154 0044 00000000 		.word	DACD1
+ 155 0048 00100240 		.word	1073876992
+ 156 004c 00000000 		.word	DACD2
+ 157              		.cfi_endproc
+ 158              	.LFE331:
+ 160              		.section	.text.dac_lld_put_channel,"ax",%progbits
+ 161              		.align	1
+ 162              		.global	dac_lld_put_channel
+ 163              		.syntax unified
+ 164              		.thumb
+ 165              		.thumb_func
  167              	dac_lld_put_channel:
  168              	.LVL3:
  169              	.LFB332:
@@ -722,11 +722,11 @@
  174              		@ link register save eliminated.
  552:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  553:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   switch (dacp->config->datamode) {
- 175              		.loc 1 553 3 view .LVU39
- 176              		.loc 1 553 23 is_stmt 0 view .LVU40
+ 175              		.loc 1 553 3 view .LVU41
+ 176              		.loc 1 553 23 is_stmt 0 view .LVU42
  177 0000 0369     		ldr	r3, [r0, #16]
  178 0002 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
- 179              		.loc 1 553 3 view .LVU41
+ 179              		.loc 1 553 3 view .LVU43
  180 0004 012B     		cmp	r3, #1
  181 0006 0CD0     		beq	.L12
  182 0008 022B     		cmp	r3, #2
@@ -737,21 +737,21 @@
  556:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   case DAC_DHRM_12BIT_RIGHT_DUAL:
  557:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
  558:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     if (channel == 0U) {
- 185              		.loc 1 558 5 is_stmt 1 view .LVU42
+ 185              		.loc 1 558 5 is_stmt 1 view .LVU44
  559:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE
  560:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->DHR12R1 = (uint32_t)sample;
  561:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #else
  562:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       *(&dacp->params->dac->DHR12R1 + dacp->params->dataoffset) = (uint32_t)sample;
- 186              		.loc 1 562 14 is_stmt 0 view .LVU43
+ 186              		.loc 1 562 14 is_stmt 0 view .LVU45
  187 000e 806A     		ldr	r0, [r0, #40]
  188              	.LVL4:
- 189              		.loc 1 562 22 view .LVU44
+ 189              		.loc 1 562 22 view .LVU46
  190 0010 0368     		ldr	r3, [r0]
  558:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE
- 191              		.loc 1 558 8 view .LVU45
+ 191              		.loc 1 558 8 view .LVU47
  192 0012 21B9     		cbnz	r1, .L15
- 193              		.loc 1 562 7 is_stmt 1 view .LVU46
- 194              		.loc 1 562 9 is_stmt 0 view .LVU47
+ 193              		.loc 1 562 7 is_stmt 1 view .LVU48
+ 194              		.loc 1 562 9 is_stmt 0 view .LVU49
  195 0014 0833     		adds	r3, r3, #8
  196              	.L18:
  563:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
@@ -772,36 +772,36 @@
  578:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->DHR12L1 = (uint32_t)sample;
  579:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #else
  580:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       *(&dacp->params->dac->DHR12L1 + dacp->params->dataoffset) = (uint32_t)sample;
- 197              		.loc 1 580 37 view .LVU48
+ 197              		.loc 1 580 37 view .LVU50
  198 0016 4168     		ldr	r1, [r0, #4]
  199              	.LVL5:
- 200              		.loc 1 580 65 view .LVU49
+ 200              		.loc 1 580 65 view .LVU51
  201 0018 43F82120 		str	r2, [r3, r1, lsl #2]
  202 001c 7047     		bx	lr
  203              	.LVL6:
  204              	.L15:
  568:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 205              		.loc 1 568 7 is_stmt 1 view .LVU50
+ 205              		.loc 1 568 7 is_stmt 1 view .LVU52
  568:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 206              		.loc 1 568 34 is_stmt 0 view .LVU51
+ 206              		.loc 1 568 34 is_stmt 0 view .LVU53
  207 001e 5A61     		str	r2, [r3, #20]
  208 0020 7047     		bx	lr
  209              	.LVL7:
  210              	.L12:
  576:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE
- 211              		.loc 1 576 5 is_stmt 1 view .LVU52
+ 211              		.loc 1 576 5 is_stmt 1 view .LVU54
  562:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
- 212              		.loc 1 562 14 is_stmt 0 view .LVU53
+ 212              		.loc 1 562 14 is_stmt 0 view .LVU55
  213 0022 806A     		ldr	r0, [r0, #40]
  214              	.LVL8:
  562:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
- 215              		.loc 1 562 22 view .LVU54
+ 215              		.loc 1 562 22 view .LVU56
  216 0024 0368     		ldr	r3, [r0]
  576:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE
- 217              		.loc 1 576 8 view .LVU55
+ 217              		.loc 1 576 8 view .LVU57
  218 0026 09B9     		cbnz	r1, .L16
- 219              		.loc 1 580 7 is_stmt 1 view .LVU56
- 220              		.loc 1 580 9 is_stmt 0 view .LVU57
+ 219              		.loc 1 580 7 is_stmt 1 view .LVU58
+ 220              		.loc 1 580 9 is_stmt 0 view .LVU59
  221 0028 0C33     		adds	r3, r3, #12
  222 002a F4E7     		b	.L18
  223              	.L16:
@@ -811,8 +811,8 @@
  584:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****      STM32_HAS_DAC3_CH2 || STM32_HAS_DAC4_CH2)
  585:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     else {
  586:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->DHR12L2 = (uint32_t)sample;
- 224              		.loc 1 586 7 is_stmt 1 view .LVU58
- 225              		.loc 1 586 34 is_stmt 0 view .LVU59
+ 224              		.loc 1 586 7 is_stmt 1 view .LVU60
+ 225              		.loc 1 586 34 is_stmt 0 view .LVU61
  226 002c 9A61     		str	r2, [r3, #24]
  227 002e 7047     		bx	lr
  228              	.LVL9:
@@ -825,22 +825,22 @@
  592:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   case DAC_DHRM_8BIT_RIGHT_DUAL:
  593:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
  594:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     if (channel == 0U) {
- 230              		.loc 1 594 5 is_stmt 1 view .LVU60
+ 230              		.loc 1 594 5 is_stmt 1 view .LVU62
  562:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
- 231              		.loc 1 562 14 is_stmt 0 view .LVU61
+ 231              		.loc 1 562 14 is_stmt 0 view .LVU63
  232 0030 806A     		ldr	r0, [r0, #40]
  233              	.LVL10:
  562:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
- 234              		.loc 1 562 22 view .LVU62
+ 234              		.loc 1 562 22 view .LVU64
  235 0032 0368     		ldr	r3, [r0]
- 236              		.loc 1 594 8 view .LVU63
+ 236              		.loc 1 594 8 view .LVU65
  237 0034 09B9     		cbnz	r1, .L17
  595:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE
  596:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->DHR8R1 = (uint32_t)sample;
  597:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #else
  598:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       *(&dacp->params->dac->DHR8R1 + dacp->params->dataoffset) = (uint32_t)sample;
- 238              		.loc 1 598 7 is_stmt 1 view .LVU64
- 239              		.loc 1 598 9 is_stmt 0 view .LVU65
+ 238              		.loc 1 598 7 is_stmt 1 view .LVU66
+ 239              		.loc 1 598 9 is_stmt 0 view .LVU67
  240 0036 1033     		adds	r3, r3, #16
  241 0038 EDE7     		b	.L18
  242              	.L17:
@@ -850,8 +850,8 @@
  602:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****      STM32_HAS_DAC3_CH2 || STM32_HAS_DAC4_CH2)
  603:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     else {
  604:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->DHR8R2 = (uint32_t)sample;
- 243              		.loc 1 604 7 is_stmt 1 view .LVU66
- 244              		.loc 1 604 33 is_stmt 0 view .LVU67
+ 243              		.loc 1 604 7 is_stmt 1 view .LVU68
+ 244              		.loc 1 604 33 is_stmt 0 view .LVU69
  245 003a DA61     		str	r2, [r3, #28]
  246              	.L11:
  605:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
@@ -862,7 +862,7 @@
  610:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     break;
  611:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
  612:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** }
- 247              		.loc 1 612 1 view .LVU68
+ 247              		.loc 1 612 1 view .LVU70
  248 003c 7047     		bx	lr
  249              		.cfi_endproc
  250              	.LFE332:
@@ -872,186 +872,184 @@
  255              		.syntax unified
  256              		.thumb
  257              		.thumb_func
- 258              		.fpu fpv4-sp-d16
- 260              	dac_lld_start:
- 261              	.LVL11:
- 262              	.LFB330:
+ 259              	dac_lld_start:
+ 260              	.LVL11:
+ 261              	.LFB330:
  372:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 263              		.loc 1 372 37 is_stmt 1 view -0
- 264              		.cfi_startproc
- 265              		@ args = 0, pretend = 0, frame = 0
- 266              		@ frame_needed = 0, uses_anonymous_args = 0
- 267              		@ link register save eliminated.
+ 262              		.loc 1 372 37 is_stmt 1 view -0
+ 263              		.cfi_startproc
+ 264              		@ args = 0, pretend = 0, frame = 0
+ 265              		@ frame_needed = 0, uses_anonymous_args = 0
+ 266              		@ link register save eliminated.
  376:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dacchannel_t channel = 0;
- 268              		.loc 1 376 3 view .LVU70
+ 267              		.loc 1 376 3 view .LVU72
  376:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dacchannel_t channel = 0;
- 269              		.loc 1 376 6 is_stmt 0 view .LVU71
- 270 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
- 271 0002 012B     		cmp	r3, #1
+ 268              		.loc 1 376 6 is_stmt 0 view .LVU73
+ 269 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 270 0002 012B     		cmp	r3, #1
  372:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 272              		.loc 1 372 37 view .LVU72
- 273 0004 70B4     		push	{r4, r5, r6}
- 274              		.cfi_def_cfa_offset 12
- 275              		.cfi_offset 4, -12
- 276              		.cfi_offset 5, -8
- 277              		.cfi_offset 6, -4
+ 271              		.loc 1 372 37 view .LVU74
+ 272 0004 70B4     		push	{r4, r5, r6}
+ 273              		.cfi_def_cfa_offset 12
+ 274              		.cfi_offset 4, -12
+ 275              		.cfi_offset 5, -8
+ 276              		.cfi_offset 6, -4
  376:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dacchannel_t channel = 0;
- 278              		.loc 1 376 6 view .LVU73
- 279 0006 2AD1     		bne	.L19
- 280              	.LBB52:
+ 277              		.loc 1 376 6 view .LVU75
+ 278 0006 2AD1     		bne	.L19
+ 279              	.LBB52:
  377:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 281              		.loc 1 377 5 is_stmt 1 view .LVU74
- 282              	.LVL12:
+ 280              		.loc 1 377 5 is_stmt 1 view .LVU76
+ 281              	.LVL12:
  381:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       rccEnableDAC1(true);
- 283              		.loc 1 381 5 view .LVU75
+ 282              		.loc 1 381 5 view .LVU77
  381:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       rccEnableDAC1(true);
- 284              		.loc 1 381 8 is_stmt 0 view .LVU76
- 285 0008 164B     		ldr	r3, .L24
- 286 000a 9842     		cmp	r0, r3
- 287 000c 05D1     		bne	.L21
+ 283              		.loc 1 381 8 is_stmt 0 view .LVU78
+ 284 0008 164B     		ldr	r3, .L24
+ 285 000a 9842     		cmp	r0, r3
+ 286 000c 05D1     		bne	.L21
  382:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 288              		.loc 1 382 7 is_stmt 1 view .LVU77
- 289 000e 164B     		ldr	r3, .L24+4
- 290 0010 DA69     		ldr	r2, [r3, #28]
- 291 0012 42F00052 		orr	r2, r2, #536870912
- 292 0016 DA61     		str	r2, [r3, #28]
+ 287              		.loc 1 382 7 is_stmt 1 view .LVU79
+ 288 000e 164B     		ldr	r3, .L24+4
+ 289 0010 DA69     		ldr	r2, [r3, #28]
+ 290 0012 42F00052 		orr	r2, r2, #536870912
+ 291 0016 DA61     		str	r2, [r3, #28]
  382:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 293              		.loc 1 382 7 view .LVU78
- 294 0018 DB69     		ldr	r3, [r3, #28]
- 295              	.L21:
+ 292              		.loc 1 382 7 view .LVU80
+ 293 0018 DB69     		ldr	r3, [r3, #28]
+ 294              	.L21:
  382:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 296              		.loc 1 382 26 discriminator 1 view .LVU79
+ 295              		.loc 1 382 26 discriminator 1 view .LVU81
  387:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       rccEnableDAC1(true);
- 297              		.loc 1 387 5 discriminator 1 view .LVU80
+ 296              		.loc 1 387 5 discriminator 1 view .LVU82
  387:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       rccEnableDAC1(true);
- 298              		.loc 1 387 8 is_stmt 0 discriminator 1 view .LVU81
- 299 001a 144B     		ldr	r3, .L24+8
- 300              	.LBB53:
+ 297              		.loc 1 387 8 is_stmt 0 discriminator 1 view .LVU83
+ 298 001a 144B     		ldr	r3, .L24+8
+ 299              	.LBB53:
  438:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr &= dacp->params->regmask;
- 301              		.loc 1 438 16 discriminator 1 view .LVU82
- 302 001c 846A     		ldr	r4, [r0, #40]
+ 300              		.loc 1 438 16 discriminator 1 view .LVU84
+ 301 001c 846A     		ldr	r4, [r0, #40]
  440:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->CR = cr;
- 303              		.loc 1 440 31 discriminator 1 view .LVU83
- 304 001e 0569     		ldr	r5, [r0, #16]
+ 302              		.loc 1 440 31 discriminator 1 view .LVU85
+ 303 001e 0569     		ldr	r5, [r0, #16]
  438:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr &= dacp->params->regmask;
- 305              		.loc 1 438 24 discriminator 1 view .LVU84
- 306 0020 2668     		ldr	r6, [r4]
- 307              	.LBE53:
+ 304              		.loc 1 438 24 discriminator 1 view .LVU86
+ 305 0020 2668     		ldr	r6, [r4]
+ 306              	.LBE53:
  387:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       rccEnableDAC1(true);
- 308              		.loc 1 387 8 discriminator 1 view .LVU85
- 309 0022 9842     		cmp	r0, r3
+ 307              		.loc 1 387 8 discriminator 1 view .LVU87
+ 308 0022 9842     		cmp	r0, r3
  388:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       channel = 1;
- 310              		.loc 1 388 7 is_stmt 1 discriminator 1 view .LVU86
- 311 0024 01BF     		itttt	eq
- 312 0026 104B     		ldreq	r3, .L24+4
- 313 0028 DA69     		ldreq	r2, [r3, #28]
- 314 002a 42F00052 		orreq	r2, r2, #536870912
- 315 002e DA61     		streq	r2, [r3, #28]
+ 309              		.loc 1 388 7 is_stmt 1 discriminator 1 view .LVU88
+ 310 0024 01BF     		itttt	eq
+ 311 0026 104B     		ldreq	r3, .L24+4
+ 312 0028 DA69     		ldreq	r2, [r3, #28]
+ 313 002a 42F00052 		orreq	r2, r2, #536870912
+ 314 002e DA61     		streq	r2, [r3, #28]
  388:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       channel = 1;
- 316              		.loc 1 388 7 discriminator 1 view .LVU87
- 317 0030 08BF     		it	eq
- 318 0032 DB69     		ldreq	r3, [r3, #28]
+ 315              		.loc 1 388 7 discriminator 1 view .LVU89
+ 316 0030 08BF     		it	eq
+ 317 0032 DB69     		ldreq	r3, [r3, #28]
  388:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       channel = 1;
- 319              		.loc 1 388 26 discriminator 1 view .LVU88
+ 318              		.loc 1 388 26 discriminator 1 view .LVU90
  389:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 320              		.loc 1 389 7 discriminator 1 view .LVU89
- 321              	.LVL13:
- 322              	.LBB54:
+ 319              		.loc 1 389 7 discriminator 1 view .LVU91
+ 320              	.LVL13:
+ 321              	.LBB54:
  439:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr |= (DAC_CR_EN1 | dacp->config->cr) << dacp->params->regshift;
- 323              		.loc 1 439 10 is_stmt 0 discriminator 1 view .LVU90
- 324 0034 E368     		ldr	r3, [r4, #12]
+ 322              		.loc 1 439 10 is_stmt 0 discriminator 1 view .LVU92
+ 323 0034 E368     		ldr	r3, [r4, #12]
  438:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr &= dacp->params->regmask;
- 325              		.loc 1 438 10 discriminator 1 view .LVU91
- 326 0036 3268     		ldr	r2, [r6]
+ 324              		.loc 1 438 10 discriminator 1 view .LVU93
+ 325 0036 3268     		ldr	r2, [r6]
  440:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->CR = cr;
- 327              		.loc 1 440 45 discriminator 1 view .LVU92
- 328 0038 A468     		ldr	r4, [r4, #8]
+ 326              		.loc 1 440 45 discriminator 1 view .LVU94
+ 327 0038 A468     		ldr	r4, [r4, #8]
  439:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr |= (DAC_CR_EN1 | dacp->config->cr) << dacp->params->regshift;
- 329              		.loc 1 439 10 discriminator 1 view .LVU93
- 330 003a 02EA0302 		and	r2, r2, r3
+ 328              		.loc 1 439 10 discriminator 1 view .LVU95
+ 329 003a 02EA0302 		and	r2, r2, r3
  440:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->CR = cr;
- 331              		.loc 1 440 25 discriminator 1 view .LVU94
- 332 003e 6B68     		ldr	r3, [r5, #4]
- 333 0040 43F00103 		orr	r3, r3, #1
+ 330              		.loc 1 440 25 discriminator 1 view .LVU96
+ 331 003e 6B68     		ldr	r3, [r5, #4]
+ 332 0040 43F00103 		orr	r3, r3, #1
  440:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->CR = cr;
- 334              		.loc 1 440 45 discriminator 1 view .LVU95
- 335 0044 03FA04F3 		lsl	r3, r3, r4
+ 333              		.loc 1 440 45 discriminator 1 view .LVU97
+ 334 0044 03FA04F3 		lsl	r3, r3, r4
  440:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->CR = cr;
- 336              		.loc 1 440 10 discriminator 1 view .LVU96
- 337 0048 43EA0203 		orr	r3, r3, r2
+ 335              		.loc 1 440 10 discriminator 1 view .LVU98
+ 336 0048 43EA0203 		orr	r3, r3, r2
  441:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dac_lld_put_channel(dacp, channel, dacp->config->init);
- 338              		.loc 1 441 29 discriminator 1 view .LVU97
- 339 004c 3360     		str	r3, [r6]
+ 337              		.loc 1 441 29 discriminator 1 view .LVU99
+ 338 004c 3360     		str	r3, [r6]
  442:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 340              		.loc 1 442 7 discriminator 1 view .LVU98
- 341 004e 2A88     		ldrh	r2, [r5]
- 342              	.LBE54:
+ 339              		.loc 1 442 7 discriminator 1 view .LVU100
+ 340 004e 2A88     		ldrh	r2, [r5]
+ 341              	.LBE54:
  389:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 343              		.loc 1 389 15 discriminator 1 view .LVU99
- 344 0050 08BF     		it	eq
- 345 0052 0121     		moveq	r1, #1
- 346              	.LBE52:
+ 342              		.loc 1 389 15 discriminator 1 view .LVU101
+ 343 0050 08BF     		it	eq
+ 344 0052 0121     		moveq	r1, #1
+ 345              	.LBE52:
  457:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 347              		.loc 1 457 1 discriminator 1 view .LVU100
- 348 0054 70BC     		pop	{r4, r5, r6}
- 349              		.cfi_remember_state
- 350              		.cfi_restore 6
- 351              		.cfi_restore 5
- 352              		.cfi_restore 4
- 353              		.cfi_def_cfa_offset 0
- 354              	.LBB56:
+ 346              		.loc 1 457 1 discriminator 1 view .LVU102
+ 347 0054 70BC     		pop	{r4, r5, r6}
+ 348              		.cfi_remember_state
+ 349              		.cfi_restore 6
+ 350              		.cfi_restore 5
+ 351              		.cfi_restore 4
+ 352              		.cfi_def_cfa_offset 0
+ 353              	.LBB56:
  377:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 355              		.loc 1 377 18 discriminator 1 view .LVU101
- 356 0056 18BF     		it	ne
- 357 0058 0021     		movne	r1, #0
- 358              	.LVL14:
- 359              	.LBB55:
+ 354              		.loc 1 377 18 discriminator 1 view .LVU103
+ 355 0056 18BF     		it	ne
+ 356 0058 0021     		movne	r1, #0
+ 357              	.LVL14:
+ 358              	.LBB55:
  436:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 360              		.loc 1 436 7 is_stmt 1 discriminator 1 view .LVU102
+ 359              		.loc 1 436 7 is_stmt 1 discriminator 1 view .LVU104
  438:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr &= dacp->params->regmask;
- 361              		.loc 1 438 7 discriminator 1 view .LVU103
+ 360              		.loc 1 438 7 discriminator 1 view .LVU105
  439:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       cr |= (DAC_CR_EN1 | dacp->config->cr) << dacp->params->regshift;
- 362              		.loc 1 439 7 discriminator 1 view .LVU104
+ 361              		.loc 1 439 7 discriminator 1 view .LVU106
  440:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dacp->params->dac->CR = cr;
- 363              		.loc 1 440 7 discriminator 1 view .LVU105
+ 362              		.loc 1 440 7 discriminator 1 view .LVU107
  441:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       dac_lld_put_channel(dacp, channel, dacp->config->init);
- 364              		.loc 1 441 7 discriminator 1 view .LVU106
+ 363              		.loc 1 441 7 discriminator 1 view .LVU108
  442:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 365              		.loc 1 442 7 discriminator 1 view .LVU107
- 366 005a FFF7FEBF 		b	dac_lld_put_channel
- 367              	.LVL15:
- 368              	.L19:
- 369              		.cfi_restore_state
+ 364              		.loc 1 442 7 discriminator 1 view .LVU109
+ 365 005a FFF7FEBF 		b	dac_lld_put_channel
+ 366              	.LVL15:
+ 367              	.L19:
+ 368              		.cfi_restore_state
  442:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 370              		.loc 1 442 7 is_stmt 0 discriminator 1 view .LVU108
- 371              	.LBE55:
- 372              	.LBE56:
+ 369              		.loc 1 442 7 is_stmt 0 discriminator 1 view .LVU110
+ 370              	.LBE55:
+ 371              	.LBE56:
  457:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 373              		.loc 1 457 1 view .LVU109
- 374 005e 70BC     		pop	{r4, r5, r6}
- 375              		.cfi_restore 6
- 376              		.cfi_restore 5
- 377              		.cfi_restore 4
- 378              		.cfi_def_cfa_offset 0
- 379 0060 7047     		bx	lr
- 380              	.L25:
- 381 0062 00BF     		.align	2
- 382              	.L24:
- 383 0064 00000000 		.word	DACD1
- 384 0068 00100240 		.word	1073876992
- 385 006c 00000000 		.word	DACD2
- 386              		.cfi_endproc
- 387              	.LFE330:
- 389              		.section	.text.dac_lld_start_conversion,"ax",%progbits
- 390              		.align	1
- 391              		.global	dac_lld_start_conversion
- 392              		.syntax unified
- 393              		.thumb
- 394              		.thumb_func
- 395              		.fpu fpv4-sp-d16
- 397              	dac_lld_start_conversion:
- 398              	.LVL16:
- 399              	.LFB333:
+ 372              		.loc 1 457 1 view .LVU111
+ 373 005e 70BC     		pop	{r4, r5, r6}
+ 374              		.cfi_restore 6
+ 375              		.cfi_restore 5
+ 376              		.cfi_restore 4
+ 377              		.cfi_def_cfa_offset 0
+ 378 0060 7047     		bx	lr
+ 379              	.L25:
+ 380 0062 00BF     		.align	2
+ 381              	.L24:
+ 382 0064 00000000 		.word	DACD1
+ 383 0068 00100240 		.word	1073876992
+ 384 006c 00000000 		.word	DACD2
+ 385              		.cfi_endproc
+ 386              	.LFE330:
+ 388              		.section	.text.dac_lld_start_conversion,"ax",%progbits
+ 389              		.align	1
+ 390              		.global	dac_lld_start_conversion
+ 391              		.syntax unified
+ 392              		.thumb
+ 393              		.thumb_func
+ 395              	dac_lld_start_conversion:
+ 396              	.LVL16:
+ 397              	.LFB333:
  613:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  614:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** /**
  615:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  * @brief   Starts a DAC conversion.
@@ -1070,54 +1068,54 @@
  628:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  * @notapi
  629:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  */
  630:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** void dac_lld_start_conversion(DACDriver *dacp) {
- 400              		.loc 1 630 48 is_stmt 1 view -0
- 401              		.cfi_startproc
- 402              		@ args = 0, pretend = 0, frame = 0
- 403              		@ frame_needed = 0, uses_anonymous_args = 0
+ 398              		.loc 1 630 48 is_stmt 1 view -0
+ 399              		.cfi_startproc
+ 400              		@ args = 0, pretend = 0, frame = 0
+ 401              		@ frame_needed = 0, uses_anonymous_args = 0
  631:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   uint32_t n, cr, dmamode;
- 404              		.loc 1 631 3 view .LVU111
+ 402              		.loc 1 631 3 view .LVU113
  632:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  633:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* Number of DMA operations per buffer.*/
  634:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   n = dacp->depth * dacp->grpp->num_channels;
- 405              		.loc 1 634 3 view .LVU112
+ 403              		.loc 1 634 3 view .LVU114
  630:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   uint32_t n, cr, dmamode;
- 406              		.loc 1 630 48 is_stmt 0 view .LVU113
- 407 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
- 408              		.cfi_def_cfa_offset 24
- 409              		.cfi_offset 3, -24
- 410              		.cfi_offset 4, -20
- 411              		.cfi_offset 5, -16
- 412              		.cfi_offset 6, -12
- 413              		.cfi_offset 7, -8
- 414              		.cfi_offset 14, -4
- 415              		.loc 1 634 31 view .LVU114
- 416 0002 4368     		ldr	r3, [r0, #4]
+ 404              		.loc 1 630 48 is_stmt 0 view .LVU115
+ 405 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 406              		.cfi_def_cfa_offset 24
+ 407              		.cfi_offset 3, -24
+ 408              		.cfi_offset 4, -20
+ 409              		.cfi_offset 5, -16
+ 410              		.cfi_offset 6, -12
+ 411              		.cfi_offset 7, -8
+ 412              		.cfi_offset 14, -4
+ 413              		.loc 1 634 31 view .LVU116
+ 414 0002 4368     		ldr	r3, [r0, #4]
  635:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  636:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* Allocating the DMA channel.*/
  637:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dacp->dma = dmaStreamAllocI(dacp->params->dmastream,
- 417              		.loc 1 637 15 view .LVU115
- 418 0004 264A     		ldr	r2, .L32
+ 415              		.loc 1 637 15 view .LVU117
+ 416 0004 264A     		ldr	r2, .L32
  634:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 419              		.loc 1 634 5 view .LVU116
- 420 0006 1D68     		ldr	r5, [r3]
- 421 0008 C368     		ldr	r3, [r0, #12]
+ 417              		.loc 1 634 5 view .LVU118
+ 418 0006 1D68     		ldr	r5, [r3]
+ 419 0008 C368     		ldr	r3, [r0, #12]
  630:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   uint32_t n, cr, dmamode;
- 422              		.loc 1 630 48 view .LVU117
- 423 000a 0446     		mov	r4, r0
- 424              		.loc 1 637 35 view .LVU118
- 425 000c 806A     		ldr	r0, [r0, #40]
- 426              	.LVL17:
+ 420              		.loc 1 630 48 view .LVU119
+ 421 000a 0446     		mov	r4, r0
+ 422              		.loc 1 637 35 view .LVU120
+ 423 000c 806A     		ldr	r0, [r0, #40]
+ 424              	.LVL17:
  634:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 427              		.loc 1 634 5 view .LVU119
- 428 000e 5D43     		muls	r5, r3, r5
- 429              	.LVL18:
- 430              		.loc 1 637 3 is_stmt 1 view .LVU120
- 431              		.loc 1 637 15 is_stmt 0 view .LVU121
- 432 0010 8169     		ldr	r1, [r0, #24]
- 433 0012 0069     		ldr	r0, [r0, #16]
- 434 0014 2346     		mov	r3, r4
- 435 0016 FFF7FEFF 		bl	dmaStreamAllocI
- 436              	.LVL19:
+ 425              		.loc 1 634 5 view .LVU121
+ 426 000e 5D43     		muls	r5, r3, r5
+ 427              	.LVL18:
+ 428              		.loc 1 637 3 is_stmt 1 view .LVU122
+ 429              		.loc 1 637 15 is_stmt 0 view .LVU123
+ 430 0010 8169     		ldr	r1, [r0, #24]
+ 431 0012 0069     		ldr	r0, [r0, #16]
+ 432 0014 2346     		mov	r3, r4
+ 433 0016 FFF7FEFF 		bl	dmaStreamAllocI
+ 434              	.LVL19:
  638:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                               dacp->params->dmairqprio,
  639:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                               (stm32_dmaisr_t)dac_lld_serve_tx_interrupt,
  640:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                               (void *)dacp);
@@ -1128,40 +1126,40 @@
  645:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  646:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* DMA settings depend on the chosen DAC mode.*/
  647:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   switch (dacp->config->datamode) {
- 437              		.loc 1 647 15 view .LVU122
- 438 001a 2169     		ldr	r1, [r4, #16]
+ 435              		.loc 1 647 15 view .LVU124
+ 436 001a 2169     		ldr	r1, [r4, #16]
  637:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                               dacp->params->dmairqprio,
- 439              		.loc 1 637 13 view .LVU123
- 440 001c E062     		str	r0, [r4, #44]
+ 437              		.loc 1 637 13 view .LVU125
+ 438 001c E062     		str	r0, [r4, #44]
  641:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DMA_SUPPORTS_DMAMUX
- 441              		.loc 1 641 3 is_stmt 1 view .LVU124
+ 439              		.loc 1 641 3 is_stmt 1 view .LVU126
  641:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DMA_SUPPORTS_DMAMUX
- 442              		.loc 1 641 3 view .LVU125
+ 440              		.loc 1 641 3 view .LVU127
  641:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DMA_SUPPORTS_DMAMUX
- 443              		.loc 1 641 3 view .LVU126
- 444              		.loc 1 647 3 view .LVU127
- 445              		.loc 1 647 23 is_stmt 0 view .LVU128
- 446 001e 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
- 447              		.loc 1 647 3 view .LVU129
- 448 0020 012B     		cmp	r3, #1
- 449 0022 2BD0     		beq	.L27
- 450 0024 022B     		cmp	r3, #2
- 451 0026 2ED0     		beq	.L28
- 452 0028 3BBB     		cbnz	r3, .L26
+ 441              		.loc 1 641 3 view .LVU128
+ 442              		.loc 1 647 3 view .LVU129
+ 443              		.loc 1 647 23 is_stmt 0 view .LVU130
+ 444 001e 8B78     		ldrb	r3, [r1, #2]	@ zero_extendqisi2
+ 445              		.loc 1 647 3 view .LVU131
+ 446 0020 012B     		cmp	r3, #1
+ 447 0022 2BD0     		beq	.L27
+ 448 0024 022B     		cmp	r3, #2
+ 449 0026 2ED0     		beq	.L28
+ 450 0028 3BBB     		cbnz	r3, .L26
  648:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* Sets the DAC data register */
  649:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   case DAC_DHRM_12BIT_RIGHT:
  650:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     osalDbgAssert(dacp->grpp->num_channels == 1, "invalid number of channels");
- 453              		.loc 1 650 5 is_stmt 1 discriminator 5 view .LVU130
- 454              		.loc 1 650 5 discriminator 5 view .LVU131
- 455              		.loc 1 650 5 discriminator 5 view .LVU132
+ 451              		.loc 1 650 5 is_stmt 1 discriminator 5 view .LVU132
+ 452              		.loc 1 650 5 discriminator 5 view .LVU133
+ 453              		.loc 1 650 5 discriminator 5 view .LVU134
  651:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  652:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dmaStreamSetPeripheral(dacp->dma, &dacp->params->dac->DHR12R1 +
- 456              		.loc 1 652 5 discriminator 5 view .LVU133
- 457 002a A66A     		ldr	r6, [r4, #40]
- 458 002c 4268     		ldr	r2, [r0, #4]
- 459 002e 3368     		ldr	r3, [r6]
- 460 0030 0833     		adds	r3, r3, #8
- 461              	.L31:
+ 454              		.loc 1 652 5 discriminator 5 view .LVU135
+ 455 002a A66A     		ldr	r6, [r4, #40]
+ 456 002c 4268     		ldr	r2, [r0, #4]
+ 457 002e 3368     		ldr	r3, [r6]
+ 458 0030 0833     		adds	r3, r3, #8
+ 459              	.L31:
  653:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                                       dacp->params->dataoffset);
  654:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dmamode = dacp->params->dmamode |
  655:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****               STM32_DMA_CR_PSIZE_HWORD | STM32_DMA_CR_MSIZE_HWORD;
@@ -1170,22 +1168,22 @@
  658:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     osalDbgAssert(dacp->grpp->num_channels == 1, "invalid number of channels");
  659:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  660:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dmaStreamSetPeripheral(dacp->dma, &dacp->params->dac->DHR12L1 +
- 462              		.loc 1 660 5 is_stmt 0 discriminator 5 view .LVU134
- 463 0032 7768     		ldr	r7, [r6, #4]
- 464 0034 03EB8703 		add	r3, r3, r7, lsl #2
- 465 0038 9360     		str	r3, [r2, #8]
+ 460              		.loc 1 660 5 is_stmt 0 discriminator 5 view .LVU136
+ 461 0032 7768     		ldr	r7, [r6, #4]
+ 462 0034 03EB8703 		add	r3, r3, r7, lsl #2
+ 463 0038 9360     		str	r3, [r2, #8]
  661:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                                       dacp->params->dataoffset);
- 466              		.loc 1 661 64 is_stmt 1 discriminator 5 view .LVU135
+ 464              		.loc 1 661 64 is_stmt 1 discriminator 5 view .LVU137
  662:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dmamode = dacp->params->dmamode |
- 467              		.loc 1 662 5 discriminator 5 view .LVU136
- 468              		.loc 1 662 13 is_stmt 0 discriminator 5 view .LVU137
- 469 003a 7369     		ldr	r3, [r6, #20]
- 470 003c 43F4A063 		orr	r3, r3, #1280
- 471              	.LVL20:
+ 465              		.loc 1 662 5 discriminator 5 view .LVU138
+ 466              		.loc 1 662 13 is_stmt 0 discriminator 5 view .LVU139
+ 467 003a 7369     		ldr	r3, [r6, #20]
+ 468 003c 43F4A063 		orr	r3, r3, #1280
+ 469              	.LVL20:
  663:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****               STM32_DMA_CR_PSIZE_HWORD | STM32_DMA_CR_MSIZE_HWORD;
  664:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     break;
- 472              		.loc 1 664 5 is_stmt 1 discriminator 5 view .LVU138
- 473              	.L30:
+ 470              		.loc 1 664 5 is_stmt 1 discriminator 5 view .LVU140
+ 471              	.L30:
  665:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   case DAC_DHRM_8BIT_RIGHT:
  666:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     osalDbgAssert(dacp->grpp->num_channels == 1, "invalid number of channels");
  667:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
@@ -1230,162 +1228,161 @@
  706:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
  707:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  708:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamSetMemory0(dacp->dma, dacp->samples);
- 474              		.loc 1 708 3 view .LVU139
- 475 0040 4268     		ldr	r2, [r0, #4]
- 476 0042 A068     		ldr	r0, [r4, #8]
- 477 0044 D060     		str	r0, [r2, #12]
- 478              		.loc 1 708 48 view .LVU140
+ 472              		.loc 1 708 3 view .LVU141
+ 473 0040 4268     		ldr	r2, [r0, #4]
+ 474 0042 A068     		ldr	r0, [r4, #8]
+ 475 0044 D060     		str	r0, [r2, #12]
+ 476              		.loc 1 708 48 view .LVU142
  709:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamSetTransactionSize(dacp->dma, n);
- 479              		.loc 1 709 3 view .LVU141
+ 477              		.loc 1 709 3 view .LVU143
  710:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamSetMode(dacp->dma, dmamode            |
- 480              		.loc 1 710 3 is_stmt 0 view .LVU142
- 481 0046 43F00E03 		orr	r3, r3, #14
- 482              	.LVL21:
+ 478              		.loc 1 710 3 is_stmt 0 view .LVU144
+ 479 0046 43F00E03 		orr	r3, r3, #14
+ 480              	.LVL21:
  709:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamSetTransactionSize(dacp->dma, n);
- 483              		.loc 1 709 3 view .LVU143
- 484 004a 5560     		str	r5, [r2, #4]
+ 481              		.loc 1 709 3 view .LVU145
+ 482 004a 5560     		str	r5, [r2, #4]
  709:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamSetTransactionSize(dacp->dma, n);
- 485              		.loc 1 709 44 is_stmt 1 view .LVU144
- 486              		.loc 1 710 3 view .LVU145
- 487 004c 1360     		str	r3, [r2]
+ 483              		.loc 1 709 44 is_stmt 1 view .LVU146
+ 484              		.loc 1 710 3 view .LVU147
+ 485 004c 1360     		str	r3, [r2]
  711:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                               STM32_DMA_CR_DMEIE | STM32_DMA_CR_TEIE |
  712:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                               STM32_DMA_CR_HTIE  | STM32_DMA_CR_TCIE);
- 488              		.loc 1 712 70 view .LVU146
+ 486              		.loc 1 712 70 view .LVU148
  713:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamEnable(dacp->dma);
- 489              		.loc 1 713 3 view .LVU147
+ 487              		.loc 1 713 3 view .LVU149
  714:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  715:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* DAC configuration.*/
  716:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr = dacp->params->dac->CR;
- 490              		.loc 1 716 12 is_stmt 0 view .LVU148
- 491 004e A06A     		ldr	r0, [r4, #40]
+ 488              		.loc 1 716 12 is_stmt 0 view .LVU150
+ 489 004e A06A     		ldr	r0, [r4, #40]
  713:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamEnable(dacp->dma);
- 492              		.loc 1 713 3 view .LVU149
- 493 0050 1368     		ldr	r3, [r2]
- 494              		.loc 1 716 20 view .LVU150
- 495 0052 0568     		ldr	r5, [r0]
- 496              	.LVL22:
+ 490              		.loc 1 713 3 view .LVU151
+ 491 0050 1368     		ldr	r3, [r2]
+ 492              		.loc 1 716 20 view .LVU152
+ 493 0052 0568     		ldr	r5, [r0]
+ 494              	.LVL22:
  713:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamEnable(dacp->dma);
- 497              		.loc 1 713 3 view .LVU151
- 498 0054 43F00103 		orr	r3, r3, #1
- 499 0058 1360     		str	r3, [r2]
+ 495              		.loc 1 713 3 view .LVU153
+ 496 0054 43F00103 		orr	r3, r3, #1
+ 497 0058 1360     		str	r3, [r2]
  713:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamEnable(dacp->dma);
- 500              		.loc 1 713 29 is_stmt 1 view .LVU152
- 501              		.loc 1 716 3 view .LVU153
- 502              		.loc 1 716 6 is_stmt 0 view .LVU154
- 503 005a 2A68     		ldr	r2, [r5]
- 504              	.LVL23:
+ 498              		.loc 1 713 29 is_stmt 1 view .LVU154
+ 499              		.loc 1 716 3 view .LVU155
+ 500              		.loc 1 716 6 is_stmt 0 view .LVU156
+ 501 005a 2A68     		ldr	r2, [r5]
+ 502              	.LVL23:
  717:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  718:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE == FALSE
  719:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr &= dacp->params->regmask;
- 505              		.loc 1 719 3 is_stmt 1 view .LVU155
- 506              		.loc 1 719 6 is_stmt 0 view .LVU156
- 507 005c C368     		ldr	r3, [r0, #12]
- 508 005e 1A40     		ands	r2, r2, r3
- 509              	.LVL24:
+ 503              		.loc 1 719 3 is_stmt 1 view .LVU157
+ 504              		.loc 1 719 6 is_stmt 0 view .LVU158
+ 505 005c C368     		ldr	r3, [r0, #12]
+ 506 005e 1A40     		ands	r2, r2, r3
+ 507              	.LVL24:
  720:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr |= (DAC_CR_DMAEN1 | (dacp->grpp->trigger << DAC_CR_TSEL1_Pos) | DAC_CR_TEN1 | DAC_CR_EN1 | dac
- 510              		.loc 1 720 3 is_stmt 1 view .LVU157
- 511              		.loc 1 720 37 is_stmt 0 view .LVU158
- 512 0060 6368     		ldr	r3, [r4, #4]
- 513              		.loc 1 720 47 view .LVU159
- 514 0062 DC68     		ldr	r4, [r3, #12]
- 515              	.LVL25:
- 516              		.loc 1 720 95 view .LVU160
- 517 0064 4B68     		ldr	r3, [r1, #4]
- 518              		.loc 1 720 115 view .LVU161
- 519 0066 8168     		ldr	r1, [r0, #8]
- 520              		.loc 1 720 95 view .LVU162
- 521 0068 43EAC403 		orr	r3, r3, r4, lsl #3
- 522 006c 43F48053 		orr	r3, r3, #4096
- 523 0070 43F00503 		orr	r3, r3, #5
- 524              		.loc 1 720 115 view .LVU163
- 525 0074 8B40     		lsls	r3, r3, r1
- 526              		.loc 1 720 6 view .LVU164
- 527 0076 1343     		orrs	r3, r3, r2
- 528              	.LVL26:
+ 508              		.loc 1 720 3 is_stmt 1 view .LVU159
+ 509              		.loc 1 720 37 is_stmt 0 view .LVU160
+ 510 0060 6368     		ldr	r3, [r4, #4]
+ 511              		.loc 1 720 47 view .LVU161
+ 512 0062 DC68     		ldr	r4, [r3, #12]
+ 513              	.LVL25:
+ 514              		.loc 1 720 95 view .LVU162
+ 515 0064 4B68     		ldr	r3, [r1, #4]
+ 516              		.loc 1 720 115 view .LVU163
+ 517 0066 8168     		ldr	r1, [r0, #8]
+ 518              		.loc 1 720 95 view .LVU164
+ 519 0068 43EAC403 		orr	r3, r3, r4, lsl #3
+ 520 006c 43F48053 		orr	r3, r3, #4096
+ 521 0070 43F00503 		orr	r3, r3, #5
+ 522              		.loc 1 720 115 view .LVU165
+ 523 0074 8B40     		lsls	r3, r3, r1
+ 524              		.loc 1 720 6 view .LVU166
+ 525 0076 1343     		orrs	r3, r3, r2
+ 526              	.LVL26:
  721:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #else
  722:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr = DAC_CR_DMAEN1 | (dacp->grpp->trigger << DAC_CR_TSEL1_Pos) | DAC_CR_TEN1 | DAC_CR_EN1 | dacp-
  723:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                      | (dacp->grpp->trigger << DAC_CR_TSEL2_Pos) | DAC_CR_TEN2 | DAC_CR_EN2 | (dacp
  724:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
  725:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  726:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dacp->params->dac->CR = cr;
- 529              		.loc 1 726 3 is_stmt 1 view .LVU165
- 530              		.loc 1 726 25 is_stmt 0 view .LVU166
- 531 0078 2B60     		str	r3, [r5]
- 532              	.LVL27:
- 533              	.L26:
+ 527              		.loc 1 726 3 is_stmt 1 view .LVU167
+ 528              		.loc 1 726 25 is_stmt 0 view .LVU168
+ 529 0078 2B60     		str	r3, [r5]
+ 530              	.LVL27:
+ 531              	.L26:
  727:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** }
- 534              		.loc 1 727 1 view .LVU167
- 535 007a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
- 536              	.LVL28:
- 537              	.L27:
+ 532              		.loc 1 727 1 view .LVU169
+ 533 007a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 534              	.LVL28:
+ 535              	.L27:
  658:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 538              		.loc 1 658 5 is_stmt 1 discriminator 5 view .LVU168
+ 536              		.loc 1 658 5 is_stmt 1 discriminator 5 view .LVU170
  658:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 539              		.loc 1 658 5 discriminator 5 view .LVU169
+ 537              		.loc 1 658 5 discriminator 5 view .LVU171
  658:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 540              		.loc 1 658 5 discriminator 5 view .LVU170
+ 538              		.loc 1 658 5 discriminator 5 view .LVU172
  660:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                                       dacp->params->dataoffset);
- 541              		.loc 1 660 5 discriminator 5 view .LVU171
- 542 007c A66A     		ldr	r6, [r4, #40]
- 543 007e 4268     		ldr	r2, [r0, #4]
- 544 0080 3368     		ldr	r3, [r6]
- 545 0082 0C33     		adds	r3, r3, #12
- 546 0084 D5E7     		b	.L31
- 547              	.L28:
+ 539              		.loc 1 660 5 discriminator 5 view .LVU173
+ 540 007c A66A     		ldr	r6, [r4, #40]
+ 541 007e 4268     		ldr	r2, [r0, #4]
+ 542 0080 3368     		ldr	r3, [r6]
+ 543 0082 0C33     		adds	r3, r3, #12
+ 544 0084 D5E7     		b	.L31
+ 545              	.L28:
  666:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 548              		.loc 1 666 5 discriminator 5 view .LVU172
+ 546              		.loc 1 666 5 discriminator 5 view .LVU174
  666:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 549              		.loc 1 666 5 discriminator 5 view .LVU173
+ 547              		.loc 1 666 5 discriminator 5 view .LVU175
  666:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 550              		.loc 1 666 5 discriminator 5 view .LVU174
+ 548              		.loc 1 666 5 discriminator 5 view .LVU176
  668:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                                       dacp->params->dataoffset);
- 551              		.loc 1 668 5 discriminator 5 view .LVU175
- 552 0086 A66A     		ldr	r6, [r4, #40]
- 553 0088 4268     		ldr	r2, [r0, #4]
- 554 008a 3368     		ldr	r3, [r6]
- 555 008c 7768     		ldr	r7, [r6, #4]
- 556 008e 1033     		adds	r3, r3, #16
- 557 0090 03EB8703 		add	r3, r3, r7, lsl #2
+ 549              		.loc 1 668 5 discriminator 5 view .LVU177
+ 550 0086 A66A     		ldr	r6, [r4, #40]
+ 551 0088 4268     		ldr	r2, [r0, #4]
+ 552 008a 3368     		ldr	r3, [r6]
+ 553 008c 7768     		ldr	r7, [r6, #4]
+ 554 008e 1033     		adds	r3, r3, #16
+ 555 0090 03EB8703 		add	r3, r3, r7, lsl #2
  675:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     break;
- 558              		.loc 1 675 12 is_stmt 0 discriminator 5 view .LVU176
- 559 0094 0135     		adds	r5, r5, #1
- 560              	.LVL29:
+ 556              		.loc 1 675 12 is_stmt 0 discriminator 5 view .LVU178
+ 557 0094 0135     		adds	r5, r5, #1
+ 558              	.LVL29:
  668:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****                                       dacp->params->dataoffset);
- 561              		.loc 1 668 5 discriminator 5 view .LVU177
- 562 0096 9360     		str	r3, [r2, #8]
+ 559              		.loc 1 668 5 discriminator 5 view .LVU179
+ 560 0096 9360     		str	r3, [r2, #8]
  669:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     dmamode = dacp->params->dmamode |
- 563              		.loc 1 669 64 is_stmt 1 discriminator 5 view .LVU178
+ 561              		.loc 1 669 64 is_stmt 1 discriminator 5 view .LVU180
  670:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****               STM32_DMA_CR_PSIZE_BYTE | STM32_DMA_CR_MSIZE_BYTE;
- 564              		.loc 1 670 5 discriminator 5 view .LVU179
+ 562              		.loc 1 670 5 discriminator 5 view .LVU181
  675:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     break;
- 565              		.loc 1 675 7 is_stmt 0 discriminator 5 view .LVU180
- 566 0098 6D08     		lsrs	r5, r5, #1
- 567              	.LVL30:
+ 563              		.loc 1 675 7 is_stmt 0 discriminator 5 view .LVU182
+ 564 0098 6D08     		lsrs	r5, r5, #1
+ 565              	.LVL30:
  670:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****               STM32_DMA_CR_PSIZE_BYTE | STM32_DMA_CR_MSIZE_BYTE;
- 568              		.loc 1 670 13 discriminator 5 view .LVU181
- 569 009a 7369     		ldr	r3, [r6, #20]
- 570              	.LVL31:
+ 566              		.loc 1 670 13 discriminator 5 view .LVU183
+ 567 009a 7369     		ldr	r3, [r6, #20]
+ 568              	.LVL31:
  675:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     break;
- 571              		.loc 1 675 5 is_stmt 1 discriminator 5 view .LVU182
+ 569              		.loc 1 675 5 is_stmt 1 discriminator 5 view .LVU184
  676:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE == TRUE
- 572              		.loc 1 676 5 discriminator 5 view .LVU183
- 573 009c D0E7     		b	.L30
- 574              	.L33:
- 575 009e 00BF     		.align	2
- 576              	.L32:
- 577 00a0 00000000 		.word	dac_lld_serve_tx_interrupt
- 578              		.cfi_endproc
- 579              	.LFE333:
- 581              		.section	.text.dac_lld_stop_conversion,"ax",%progbits
- 582              		.align	1
- 583              		.global	dac_lld_stop_conversion
- 584              		.syntax unified
- 585              		.thumb
- 586              		.thumb_func
- 587              		.fpu fpv4-sp-d16
- 589              	dac_lld_stop_conversion:
- 590              	.LVL32:
- 591              	.LFB334:
+ 570              		.loc 1 676 5 discriminator 5 view .LVU185
+ 571 009c D0E7     		b	.L30
+ 572              	.L33:
+ 573 009e 00BF     		.align	2
+ 574              	.L32:
+ 575 00a0 00000000 		.word	dac_lld_serve_tx_interrupt
+ 576              		.cfi_endproc
+ 577              	.LFE333:
+ 579              		.section	.text.dac_lld_stop_conversion,"ax",%progbits
+ 580              		.align	1
+ 581              		.global	dac_lld_stop_conversion
+ 582              		.syntax unified
+ 583              		.thumb
+ 584              		.thumb_func
+ 586              	dac_lld_stop_conversion:
+ 587              	.LVL32:
+ 588              	.LFB334:
  728:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  729:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** /**
  730:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  * @brief   Stops an ongoing conversion.
@@ -1398,87 +1395,87 @@
  737:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  * @iclass
  738:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****  */
  739:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** void dac_lld_stop_conversion(DACDriver *dacp) {
- 592              		.loc 1 739 47 view -0
- 593              		.cfi_startproc
- 594              		@ args = 0, pretend = 0, frame = 0
- 595              		@ frame_needed = 0, uses_anonymous_args = 0
+ 589              		.loc 1 739 47 view -0
+ 590              		.cfi_startproc
+ 591              		@ args = 0, pretend = 0, frame = 0
+ 592              		@ frame_needed = 0, uses_anonymous_args = 0
  740:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   uint32_t cr;
- 596              		.loc 1 740 3 view .LVU185
+ 593              		.loc 1 740 3 view .LVU187
  741:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  742:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   /* DMA channel disabled and released.*/
  743:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamDisable(dacp->dma);
- 597              		.loc 1 743 3 view .LVU186
+ 594              		.loc 1 743 3 view .LVU188
  739:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   uint32_t cr;
- 598              		.loc 1 739 47 is_stmt 0 view .LVU187
- 599 0000 10B5     		push	{r4, lr}
- 600              		.cfi_def_cfa_offset 8
- 601              		.cfi_offset 4, -8
- 602              		.cfi_offset 14, -4
+ 595              		.loc 1 739 47 is_stmt 0 view .LVU189
+ 596 0000 10B5     		push	{r4, lr}
+ 597              		.cfi_def_cfa_offset 8
+ 598              		.cfi_offset 4, -8
+ 599              		.cfi_offset 14, -4
  739:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   uint32_t cr;
- 603              		.loc 1 739 47 view .LVU188
- 604 0002 0446     		mov	r4, r0
- 605              		.loc 1 743 3 view .LVU189
- 606 0004 C06A     		ldr	r0, [r0, #44]
- 607              	.LVL33:
- 608              		.loc 1 743 3 view .LVU190
- 609 0006 4268     		ldr	r2, [r0, #4]
- 610 0008 1368     		ldr	r3, [r2]
- 611 000a 23F00F03 		bic	r3, r3, #15
- 612 000e 1360     		str	r3, [r2]
- 613              		.loc 1 743 3 is_stmt 1 view .LVU191
- 614 0010 417B     		ldrb	r1, [r0, #13]	@ zero_extendqisi2
- 615 0012 0268     		ldr	r2, [r0]
- 616 0014 0E23     		movs	r3, #14
- 617 0016 8B40     		lsls	r3, r3, r1
- 618 0018 5360     		str	r3, [r2, #4]
- 619              		.loc 1 743 3 view .LVU192
- 620              		.loc 1 743 30 view .LVU193
+ 600              		.loc 1 739 47 view .LVU190
+ 601 0002 0446     		mov	r4, r0
+ 602              		.loc 1 743 3 view .LVU191
+ 603 0004 C06A     		ldr	r0, [r0, #44]
+ 604              	.LVL33:
+ 605              		.loc 1 743 3 view .LVU192
+ 606 0006 4268     		ldr	r2, [r0, #4]
+ 607 0008 1368     		ldr	r3, [r2]
+ 608 000a 23F00F03 		bic	r3, r3, #15
+ 609 000e 1360     		str	r3, [r2]
+ 610              		.loc 1 743 3 is_stmt 1 view .LVU193
+ 611 0010 417B     		ldrb	r1, [r0, #13]	@ zero_extendqisi2
+ 612 0012 0268     		ldr	r2, [r0]
+ 613 0014 0E23     		movs	r3, #14
+ 614 0016 8B40     		lsls	r3, r3, r1
+ 615 0018 5360     		str	r3, [r2, #4]
+ 616              		.loc 1 743 3 view .LVU194
+ 617              		.loc 1 743 30 view .LVU195
  744:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dmaStreamFreeI(dacp->dma);
- 621              		.loc 1 744 3 view .LVU194
- 622 001a FFF7FEFF 		bl	dmaStreamFreeI
- 623              	.LVL34:
+ 618              		.loc 1 744 3 view .LVU196
+ 619 001a FFF7FEFF 		bl	dmaStreamFreeI
+ 620              	.LVL34:
  745:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dacp->dma = NULL;
- 624              		.loc 1 745 3 view .LVU195
+ 621              		.loc 1 745 3 view .LVU197
  746:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  747:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr = dacp->params->dac->CR;
- 625              		.loc 1 747 12 is_stmt 0 view .LVU196
- 626 001e A16A     		ldr	r1, [r4, #40]
- 627              		.loc 1 747 20 view .LVU197
- 628 0020 0868     		ldr	r0, [r1]
+ 622              		.loc 1 747 12 is_stmt 0 view .LVU198
+ 623 001e A16A     		ldr	r1, [r4, #40]
+ 624              		.loc 1 747 20 view .LVU199
+ 625 0020 0868     		ldr	r0, [r1]
  745:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dacp->dma = NULL;
- 629              		.loc 1 745 13 view .LVU198
- 630 0022 0023     		movs	r3, #0
- 631              		.loc 1 747 6 view .LVU199
- 632 0024 0268     		ldr	r2, [r0]
+ 626              		.loc 1 745 13 view .LVU200
+ 627 0022 0023     		movs	r3, #0
+ 628              		.loc 1 747 6 view .LVU201
+ 629 0024 0268     		ldr	r2, [r0]
  745:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dacp->dma = NULL;
- 633              		.loc 1 745 13 view .LVU200
- 634 0026 E362     		str	r3, [r4, #44]
- 635              		.loc 1 747 3 is_stmt 1 view .LVU201
- 636              	.LVL35:
+ 630              		.loc 1 745 13 view .LVU202
+ 631 0026 E362     		str	r3, [r4, #44]
+ 632              		.loc 1 747 3 is_stmt 1 view .LVU203
+ 633              	.LVL35:
  748:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  749:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #if STM32_DAC_DUAL_MODE == FALSE
  750:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr &= dacp->params->regmask;
- 637              		.loc 1 750 3 view .LVU202
- 638              		.loc 1 750 6 is_stmt 0 view .LVU203
- 639 0028 CB68     		ldr	r3, [r1, #12]
+ 634              		.loc 1 750 3 view .LVU204
+ 635              		.loc 1 750 6 is_stmt 0 view .LVU205
+ 636 0028 CB68     		ldr	r3, [r1, #12]
  751:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr |= (DAC_CR_EN1 | dacp->config->cr) << dacp->params->regshift;
- 640              		.loc 1 751 41 view .LVU204
- 641 002a 8968     		ldr	r1, [r1, #8]
+ 637              		.loc 1 751 41 view .LVU206
+ 638 002a 8968     		ldr	r1, [r1, #8]
  750:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   cr |= (DAC_CR_EN1 | dacp->config->cr) << dacp->params->regshift;
- 642              		.loc 1 750 6 view .LVU205
- 643 002c 1A40     		ands	r2, r2, r3
- 644              	.LVL36:
- 645              		.loc 1 751 3 is_stmt 1 view .LVU206
- 646              		.loc 1 751 35 is_stmt 0 view .LVU207
- 647 002e 2369     		ldr	r3, [r4, #16]
- 648              		.loc 1 751 21 view .LVU208
- 649 0030 5B68     		ldr	r3, [r3, #4]
- 650 0032 43F00103 		orr	r3, r3, #1
- 651              		.loc 1 751 41 view .LVU209
- 652 0036 8B40     		lsls	r3, r3, r1
- 653              		.loc 1 751 6 view .LVU210
- 654 0038 1343     		orrs	r3, r3, r2
- 655              	.LVL37:
+ 639              		.loc 1 750 6 view .LVU207
+ 640 002c 1A40     		ands	r2, r2, r3
+ 641              	.LVL36:
+ 642              		.loc 1 751 3 is_stmt 1 view .LVU208
+ 643              		.loc 1 751 35 is_stmt 0 view .LVU209
+ 644 002e 2369     		ldr	r3, [r4, #16]
+ 645              		.loc 1 751 21 view .LVU210
+ 646 0030 5B68     		ldr	r3, [r3, #4]
+ 647 0032 43F00103 		orr	r3, r3, #1
+ 648              		.loc 1 751 41 view .LVU211
+ 649 0036 8B40     		lsls	r3, r3, r1
+ 650              		.loc 1 751 6 view .LVU212
+ 651 0038 1343     		orrs	r3, r3, r2
+ 652              	.LVL37:
  752:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #else
  753:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   if ((dacp->config->datamode == DAC_DHRM_12BIT_RIGHT_DUAL) ||
  754:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       (dacp->config->datamode == DAC_DHRM_12BIT_LEFT_DUAL) ||
@@ -1492,98 +1489,97 @@
  762:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** #endif
  763:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
  764:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   dacp->params->dac->CR = cr;
- 656              		.loc 1 764 3 is_stmt 1 view .LVU211
- 657              		.loc 1 764 25 is_stmt 0 view .LVU212
- 658 003a 0360     		str	r3, [r0]
+ 653              		.loc 1 764 3 is_stmt 1 view .LVU213
+ 654              		.loc 1 764 25 is_stmt 0 view .LVU214
+ 655 003a 0360     		str	r3, [r0]
  765:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** }
- 659              		.loc 1 765 1 view .LVU213
- 660 003c 10BD     		pop	{r4, pc}
- 661              		.loc 1 765 1 view .LVU214
- 662              		.cfi_endproc
- 663              	.LFE334:
- 665              		.section	.text.dac_lld_serve_tx_interrupt,"ax",%progbits
- 666              		.align	1
- 667              		.syntax unified
- 668              		.thumb
- 669              		.thumb_func
- 670              		.fpu fpv4-sp-d16
- 672              	dac_lld_serve_tx_interrupt:
- 673              	.LVL38:
- 674              	.LFB328:
+ 656              		.loc 1 765 1 view .LVU215
+ 657 003c 10BD     		pop	{r4, pc}
+ 658              		.loc 1 765 1 view .LVU216
+ 659              		.cfi_endproc
+ 660              	.LFE334:
+ 662              		.section	.text.dac_lld_serve_tx_interrupt,"ax",%progbits
+ 663              		.align	1
+ 664              		.syntax unified
+ 665              		.thumb
+ 666              		.thumb_func
+ 668              	dac_lld_serve_tx_interrupt:
+ 669              	.LVL38:
+ 670              	.LFB328:
  282:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 675              		.loc 1 282 73 is_stmt 1 view -0
- 676              		.cfi_startproc
- 677              		@ args = 0, pretend = 0, frame = 0
- 678              		@ frame_needed = 0, uses_anonymous_args = 0
+ 671              		.loc 1 282 73 is_stmt 1 view -0
+ 672              		.cfi_startproc
+ 673              		@ args = 0, pretend = 0, frame = 0
+ 674              		@ frame_needed = 0, uses_anonymous_args = 0
  284:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     /* DMA errors handling.*/
- 679              		.loc 1 284 3 view .LVU216
+ 675              		.loc 1 284 3 view .LVU218
  282:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 680              		.loc 1 282 73 is_stmt 0 view .LVU217
- 681 0000 38B5     		push	{r3, r4, r5, lr}
- 682              		.cfi_def_cfa_offset 16
- 683              		.cfi_offset 3, -16
- 684              		.cfi_offset 4, -12
- 685              		.cfi_offset 5, -8
- 686              		.cfi_offset 14, -4
+ 676              		.loc 1 282 73 is_stmt 0 view .LVU219
+ 677 0000 38B5     		push	{r3, r4, r5, lr}
+ 678              		.cfi_def_cfa_offset 16
+ 679              		.cfi_offset 3, -16
+ 680              		.cfi_offset 4, -12
+ 681              		.cfi_offset 5, -8
+ 682              		.cfi_offset 14, -4
  282:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 687              		.loc 1 282 73 view .LVU218
- 688 0002 0D46     		mov	r5, r1
+ 683              		.loc 1 282 73 view .LVU220
+ 684 0002 0D46     		mov	r5, r1
  284:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     /* DMA errors handling.*/
- 689              		.loc 1 284 6 view .LVU219
- 690 0004 2907     		lsls	r1, r5, #28
- 691              	.LVL39:
+ 685              		.loc 1 284 6 view .LVU221
+ 686 0004 2907     		lsls	r1, r5, #28
+ 687              	.LVL39:
  282:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 692              		.loc 1 282 73 view .LVU220
- 693 0006 0446     		mov	r4, r0
+ 688              		.loc 1 282 73 view .LVU222
+ 689 0006 0446     		mov	r4, r0
  284:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     /* DMA errors handling.*/
- 694              		.loc 1 284 6 view .LVU221
- 695 0008 1FD5     		bpl	.L36
+ 690              		.loc 1 284 6 view .LVU223
+ 691 0008 1FD5     		bpl	.L36
  286:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     _dac_isr_error_code(dacp, DAC_ERR_DMAFAILURE);
- 696              		.loc 1 286 5 is_stmt 1 view .LVU222
- 697 000a FFF7FEFF 		bl	dac_lld_stop_conversion
- 698              	.LVL40:
+ 692              		.loc 1 286 5 is_stmt 1 view .LVU224
+ 693 000a FFF7FEFF 		bl	dac_lld_stop_conversion
+ 694              	.LVL40:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 699              		.loc 1 287 5 view .LVU223
- 700 000e 2046     		mov	r0, r4
- 701 0010 FFF7FEFF 		bl	dac_lld_stop_conversion
- 702              	.LVL41:
+ 695              		.loc 1 287 5 view .LVU225
+ 696 000e 2046     		mov	r0, r4
+ 697 0010 FFF7FEFF 		bl	dac_lld_stop_conversion
+ 698              	.LVL41:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 703              		.loc 1 287 5 view .LVU224
- 704 0014 6368     		ldr	r3, [r4, #4]
- 705 0016 9B68     		ldr	r3, [r3, #8]
- 706 0018 4BB1     		cbz	r3, .L38
+ 699              		.loc 1 287 5 view .LVU226
+ 700 0014 6368     		ldr	r3, [r4, #4]
+ 701 0016 9B68     		ldr	r3, [r3, #8]
+ 702 0018 4BB1     		cbz	r3, .L38
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 707              		.loc 1 287 5 discriminator 1 view .LVU225
- 708 001a 0522     		movs	r2, #5
- 709 001c 2270     		strb	r2, [r4]
+ 703              		.loc 1 287 5 discriminator 1 view .LVU227
+ 704 001a 0522     		movs	r2, #5
+ 705 001c 2270     		strb	r2, [r4]
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 710              		.loc 1 287 5 discriminator 1 view .LVU226
- 711 001e 0021     		movs	r1, #0
- 712 0020 2046     		mov	r0, r4
- 713 0022 9847     		blx	r3
- 714              	.LVL42:
+ 706              		.loc 1 287 5 discriminator 1 view .LVU228
+ 707 001e 0021     		movs	r1, #0
+ 708 0020 2046     		mov	r0, r4
+ 709 0022 9847     		blx	r3
+ 710              	.LVL42:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 715              		.loc 1 287 5 discriminator 1 view .LVU227
- 716 0024 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
- 717 0026 052B     		cmp	r3, #5
+ 711              		.loc 1 287 5 discriminator 1 view .LVU229
+ 712 0024 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 713 0026 052B     		cmp	r3, #5
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 718              		.loc 1 287 5 discriminator 1 view .LVU228
- 719 0028 04BF     		itt	eq
- 720 002a 0223     		moveq	r3, #2
- 721 002c 2370     		strbeq	r3, [r4]
- 722              	.L38:
+ 714              		.loc 1 287 5 discriminator 1 view .LVU230
+ 715 0028 04BF     		itt	eq
+ 716 002a 0223     		moveq	r3, #2
+ 717 002c 2370     		strbeq	r3, [r4]
+ 718              	.L38:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 723              		.loc 1 287 5 discriminator 5 view .LVU229
- 724 002e 0025     		movs	r5, #0
- 725              	.LVL43:
+ 719              		.loc 1 287 5 discriminator 5 view .LVU231
+ 720 002e 0025     		movs	r5, #0
+ 721              	.LVL43:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 726              		.loc 1 287 5 is_stmt 0 discriminator 5 view .LVU230
- 727 0030 6560     		str	r5, [r4, #4]
+ 722              		.loc 1 287 5 is_stmt 0 discriminator 5 view .LVU232
+ 723 0030 6560     		str	r5, [r4, #4]
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 728              		.loc 1 287 5 is_stmt 1 discriminator 5 view .LVU231
- 729              	.LBB57:
- 730              	.LBI57:
- 731              		.file 2 "./lib/chibios/os/hal/osal/rt-nil/osal.h"
+ 724              		.loc 1 287 5 is_stmt 1 discriminator 5 view .LVU233
+ 725              	.LBB57:
+ 726              	.LBI57:
+ 727              		.file 2 "./lib/chibios/os/hal/osal/rt-nil/osal.h"
    1:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /*
    2:./lib/chibios/os/hal/osal/rt-nil/osal.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
    3:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
@@ -2179,13 +2175,13 @@
  593:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @special
  594:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
  595:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalSysLockFromISR(void) {
- 732              		.loc 2 595 20 discriminator 5 view .LVU232
+ 728              		.loc 2 595 20 discriminator 5 view .LVU234
  596:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
  597:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chSysLockFromISR();
- 733              		.loc 2 597 3 discriminator 5 view .LVU233
- 734              	.LBB58:
- 735              	.LBI58:
- 736              		.file 3 "./lib/chibios/os/rt/include/chsys.h"
+ 729              		.loc 2 597 3 discriminator 5 view .LVU235
+ 730              	.LBB58:
+ 731              	.LBI58:
+ 732              		.file 3 "./lib/chibios/os/rt/include/chsys.h"
    1:./lib/chibios/os/rt/include/chsys.h **** /*
    2:./lib/chibios/os/rt/include/chsys.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
    3:./lib/chibios/os/rt/include/chsys.h **** 
@@ -2581,13 +2577,13 @@
  393:./lib/chibios/os/rt/include/chsys.h ****  * @special
  394:./lib/chibios/os/rt/include/chsys.h ****  */
  395:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysLockFromISR(void) {
- 737              		.loc 3 395 20 discriminator 5 view .LVU234
+ 733              		.loc 3 395 20 discriminator 5 view .LVU236
  396:./lib/chibios/os/rt/include/chsys.h **** 
  397:./lib/chibios/os/rt/include/chsys.h ****   port_lock_from_isr();
- 738              		.loc 3 397 3 discriminator 5 view .LVU235
- 739              	.LBB59:
- 740              	.LBI59:
- 741              		.file 4 "./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h"
+ 734              		.loc 3 397 3 discriminator 5 view .LVU237
+ 735              	.LBB59:
+ 736              	.LBI59:
+ 737              		.file 4 "./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h"
    1:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** /*
    2:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
    3:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** 
@@ -3296,20 +3292,20 @@
  706:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****  * @note    Same as @p port_lock() in this port.
  707:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****  */
  708:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** __STATIC_FORCEINLINE void port_lock_from_isr(void) {
- 742              		.loc 4 708 27 discriminator 5 view .LVU236
+ 738              		.loc 4 708 27 discriminator 5 view .LVU238
  709:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** 
  710:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****   port_lock();
- 743              		.loc 4 710 3 discriminator 5 view .LVU237
- 744              	.LBB60:
- 745              	.LBI60:
+ 739              		.loc 4 710 3 discriminator 5 view .LVU239
+ 740              	.LBB60:
+ 741              	.LBI60:
  669:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** 
- 746              		.loc 4 669 27 discriminator 5 view .LVU238
+ 742              		.loc 4 669 27 discriminator 5 view .LVU240
  677:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** #if defined(__CM7_REV)
- 747              		.loc 4 677 3 discriminator 5 view .LVU239
- 748              	.LVL44:
- 749              	.LBB61:
- 750              	.LBI61:
- 751              		.file 5 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h"
+ 743              		.loc 4 677 3 discriminator 5 view .LVU241
+ 744              	.LVL44:
+ 745              	.LBB61:
+ 746              	.LBI61:
+ 747              		.file 5 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h"
    1:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /**************************************************************************//**
    2:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * @file     cmsis_gcc.h
    3:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * @brief    CMSIS compiler GCC header file
@@ -3801,34 +3797,34 @@
  489:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   \param [in]    basePri  Base Priority value to set
  490:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  */
  491:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** __STATIC_FORCEINLINE void __set_BASEPRI(uint32_t basePri)
- 752              		.loc 5 491 27 discriminator 5 view .LVU240
- 753              	.LBB62:
+ 748              		.loc 5 491 27 discriminator 5 view .LVU242
+ 749              	.LBB62:
  492:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
  493:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __ASM volatile ("MSR basepri, %0" : : "r" (basePri) : "memory");
- 754              		.loc 5 493 3 discriminator 5 view .LVU241
- 755 0032 2023     		movs	r3, #32
- 756              		.syntax unified
- 757              	@ 493 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
- 758 0034 83F31188 		MSR basepri, r3
- 759              	@ 0 "" 2
- 760              	.LVL45:
- 761              		.loc 5 493 3 is_stmt 0 discriminator 5 view .LVU242
- 762              		.thumb
- 763              		.syntax unified
- 764              	.LBE62:
- 765              	.LBE61:
- 766              	.LBE60:
- 767              	.LBE59:
+ 750              		.loc 5 493 3 discriminator 5 view .LVU243
+ 751 0032 2023     		movs	r3, #32
+ 752              		.syntax unified
+ 753              	@ 493 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 754 0034 83F31188 		MSR basepri, r3
+ 755              	@ 0 "" 2
+ 756              	.LVL45:
+ 757              		.loc 5 493 3 is_stmt 0 discriminator 5 view .LVU244
+ 758              		.thumb
+ 759              		.syntax unified
+ 760              	.LBE62:
+ 761              	.LBE61:
+ 762              	.LBE60:
+ 763              	.LBE59:
  398:./lib/chibios/os/rt/include/chsys.h ****   _stats_start_measure_crit_isr();
- 768              		.loc 3 398 34 is_stmt 1 discriminator 5 view .LVU243
+ 764              		.loc 3 398 34 is_stmt 1 discriminator 5 view .LVU245
  399:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_lock_from_isr();
- 769              		.loc 3 399 29 discriminator 5 view .LVU244
- 770              	.LBE58:
- 771              	.LBE57:
+ 765              		.loc 3 399 29 discriminator 5 view .LVU246
+ 766              	.LBE58:
+ 767              	.LBE57:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 772              		.loc 1 287 5 discriminator 5 view .LVU245
- 773              	.LBB63:
- 774              	.LBI63:
+ 768              		.loc 1 287 5 discriminator 5 view .LVU247
+ 769              	.LBB63:
+ 770              	.LBI63:
  598:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
  599:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
  600:./lib/chibios/os/hal/osal/rt-nil/osal.h **** /**
@@ -4069,31 +4065,31 @@
  835:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  * @iclass
  836:./lib/chibios/os/hal/osal/rt-nil/osal.h ****  */
  837:./lib/chibios/os/hal/osal/rt-nil/osal.h **** static inline void osalThreadResumeI(thread_reference_t *trp, msg_t msg) {
- 775              		.loc 2 837 20 discriminator 5 view .LVU246
- 776              	.LBB64:
+ 771              		.loc 2 837 20 discriminator 5 view .LVU248
+ 772              	.LBB64:
  838:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
  839:./lib/chibios/os/hal/osal/rt-nil/osal.h ****   chThdResumeI(trp, msg);
- 777              		.loc 2 839 3 discriminator 5 view .LVU247
- 778 0038 4FF0FF31 		mov	r1, #-1
- 779 003c 04F11400 		add	r0, r4, #20
- 780              	.LVL46:
- 781              		.loc 2 839 3 is_stmt 0 discriminator 5 view .LVU248
- 782 0040 FFF7FEFF 		bl	chThdResumeI
- 783              	.LVL47:
- 784              		.loc 2 839 3 discriminator 5 view .LVU249
- 785              	.LBE64:
- 786              	.LBE63:
+ 773              		.loc 2 839 3 discriminator 5 view .LVU249
+ 774 0038 4FF0FF31 		mov	r1, #-1
+ 775 003c 04F11400 		add	r0, r4, #20
+ 776              	.LVL46:
+ 777              		.loc 2 839 3 is_stmt 0 discriminator 5 view .LVU250
+ 778 0040 FFF7FEFF 		bl	chThdResumeI
+ 779              	.LVL47:
+ 780              		.loc 2 839 3 discriminator 5 view .LVU251
+ 781              	.LBE64:
+ 782              	.LBE63:
  287:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****   }
- 787              		.loc 1 287 5 is_stmt 1 discriminator 5 view .LVU250
- 788              	.LBB65:
- 789              	.LBI65:
+ 783              		.loc 1 287 5 is_stmt 1 discriminator 5 view .LVU252
+ 784              	.LBB65:
+ 785              	.LBI65:
  606:./lib/chibios/os/hal/osal/rt-nil/osal.h **** 
- 790              		.loc 2 606 20 discriminator 5 view .LVU251
- 791              	.LBB66:
+ 786              		.loc 2 606 20 discriminator 5 view .LVU253
+ 787              	.LBB66:
  608:./lib/chibios/os/hal/osal/rt-nil/osal.h **** }
- 792              		.loc 2 608 3 discriminator 5 view .LVU252
- 793              	.LBB67:
- 794              	.LBI67:
+ 788              		.loc 2 608 3 discriminator 5 view .LVU254
+ 789              	.LBB67:
+ 790              	.LBI67:
  400:./lib/chibios/os/rt/include/chsys.h **** }
  401:./lib/chibios/os/rt/include/chsys.h **** 
  402:./lib/chibios/os/rt/include/chsys.h **** /**
@@ -4110,16 +4106,16 @@
  413:./lib/chibios/os/rt/include/chsys.h ****  * @special
  414:./lib/chibios/os/rt/include/chsys.h ****  */
  415:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysUnlockFromISR(void) {
- 795              		.loc 3 415 20 discriminator 5 view .LVU253
+ 791              		.loc 3 415 20 discriminator 5 view .LVU255
  416:./lib/chibios/os/rt/include/chsys.h **** 
  417:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_unlock_from_isr();
- 796              		.loc 3 417 31 discriminator 5 view .LVU254
+ 792              		.loc 3 417 31 discriminator 5 view .LVU256
  418:./lib/chibios/os/rt/include/chsys.h ****   _stats_stop_measure_crit_isr();
- 797              		.loc 3 418 33 discriminator 5 view .LVU255
+ 793              		.loc 3 418 33 discriminator 5 view .LVU257
  419:./lib/chibios/os/rt/include/chsys.h ****   port_unlock_from_isr();
- 798              		.loc 3 419 3 discriminator 5 view .LVU256
- 799              	.LBB68:
- 800              	.LBI68:
+ 794              		.loc 3 419 3 discriminator 5 view .LVU258
+ 795              	.LBB68:
+ 796              	.LBI68:
  711:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** }
  712:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** 
  713:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** /**
@@ -4129,165 +4125,163 @@
  717:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****  * @note    Same as @p port_unlock() in this port.
  718:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****  */
  719:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** __STATIC_FORCEINLINE void port_unlock_from_isr(void) {
- 801              		.loc 4 719 27 discriminator 5 view .LVU257
+ 797              		.loc 4 719 27 discriminator 5 view .LVU259
  720:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** 
  721:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h ****   port_unlock();
- 802              		.loc 4 721 3 discriminator 5 view .LVU258
- 803              	.LBB69:
- 804              	.LBI69:
+ 798              		.loc 4 721 3 discriminator 5 view .LVU260
+ 799              	.LBB69:
+ 800              	.LBI69:
  693:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** 
- 805              		.loc 4 693 27 discriminator 5 view .LVU259
+ 801              		.loc 4 693 27 discriminator 5 view .LVU261
  696:./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h **** #else /* CORTEX_SIMPLIFIED_PRIORITY */
- 806              		.loc 4 696 3 discriminator 5 view .LVU260
- 807              	.LBB70:
- 808              	.LBI70:
+ 802              		.loc 4 696 3 discriminator 5 view .LVU262
+ 803              	.LBB70:
+ 804              	.LBI70:
  491:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
- 809              		.loc 5 491 27 discriminator 5 view .LVU261
- 810              	.LBB71:
- 811              		.loc 5 493 3 discriminator 5 view .LVU262
- 812              		.syntax unified
- 813              	@ 493 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
- 814 0044 85F31188 		MSR basepri, r5
- 815              	@ 0 "" 2
- 816              	.LVL48:
- 817              		.thumb
- 818              		.syntax unified
- 819              	.L35:
- 820              		.loc 5 493 3 is_stmt 0 discriminator 5 view .LVU263
- 821              	.LBE71:
- 822              	.LBE70:
- 823              	.LBE69:
- 824              	.LBE68:
- 825              	.LBE67:
- 826              	.LBE66:
- 827              	.LBE65:
+ 805              		.loc 5 491 27 discriminator 5 view .LVU263
+ 806              	.LBB71:
+ 807              		.loc 5 493 3 discriminator 5 view .LVU264
+ 808              		.syntax unified
+ 809              	@ 493 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 810 0044 85F31188 		MSR basepri, r5
+ 811              	@ 0 "" 2
+ 812              	.LVL48:
+ 813              		.thumb
+ 814              		.syntax unified
+ 815              	.L35:
+ 816              		.loc 5 493 3 is_stmt 0 discriminator 5 view .LVU265
+ 817              	.LBE71:
+ 818              	.LBE70:
+ 819              	.LBE69:
+ 820              	.LBE68:
+ 821              	.LBE67:
+ 822              	.LBE66:
+ 823              	.LBE65:
  299:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 828              		.loc 1 299 1 view .LVU264
- 829 0048 38BD     		pop	{r3, r4, r5, pc}
- 830              	.LVL49:
- 831              	.L36:
+ 824              		.loc 1 299 1 view .LVU266
+ 825 0048 38BD     		pop	{r3, r4, r5, pc}
+ 826              	.LVL49:
+ 827              	.L36:
  290:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       /* Half transfer processing.*/
- 832              		.loc 1 290 5 is_stmt 1 view .LVU265
+ 828              		.loc 1 290 5 is_stmt 1 view .LVU267
  290:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       /* Half transfer processing.*/
- 833              		.loc 1 290 8 is_stmt 0 view .LVU266
- 834 004a 6A07     		lsls	r2, r5, #29
- 835 004c 03D5     		bpl	.L41
+ 829              		.loc 1 290 8 is_stmt 0 view .LVU268
+ 830 004a 6A07     		lsls	r2, r5, #29
+ 831 004c 03D5     		bpl	.L41
  292:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 836              		.loc 1 292 7 is_stmt 1 view .LVU267
- 837 004e 4368     		ldr	r3, [r0, #4]
- 838 0050 5B68     		ldr	r3, [r3, #4]
- 839 0052 03B1     		cbz	r3, .L41
+ 832              		.loc 1 292 7 is_stmt 1 view .LVU269
+ 833 004e 4368     		ldr	r3, [r0, #4]
+ 834 0050 5B68     		ldr	r3, [r3, #4]
+ 835 0052 03B1     		cbz	r3, .L41
  292:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 840              		.loc 1 292 7 discriminator 1 view .LVU268
- 841 0054 9847     		blx	r3
- 842              	.LVL50:
- 843              	.L41:
+ 836              		.loc 1 292 7 discriminator 1 view .LVU270
+ 837 0054 9847     		blx	r3
+ 838              	.LVL50:
+ 839              	.L41:
  292:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 844              		.loc 1 292 31 discriminator 3 view .LVU269
+ 840              		.loc 1 292 31 discriminator 3 view .LVU271
  294:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       /* Transfer complete processing.*/
- 845              		.loc 1 294 5 discriminator 3 view .LVU270
+ 841              		.loc 1 294 5 discriminator 3 view .LVU272
  294:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****       /* Transfer complete processing.*/
- 846              		.loc 1 294 8 is_stmt 0 discriminator 3 view .LVU271
- 847 0056 AB07     		lsls	r3, r5, #30
- 848 0058 F6D5     		bpl	.L35
+ 842              		.loc 1 294 8 is_stmt 0 discriminator 3 view .LVU273
+ 843 0056 AB07     		lsls	r3, r5, #30
+ 844 0058 F6D5     		bpl	.L35
  296:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 849              		.loc 1 296 7 is_stmt 1 view .LVU272
- 850 005a 6368     		ldr	r3, [r4, #4]
- 851 005c 5B68     		ldr	r3, [r3, #4]
- 852 005e 002B     		cmp	r3, #0
- 853 0060 F2D0     		beq	.L35
+ 845              		.loc 1 296 7 is_stmt 1 view .LVU274
+ 846 005a 6368     		ldr	r3, [r4, #4]
+ 847 005c 5B68     		ldr	r3, [r3, #4]
+ 848 005e 002B     		cmp	r3, #0
+ 849 0060 F2D0     		beq	.L35
  296:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 854              		.loc 1 296 7 discriminator 1 view .LVU273
- 855 0062 0422     		movs	r2, #4
- 856 0064 2270     		strb	r2, [r4]
+ 850              		.loc 1 296 7 discriminator 1 view .LVU275
+ 851 0062 0422     		movs	r2, #4
+ 852 0064 2270     		strb	r2, [r4]
  296:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 857              		.loc 1 296 7 discriminator 1 view .LVU274
- 858 0066 2046     		mov	r0, r4
- 859 0068 9847     		blx	r3
- 860              	.LVL51:
+ 853              		.loc 1 296 7 discriminator 1 view .LVU276
+ 854 0066 2046     		mov	r0, r4
+ 855 0068 9847     		blx	r3
+ 856              	.LVL51:
  296:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 861              		.loc 1 296 7 discriminator 1 view .LVU275
- 862 006a 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
- 863 006c 042B     		cmp	r3, #4
+ 857              		.loc 1 296 7 discriminator 1 view .LVU277
+ 858 006a 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 859 006c 042B     		cmp	r3, #4
  296:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 864              		.loc 1 296 7 discriminator 1 view .LVU276
- 865 006e 04BF     		itt	eq
- 866 0070 0323     		moveq	r3, #3
- 867 0072 2370     		strbeq	r3, [r4]
+ 860              		.loc 1 296 7 discriminator 1 view .LVU278
+ 861 006e 04BF     		itt	eq
+ 862 0070 0323     		moveq	r3, #3
+ 863 0072 2370     		strbeq	r3, [r4]
  296:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c ****     }
- 868              		.loc 1 296 31 discriminator 1 view .LVU277
+ 864              		.loc 1 296 31 discriminator 1 view .LVU279
  299:lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.c **** 
- 869              		.loc 1 299 1 is_stmt 0 discriminator 1 view .LVU278
- 870 0074 E8E7     		b	.L35
- 871              		.cfi_endproc
- 872              	.LFE328:
- 874              		.comm	DACD2,48,4
- 875              		.comm	DACD1,48,4
- 876              		.section	.rodata.dac1_ch1_params,"a"
- 877              		.align	2
- 878              		.set	.LANCHOR0,. + 0
- 881              	dac1_ch1_params:
- 882 0000 00740040 		.word	1073771520
- 883 0004 00000000 		.word	0
- 884 0008 00000000 		.word	0
- 885 000c 0000FFFF 		.word	-65536
- 886 0010 09000000 		.word	9
- 887 0014 BE200000 		.word	8382
- 888 0018 0A000000 		.word	10
- 889              		.section	.rodata.dac1_ch2_params,"a"
- 890              		.align	2
- 891              		.set	.LANCHOR1,. + 0
- 894              	dac1_ch2_params:
- 895 0000 00740040 		.word	1073771520
- 896 0004 03000000 		.word	3
- 897 0008 10000000 		.word	16
- 898 000c FFFF0000 		.word	65535
- 899 0010 0A000000 		.word	10
- 900 0014 BE200000 		.word	8382
- 901 0018 0A000000 		.word	10
- 902              		.text
- 903              	.Letext0:
- 904              		.file 6 "/usr/lib/gcc/arm-none-eabi/11.2.0/include/stddef.h"
- 905              		.file 7 "/usr/arm-none-eabi/include/machine/_default_types.h"
- 906              		.file 8 "/usr/arm-none-eabi/include/sys/_stdint.h"
- 907              		.file 9 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
- 908              		.file 10 "./lib/chibios/os/rt/include/chsystypes.h"
- 909              		.file 11 "./lib/chibios/os/rt/include/chschd.h"
- 910              		.file 12 "./lib/chibios/os/rt/include/chlists.h"
- 911              		.file 13 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
- 912              		.file 14 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
- 913              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
- 914              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
- 915              		.file 17 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
- 916              		.file 18 "./lib/chibios/os/hal/include/hal_dac.h"
- 917              		.file 19 "./lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.h"
- 918              		.file 20 "./lib/chibios/os/rt/include/chthreads.h"
+ 865              		.loc 1 299 1 is_stmt 0 discriminator 1 view .LVU280
+ 866 0074 E8E7     		b	.L35
+ 867              		.cfi_endproc
+ 868              	.LFE328:
+ 870              		.section	.rodata.dac1_ch2_params,"a"
+ 871              		.align	2
+ 874              	dac1_ch2_params:
+ 875 0000 00740040 		.word	1073771520
+ 876 0004 03000000 		.word	3
+ 877 0008 10000000 		.word	16
+ 878 000c FFFF0000 		.word	65535
+ 879 0010 0A000000 		.word	10
+ 880 0014 BE200000 		.word	8382
+ 881 0018 0A000000 		.word	10
+ 882              		.section	.rodata.dac1_ch1_params,"a"
+ 883              		.align	2
+ 886              	dac1_ch1_params:
+ 887 0000 00740040 		.word	1073771520
+ 888 0004 00000000 		.word	0
+ 889 0008 00000000 		.word	0
+ 890 000c 0000FFFF 		.word	-65536
+ 891 0010 09000000 		.word	9
+ 892 0014 BE200000 		.word	8382
+ 893 0018 0A000000 		.word	10
+ 894              		.comm	DACD2,48,4
+ 895              		.comm	DACD1,48,4
+ 896              		.text
+ 897              	.Letext0:
+ 898              		.file 6 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 899              		.file 7 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 900              		.file 8 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 901              		.file 9 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 902              		.file 10 "./lib/chibios/os/rt/include/chsystypes.h"
+ 903              		.file 11 "./lib/chibios/os/rt/include/chschd.h"
+ 904              		.file 12 "./lib/chibios/os/rt/include/chlists.h"
+ 905              		.file 13 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
+ 906              		.file 14 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 907              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 908              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 909              		.file 17 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 910              		.file 18 "./lib/chibios/os/hal/include/hal_dac.h"
+ 911              		.file 19 "./lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.h"
+ 912              		.file 20 "./lib/chibios/os/rt/include/chthreads.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 hal_dac_lld.c
-     /tmp/cciwn4NX.s:18     .text.dac_lld_init:0000000000000000 $t
-     /tmp/cciwn4NX.s:26     .text.dac_lld_init:0000000000000000 dac_lld_init
-     /tmp/cciwn4NX.s:70     .text.dac_lld_init:0000000000000024 $d
+     /tmp/cc0pJz1C.s:21     .text.dac_lld_init:0000000000000000 $t
+     /tmp/cc0pJz1C.s:27     .text.dac_lld_init:0000000000000000 dac_lld_init
+     /tmp/cc0pJz1C.s:70     .text.dac_lld_init:0000000000000024 $d
                             *COM*:0000000000000030 DACD1
+     /tmp/cc0pJz1C.s:886    .rodata.dac1_ch1_params:0000000000000000 dac1_ch1_params
                             *COM*:0000000000000030 DACD2
-     /tmp/cciwn4NX.s:78     .text.dac_lld_stop:0000000000000000 $t
-     /tmp/cciwn4NX.s:85     .text.dac_lld_stop:0000000000000000 dac_lld_stop
-     /tmp/cciwn4NX.s:153    .text.dac_lld_stop:0000000000000044 $d
-     /tmp/cciwn4NX.s:160    .text.dac_lld_put_channel:0000000000000000 $t
-     /tmp/cciwn4NX.s:167    .text.dac_lld_put_channel:0000000000000000 dac_lld_put_channel
-     /tmp/cciwn4NX.s:253    .text.dac_lld_start:0000000000000000 $t
-     /tmp/cciwn4NX.s:260    .text.dac_lld_start:0000000000000000 dac_lld_start
-     /tmp/cciwn4NX.s:383    .text.dac_lld_start:0000000000000064 $d
-     /tmp/cciwn4NX.s:390    .text.dac_lld_start_conversion:0000000000000000 $t
-     /tmp/cciwn4NX.s:397    .text.dac_lld_start_conversion:0000000000000000 dac_lld_start_conversion
-     /tmp/cciwn4NX.s:577    .text.dac_lld_start_conversion:00000000000000a0 $d
-     /tmp/cciwn4NX.s:672    .text.dac_lld_serve_tx_interrupt:0000000000000000 dac_lld_serve_tx_interrupt
-     /tmp/cciwn4NX.s:582    .text.dac_lld_stop_conversion:0000000000000000 $t
-     /tmp/cciwn4NX.s:589    .text.dac_lld_stop_conversion:0000000000000000 dac_lld_stop_conversion
-     /tmp/cciwn4NX.s:666    .text.dac_lld_serve_tx_interrupt:0000000000000000 $t
-     /tmp/cciwn4NX.s:877    .rodata.dac1_ch1_params:0000000000000000 $d
-     /tmp/cciwn4NX.s:881    .rodata.dac1_ch1_params:0000000000000000 dac1_ch1_params
-     /tmp/cciwn4NX.s:890    .rodata.dac1_ch2_params:0000000000000000 $d
-     /tmp/cciwn4NX.s:894    .rodata.dac1_ch2_params:0000000000000000 dac1_ch2_params
+     /tmp/cc0pJz1C.s:874    .rodata.dac1_ch2_params:0000000000000000 dac1_ch2_params
+     /tmp/cc0pJz1C.s:78     .text.dac_lld_stop:0000000000000000 $t
+     /tmp/cc0pJz1C.s:84     .text.dac_lld_stop:0000000000000000 dac_lld_stop
+     /tmp/cc0pJz1C.s:154    .text.dac_lld_stop:0000000000000044 $d
+     /tmp/cc0pJz1C.s:161    .text.dac_lld_put_channel:0000000000000000 $t
+     /tmp/cc0pJz1C.s:167    .text.dac_lld_put_channel:0000000000000000 dac_lld_put_channel
+     /tmp/cc0pJz1C.s:253    .text.dac_lld_start:0000000000000000 $t
+     /tmp/cc0pJz1C.s:259    .text.dac_lld_start:0000000000000000 dac_lld_start
+     /tmp/cc0pJz1C.s:382    .text.dac_lld_start:0000000000000064 $d
+     /tmp/cc0pJz1C.s:389    .text.dac_lld_start_conversion:0000000000000000 $t
+     /tmp/cc0pJz1C.s:395    .text.dac_lld_start_conversion:0000000000000000 dac_lld_start_conversion
+     /tmp/cc0pJz1C.s:575    .text.dac_lld_start_conversion:00000000000000a0 $d
+     /tmp/cc0pJz1C.s:668    .text.dac_lld_serve_tx_interrupt:0000000000000000 dac_lld_serve_tx_interrupt
+     /tmp/cc0pJz1C.s:580    .text.dac_lld_stop_conversion:0000000000000000 $t
+     /tmp/cc0pJz1C.s:586    .text.dac_lld_stop_conversion:0000000000000000 dac_lld_stop_conversion
+     /tmp/cc0pJz1C.s:663    .text.dac_lld_serve_tx_interrupt:0000000000000000 $t
+     /tmp/cc0pJz1C.s:871    .rodata.dac1_ch2_params:0000000000000000 $d
+     /tmp/cc0pJz1C.s:883    .rodata.dac1_ch1_params:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 dacObjectInit

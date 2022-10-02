@@ -1,0 +1,876 @@
+   1               		.file	"encoder.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.encoder_update_user,"ax",@progbits
+  11               		.weak	encoder_update_user
+  13               	encoder_update_user:
+  14               	.LVL0:
+  15               	.LFB31:
+  16               		.file 1 "quantum/encoder.c"
+   1:quantum/encoder.c **** /*
+   2:quantum/encoder.c ****  * Copyright 2018 Jack Humbert <jack.humb@gmail.com>
+   3:quantum/encoder.c ****  *
+   4:quantum/encoder.c ****  * This program is free software: you can redistribute it and/or modify
+   5:quantum/encoder.c ****  * it under the terms of the GNU General Public License as published by
+   6:quantum/encoder.c ****  * the Free Software Foundation, either version 2 of the License, or
+   7:quantum/encoder.c ****  * (at your option) any later version.
+   8:quantum/encoder.c ****  *
+   9:quantum/encoder.c ****  * This program is distributed in the hope that it will be useful,
+  10:quantum/encoder.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/encoder.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/encoder.c ****  * GNU General Public License for more details.
+  13:quantum/encoder.c ****  *
+  14:quantum/encoder.c ****  * You should have received a copy of the GNU General Public License
+  15:quantum/encoder.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/encoder.c ****  */
+  17:quantum/encoder.c **** 
+  18:quantum/encoder.c **** #include "encoder.h"
+  19:quantum/encoder.c **** #ifdef SPLIT_KEYBOARD
+  20:quantum/encoder.c **** #    include "split_util.h"
+  21:quantum/encoder.c **** #endif
+  22:quantum/encoder.c **** 
+  23:quantum/encoder.c **** // for memcpy
+  24:quantum/encoder.c **** #include <string.h>
+  25:quantum/encoder.c **** 
+  26:quantum/encoder.c **** #if !defined(ENCODER_RESOLUTIONS) && !defined(ENCODER_RESOLUTION)
+  27:quantum/encoder.c **** #    define ENCODER_RESOLUTION 4
+  28:quantum/encoder.c **** #endif
+  29:quantum/encoder.c **** 
+  30:quantum/encoder.c **** #if !defined(ENCODERS_PAD_A) || !defined(ENCODERS_PAD_B)
+  31:quantum/encoder.c **** #    error "No encoder pads defined by ENCODERS_PAD_A and ENCODERS_PAD_B"
+  32:quantum/encoder.c **** #endif
+  33:quantum/encoder.c **** 
+  34:quantum/encoder.c **** #define NUMBER_OF_ENCODERS (sizeof(encoders_pad_a) / sizeof(pin_t))
+  35:quantum/encoder.c **** static pin_t encoders_pad_a[] = ENCODERS_PAD_A;
+  36:quantum/encoder.c **** static pin_t encoders_pad_b[] = ENCODERS_PAD_B;
+  37:quantum/encoder.c **** #ifdef ENCODER_RESOLUTIONS
+  38:quantum/encoder.c **** static uint8_t encoder_resolutions[] = ENCODER_RESOLUTIONS;
+  39:quantum/encoder.c **** #endif
+  40:quantum/encoder.c **** 
+  41:quantum/encoder.c **** #ifndef ENCODER_DIRECTION_FLIP
+  42:quantum/encoder.c **** #    define ENCODER_CLOCKWISE true
+  43:quantum/encoder.c **** #    define ENCODER_COUNTER_CLOCKWISE false
+  44:quantum/encoder.c **** #else
+  45:quantum/encoder.c **** #    define ENCODER_CLOCKWISE false
+  46:quantum/encoder.c **** #    define ENCODER_COUNTER_CLOCKWISE true
+  47:quantum/encoder.c **** #endif
+  48:quantum/encoder.c **** static int8_t encoder_LUT[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+  49:quantum/encoder.c **** 
+  50:quantum/encoder.c **** static uint8_t encoder_state[NUMBER_OF_ENCODERS]  = {0};
+  51:quantum/encoder.c **** static int8_t  encoder_pulses[NUMBER_OF_ENCODERS] = {0};
+  52:quantum/encoder.c **** 
+  53:quantum/encoder.c **** #ifdef SPLIT_KEYBOARD
+  54:quantum/encoder.c **** // right half encoders come over as second set of encoders
+  55:quantum/encoder.c **** static uint8_t encoder_value[NUMBER_OF_ENCODERS * 2] = {0};
+  56:quantum/encoder.c **** // row offsets for each hand
+  57:quantum/encoder.c **** static uint8_t thisHand, thatHand;
+  58:quantum/encoder.c **** #else
+  59:quantum/encoder.c **** static uint8_t encoder_value[NUMBER_OF_ENCODERS] = {0};
+  60:quantum/encoder.c **** #endif
+  61:quantum/encoder.c **** 
+  62:quantum/encoder.c **** __attribute__((weak)) bool encoder_update_user(uint8_t index, bool clockwise) { return true; }
+  17               		.loc 1 62 79 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  23               		.loc 1 62 81 view .LVU1
+  24               		.loc 1 62 94 is_stmt 0 view .LVU2
+  25 0000 81E0      		ldi r24,lo8(1)
+  26               	.LVL1:
+  27               	/* epilogue start */
+  28               		.loc 1 62 94 view .LVU3
+  29 0002 0895      		ret
+  30               		.cfi_endproc
+  31               	.LFE31:
+  33               		.section	.text.encoder_update_kb,"ax",@progbits
+  34               		.weak	encoder_update_kb
+  36               	encoder_update_kb:
+  37               	.LVL2:
+  38               	.LFB32:
+  63:quantum/encoder.c **** 
+  64:quantum/encoder.c **** __attribute__((weak)) bool encoder_update_kb(uint8_t index, bool clockwise) { return encoder_update
+  39               		.loc 1 64 77 is_stmt 1 view -0
+  40               		.cfi_startproc
+  41               	/* prologue: function */
+  42               	/* frame size = 0 */
+  43               	/* stack size = 0 */
+  44               	.L__stack_usage = 0
+  45               		.loc 1 64 79 view .LVU5
+  46               		.loc 1 64 86 is_stmt 0 view .LVU6
+  47 0000 0C94 0000 		jmp encoder_update_user
+  48               	.LVL3:
+  49               		.loc 1 64 86 view .LVU7
+  50               		.cfi_endproc
+  51               	.LFE32:
+  53               		.section	.text.encoder_init,"ax",@progbits
+  54               	.global	encoder_init
+  56               	encoder_init:
+  57               	.LFB33:
+  65:quantum/encoder.c **** 
+  66:quantum/encoder.c **** void encoder_init(void) {
+  58               		.loc 1 66 25 is_stmt 1 view -0
+  59               		.cfi_startproc
+  60 0000 CF93      		push r28
+  61               	.LCFI0:
+  62               		.cfi_def_cfa_offset 3
+  63               		.cfi_offset 28, -2
+  64 0002 DF93      		push r29
+  65               	.LCFI1:
+  66               		.cfi_def_cfa_offset 4
+  67               		.cfi_offset 29, -3
+  68               	/* prologue: function */
+  69               	/* frame size = 0 */
+  70               	/* stack size = 2 */
+  71               	.L__stack_usage = 2
+  67:quantum/encoder.c **** #if defined(SPLIT_KEYBOARD) && defined(ENCODERS_PAD_A_RIGHT) && defined(ENCODERS_PAD_B_RIGHT)
+  68:quantum/encoder.c ****     if (!isLeftHand) {
+  72               		.loc 1 68 5 view .LVU9
+  73               		.loc 1 68 9 is_stmt 0 view .LVU10
+  74 0004 8091 0000 		lds r24,isLeftHand
+  75               		.loc 1 68 8 view .LVU11
+  76 0008 8111      		cpse r24,__zero_reg__
+  77 000a 00C0      		rjmp .L4
+  78               	.LVL4:
+  79               	.LBB2:
+  80               	.LBB3:
+  69:quantum/encoder.c ****         const pin_t encoders_pad_a_right[] = ENCODERS_PAD_A_RIGHT;
+  70:quantum/encoder.c ****         const pin_t encoders_pad_b_right[] = ENCODERS_PAD_B_RIGHT;
+  71:quantum/encoder.c **** #    if defined(ENCODER_RESOLUTIONS_RIGHT)
+  72:quantum/encoder.c ****         const uint8_t encoder_resolutions_right[] = ENCODER_RESOLUTIONS_RIGHT;
+  73:quantum/encoder.c **** #    endif
+  74:quantum/encoder.c ****         for (uint8_t i = 0; i < NUMBER_OF_ENCODERS; i++) {
+  81               		.loc 1 74 31 is_stmt 1 discriminator 1 view .LVU12
+  75:quantum/encoder.c ****             encoders_pad_a[i] = encoders_pad_a_right[i];
+  82               		.loc 1 75 13 discriminator 1 view .LVU13
+  83               		.loc 1 75 31 is_stmt 0 discriminator 1 view .LVU14
+  84 000c 84EF      		ldi r24,lo8(-12)
+  85 000e 8093 0000 		sts encoders_pad_a,r24
+  76:quantum/encoder.c ****             encoders_pad_b[i] = encoders_pad_b_right[i];
+  86               		.loc 1 76 13 is_stmt 1 discriminator 1 view .LVU15
+  87               		.loc 1 76 31 is_stmt 0 discriminator 1 view .LVU16
+  88 0012 85EF      		ldi r24,lo8(-11)
+  89 0014 8093 0000 		sts encoders_pad_b,r24
+  74:quantum/encoder.c ****             encoders_pad_a[i] = encoders_pad_a_right[i];
+  90               		.loc 1 74 54 is_stmt 1 discriminator 1 view .LVU17
+  91               	.LVL5:
+  74:quantum/encoder.c ****             encoders_pad_a[i] = encoders_pad_a_right[i];
+  92               		.loc 1 74 31 discriminator 1 view .LVU18
+  93               	.L4:
+  74:quantum/encoder.c ****             encoders_pad_a[i] = encoders_pad_a_right[i];
+  94               		.loc 1 74 31 is_stmt 0 discriminator 1 view .LVU19
+  95               	.LBE3:
+  96               	.LBE2:
+  97               	.LBB4:
+  77:quantum/encoder.c **** #    if defined(ENCODER_RESOLUTIONS_RIGHT)
+  78:quantum/encoder.c ****             encoder_resolutions[i] = encoder_resolutions_right[i];
+  79:quantum/encoder.c **** #    endif
+  80:quantum/encoder.c ****         }
+  81:quantum/encoder.c ****     }
+  82:quantum/encoder.c **** #endif
+  83:quantum/encoder.c **** 
+  84:quantum/encoder.c ****     for (int i = 0; i < NUMBER_OF_ENCODERS; i++) {
+  98               		.loc 1 84 23 is_stmt 1 view .LVU20
+  85:quantum/encoder.c ****         setPinInputHigh(encoders_pad_a[i]);
+  99               		.loc 1 85 9 view .LVU21
+ 100 0018 4091 0000 		lds r20,encoders_pad_a
+ 101 001c A42F      		mov r26,r20
+ 102 001e A295      		swap r26
+ 103 0020 AF70      		andi r26,lo8(15)
+ 104 0022 E1E2      		ldi r30,lo8(33)
+ 105 0024 EA0F      		add r30,r26
+ 106 0026 F0E0      		ldi r31,0
+ 107 0028 3081      		ld r19,Z
+ 108 002a 4F70      		andi r20,lo8(15)
+ 109 002c 81E0      		ldi r24,lo8(1)
+ 110 002e 90E0      		ldi r25,0
+ 111 0030 BC01      		movw r22,r24
+ 112 0032 042E      		mov r0,r20
+ 113 0034 00C0      		rjmp 2f
+ 114               		1:
+ 115 0036 660F      		lsl r22
+ 116               		2:
+ 117 0038 0A94      		dec r0
+ 118 003a 02F4      		brpl 1b
+ 119 003c 262F      		mov r18,r22
+ 120 003e 2095      		com r18
+ 121 0040 2323      		and r18,r19
+ 122 0042 2083      		st Z,r18
+ 123 0044 E2E2      		ldi r30,lo8(34)
+ 124 0046 EA0F      		add r30,r26
+ 125 0048 F0E0      		ldi r31,0
+ 126 004a 2081      		ld r18,Z
+ 127 004c 262B      		or r18,r22
+ 128 004e 2083      		st Z,r18
+  86:quantum/encoder.c ****         setPinInputHigh(encoders_pad_b[i]);
+ 129               		.loc 1 86 9 view .LVU22
+ 130 0050 3091 0000 		lds r19,encoders_pad_b
+ 131 0054 E32F      		mov r30,r19
+ 132 0056 E295      		swap r30
+ 133 0058 EF70      		andi r30,lo8(15)
+ 134 005a C1E2      		ldi r28,lo8(33)
+ 135 005c CE0F      		add r28,r30
+ 136 005e D0E0      		ldi r29,0
+ 137 0060 2881      		ld r18,Y
+ 138 0062 3F70      		andi r19,lo8(15)
+ 139 0064 032E      		mov r0,r19
+ 140 0066 00C0      		rjmp 2f
+ 141               		1:
+ 142 0068 880F      		lsl r24
+ 143               		2:
+ 144 006a 0A94      		dec r0
+ 145 006c 02F4      		brpl 1b
+ 146 006e 982F      		mov r25,r24
+ 147 0070 9095      		com r25
+ 148 0072 9223      		and r25,r18
+ 149 0074 9883      		st Y,r25
+ 150 0076 C2E2      		ldi r28,lo8(34)
+ 151 0078 CE0F      		add r28,r30
+ 152 007a D0E0      		ldi r29,0
+ 153 007c 9881      		ld r25,Y
+ 154 007e 892B      		or r24,r25
+ 155 0080 8883      		st Y,r24
+  87:quantum/encoder.c **** 
+  88:quantum/encoder.c ****         encoder_state[i] = (readPin(encoders_pad_a[i]) << 0) | (readPin(encoders_pad_b[i]) << 1);
+ 156               		.loc 1 88 9 view .LVU23
+ 157               		.loc 1 88 29 is_stmt 0 view .LVU24
+ 158 0082 A05E      		subi r26,lo8(-(32))
+ 159 0084 B0E0      		ldi r27,0
+ 160 0086 2C91      		ld r18,X
+ 161               		.loc 1 88 65 view .LVU25
+ 162 0088 E05E      		subi r30,lo8(-(32))
+ 163 008a F0E0      		ldi r31,0
+ 164 008c 8081      		ld r24,Z
+ 165 008e 90E0      		ldi r25,0
+ 166 0090 00C0      		rjmp 2f
+ 167               		1:
+ 168 0092 9595      		asr r25
+ 169 0094 8795      		ror r24
+ 170               		2:
+ 171 0096 3A95      		dec r19
+ 172 0098 02F4      		brpl 1b
+ 173               		.loc 1 88 62 view .LVU26
+ 174 009a 8170      		andi r24,lo8(1)
+ 175 009c 880F      		lsl r24
+ 176               		.loc 1 88 29 view .LVU27
+ 177 009e 30E0      		ldi r19,0
+ 178 00a0 00C0      		rjmp 2f
+ 179               		1:
+ 180 00a2 3595      		asr r19
+ 181 00a4 2795      		ror r18
+ 182               		2:
+ 183 00a6 4A95      		dec r20
+ 184 00a8 02F4      		brpl 1b
+ 185               		.loc 1 88 56 view .LVU28
+ 186 00aa 2170      		andi r18,lo8(1)
+ 187               		.loc 1 88 62 view .LVU29
+ 188 00ac 822B      		or r24,r18
+ 189               		.loc 1 88 26 view .LVU30
+ 190 00ae 8093 0000 		sts encoder_state,r24
+  84:quantum/encoder.c ****         setPinInputHigh(encoders_pad_a[i]);
+ 191               		.loc 1 84 46 is_stmt 1 view .LVU31
+ 192               	.LVL6:
+  84:quantum/encoder.c ****         setPinInputHigh(encoders_pad_a[i]);
+ 193               		.loc 1 84 23 view .LVU32
+ 194               	.LBE4:
+  89:quantum/encoder.c ****     }
+  90:quantum/encoder.c **** 
+  91:quantum/encoder.c **** #ifdef SPLIT_KEYBOARD
+  92:quantum/encoder.c ****     thisHand = isLeftHand ? 0 : NUMBER_OF_ENCODERS;
+ 195               		.loc 1 92 5 view .LVU33
+ 196               		.loc 1 92 31 is_stmt 0 view .LVU34
+ 197 00b2 9091 0000 		lds r25,isLeftHand
+ 198 00b6 81E0      		ldi r24,lo8(1)
+ 199 00b8 9827      		eor r25,r24
+ 200               		.loc 1 92 14 view .LVU35
+ 201 00ba 9093 0000 		sts thisHand,r25
+  93:quantum/encoder.c ****     thatHand = NUMBER_OF_ENCODERS - thisHand;
+ 202               		.loc 1 93 5 is_stmt 1 view .LVU36
+ 203               		.loc 1 93 35 is_stmt 0 view .LVU37
+ 204 00be 891B      		sub r24,r25
+ 205               		.loc 1 93 14 view .LVU38
+ 206 00c0 8093 0000 		sts thatHand,r24
+ 207               	/* epilogue start */
+  94:quantum/encoder.c **** #endif
+  95:quantum/encoder.c **** }
+ 208               		.loc 1 95 1 view .LVU39
+ 209 00c4 DF91      		pop r29
+ 210 00c6 CF91      		pop r28
+ 211 00c8 0895      		ret
+ 212               		.cfi_endproc
+ 213               	.LFE33:
+ 215               		.section	.text.encoder_read,"ax",@progbits
+ 216               	.global	encoder_read
+ 218               	encoder_read:
+ 219               	.LFB35:
+  96:quantum/encoder.c **** 
+  97:quantum/encoder.c **** static bool encoder_update(uint8_t index, uint8_t state) {
+  98:quantum/encoder.c ****     bool    changed = false;
+  99:quantum/encoder.c ****     uint8_t i       = index;
+ 100:quantum/encoder.c **** 
+ 101:quantum/encoder.c **** #ifdef ENCODER_RESOLUTIONS
+ 102:quantum/encoder.c ****     uint8_t resolution = encoder_resolutions[i];
+ 103:quantum/encoder.c **** #else
+ 104:quantum/encoder.c ****     uint8_t resolution = ENCODER_RESOLUTION;
+ 105:quantum/encoder.c **** #endif
+ 106:quantum/encoder.c **** 
+ 107:quantum/encoder.c **** #ifdef SPLIT_KEYBOARD
+ 108:quantum/encoder.c ****     index += thisHand;
+ 109:quantum/encoder.c **** #endif
+ 110:quantum/encoder.c ****     encoder_pulses[i] += encoder_LUT[state & 0xF];
+ 111:quantum/encoder.c ****     if (encoder_pulses[i] >= resolution) {
+ 112:quantum/encoder.c ****         encoder_value[index]++;
+ 113:quantum/encoder.c ****         changed = true;
+ 114:quantum/encoder.c ****         encoder_update_kb(index, ENCODER_COUNTER_CLOCKWISE);
+ 115:quantum/encoder.c ****     }
+ 116:quantum/encoder.c ****     if (encoder_pulses[i] <= -resolution) {  // direction is arbitrary here, but this clockwise
+ 117:quantum/encoder.c ****         encoder_value[index]--;
+ 118:quantum/encoder.c ****         changed = true;
+ 119:quantum/encoder.c ****         encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 120:quantum/encoder.c ****     }
+ 121:quantum/encoder.c ****     encoder_pulses[i] %= resolution;
+ 122:quantum/encoder.c **** #ifdef ENCODER_DEFAULT_POS
+ 123:quantum/encoder.c ****     if ((state & 0x3) == ENCODER_DEFAULT_POS) {
+ 124:quantum/encoder.c ****         encoder_pulses[i] = 0;
+ 125:quantum/encoder.c ****     }
+ 126:quantum/encoder.c **** #endif
+ 127:quantum/encoder.c ****     return changed;
+ 128:quantum/encoder.c **** }
+ 129:quantum/encoder.c **** 
+ 130:quantum/encoder.c **** bool encoder_read(void) {
+ 220               		.loc 1 130 25 is_stmt 1 view -0
+ 221               		.cfi_startproc
+ 222 0000 CF93      		push r28
+ 223               	.LCFI2:
+ 224               		.cfi_def_cfa_offset 3
+ 225               		.cfi_offset 28, -2
+ 226               	/* prologue: function */
+ 227               	/* frame size = 0 */
+ 228               	/* stack size = 1 */
+ 229               	.L__stack_usage = 1
+ 131:quantum/encoder.c ****     bool changed = false;
+ 230               		.loc 1 131 5 view .LVU41
+ 231               	.LVL7:
+ 132:quantum/encoder.c ****     for (uint8_t i = 0; i < NUMBER_OF_ENCODERS; i++) {
+ 232               		.loc 1 132 5 view .LVU42
+ 233               	.LBB8:
+ 234               		.loc 1 132 10 view .LVU43
+ 235               		.loc 1 132 27 view .LVU44
+ 133:quantum/encoder.c ****         encoder_state[i] <<= 2;
+ 236               		.loc 1 133 9 view .LVU45
+ 134:quantum/encoder.c ****         encoder_state[i] |= (readPin(encoders_pad_a[i]) << 0) | (readPin(encoders_pad_b[i]) << 1);
+ 237               		.loc 1 134 9 view .LVU46
+ 238               		.loc 1 134 30 is_stmt 0 view .LVU47
+ 239 0002 4091 0000 		lds r20,encoders_pad_a
+ 240 0006 E42F      		mov r30,r20
+ 241 0008 E295      		swap r30
+ 242 000a EF70      		andi r30,lo8(15)
+ 243 000c E05E      		subi r30,lo8(-(32))
+ 244 000e F0E0      		ldi r31,0
+ 245 0010 2081      		ld r18,Z
+ 246               		.loc 1 134 66 view .LVU48
+ 247 0012 3091 0000 		lds r19,encoders_pad_b
+ 248 0016 E32F      		mov r30,r19
+ 249 0018 E295      		swap r30
+ 250 001a EF70      		andi r30,lo8(15)
+ 251 001c E05E      		subi r30,lo8(-(32))
+ 252 001e F0E0      		ldi r31,0
+ 253 0020 8081      		ld r24,Z
+ 254 0022 90E0      		ldi r25,0
+ 255 0024 3F70      		andi r19,lo8(15)
+ 256 0026 00C0      		rjmp 2f
+ 257               		1:
+ 258 0028 9595      		asr r25
+ 259 002a 8795      		ror r24
+ 260               		2:
+ 261 002c 3A95      		dec r19
+ 262 002e 02F4      		brpl 1b
+ 263               		.loc 1 134 93 view .LVU49
+ 264 0030 880F      		lsl r24
+ 265 0032 991F      		rol r25
+ 266 0034 8270      		andi r24,2
+ 267 0036 9927      		clr r25
+ 268               		.loc 1 134 30 view .LVU50
+ 269 0038 30E0      		ldi r19,0
+ 270 003a 4F70      		andi r20,lo8(15)
+ 271 003c 00C0      		rjmp 2f
+ 272               		1:
+ 273 003e 3595      		asr r19
+ 274 0040 2795      		ror r18
+ 275               		2:
+ 276 0042 4A95      		dec r20
+ 277 0044 02F4      		brpl 1b
+ 278               		.loc 1 134 63 view .LVU51
+ 279 0046 2170      		andi r18,1
+ 280 0048 3327      		clr r19
+ 281 004a 822B      		or r24,r18
+ 133:quantum/encoder.c ****         encoder_state[i] <<= 2;
+ 282               		.loc 1 133 26 view .LVU52
+ 283 004c E091 0000 		lds r30,encoder_state
+ 284 0050 EE0F      		lsl r30
+ 285 0052 EE0F      		lsl r30
+ 286               		.loc 1 134 26 view .LVU53
+ 287 0054 E82B      		or r30,r24
+ 288 0056 E093 0000 		sts encoder_state,r30
+ 135:quantum/encoder.c ****         changed |= encoder_update(i, encoder_state[i]);
+ 289               		.loc 1 135 9 is_stmt 1 view .LVU54
+ 290               	.LVL8:
+ 291               	.LBB9:
+ 292               	.LBI9:
+  97:quantum/encoder.c ****     bool    changed = false;
+ 293               		.loc 1 97 13 view .LVU55
+ 294               	.LBB10:
+  98:quantum/encoder.c ****     uint8_t i       = index;
+ 295               		.loc 1 98 5 view .LVU56
+  99:quantum/encoder.c **** 
+ 296               		.loc 1 99 5 view .LVU57
+ 104:quantum/encoder.c **** #endif
+ 297               		.loc 1 104 5 view .LVU58
+ 108:quantum/encoder.c **** #endif
+ 298               		.loc 1 108 5 view .LVU59
+ 108:quantum/encoder.c **** #endif
+ 299               		.loc 1 108 11 is_stmt 0 view .LVU60
+ 300 005a C091 0000 		lds r28,thisHand
+ 301               	.LVL9:
+ 110:quantum/encoder.c ****     if (encoder_pulses[i] >= resolution) {
+ 302               		.loc 1 110 5 is_stmt 1 view .LVU61
+ 110:quantum/encoder.c ****     if (encoder_pulses[i] >= resolution) {
+ 303               		.loc 1 110 44 is_stmt 0 view .LVU62
+ 304 005e EF70      		andi r30,lo8(15)
+ 305               	.LVL10:
+ 110:quantum/encoder.c ****     if (encoder_pulses[i] >= resolution) {
+ 306               		.loc 1 110 44 view .LVU63
+ 307 0060 F0E0      		ldi r31,0
+ 110:quantum/encoder.c ****     if (encoder_pulses[i] >= resolution) {
+ 308               		.loc 1 110 37 view .LVU64
+ 309 0062 E050      		subi r30,lo8(-(encoder_LUT))
+ 310 0064 F040      		sbci r31,hi8(-(encoder_LUT))
+ 110:quantum/encoder.c ****     if (encoder_pulses[i] >= resolution) {
+ 311               		.loc 1 110 23 view .LVU65
+ 312 0066 8081      		ld r24,Z
+ 313 0068 9091 0000 		lds r25,encoder_pulses
+ 314 006c 890F      		add r24,r25
+ 315 006e 8093 0000 		sts encoder_pulses,r24
+ 111:quantum/encoder.c ****         encoder_value[index]++;
+ 316               		.loc 1 111 5 is_stmt 1 view .LVU66
+  98:quantum/encoder.c ****     uint8_t i       = index;
+ 317               		.loc 1 98 13 is_stmt 0 view .LVU67
+ 318 0072 20E0      		ldi r18,0
+ 111:quantum/encoder.c ****         encoder_value[index]++;
+ 319               		.loc 1 111 8 view .LVU68
+ 320 0074 8230      		cpi r24,lo8(2)
+ 321 0076 04F0      		brlt .L6
+ 112:quantum/encoder.c ****         changed = true;
+ 322               		.loc 1 112 9 is_stmt 1 view .LVU69
+ 112:quantum/encoder.c ****         changed = true;
+ 323               		.loc 1 112 22 is_stmt 0 view .LVU70
+ 324 0078 EC2F      		mov r30,r28
+ 325 007a F0E0      		ldi r31,0
+ 112:quantum/encoder.c ****         changed = true;
+ 326               		.loc 1 112 29 view .LVU71
+ 327 007c E050      		subi r30,lo8(-(encoder_value))
+ 328 007e F040      		sbci r31,hi8(-(encoder_value))
+ 329 0080 8081      		ld r24,Z
+ 330 0082 8F5F      		subi r24,lo8(-(1))
+ 331 0084 8083      		st Z,r24
+ 113:quantum/encoder.c ****         encoder_update_kb(index, ENCODER_COUNTER_CLOCKWISE);
+ 332               		.loc 1 113 9 is_stmt 1 view .LVU72
+ 333               	.LVL11:
+ 114:quantum/encoder.c ****     }
+ 334               		.loc 1 114 9 view .LVU73
+ 335 0086 60E0      		ldi r22,0
+ 336 0088 8C2F      		mov r24,r28
+ 337 008a 0E94 0000 		call encoder_update_kb
+ 338               	.LVL12:
+ 113:quantum/encoder.c ****         encoder_update_kb(index, ENCODER_COUNTER_CLOCKWISE);
+ 339               		.loc 1 113 17 is_stmt 0 view .LVU74
+ 340 008e 21E0      		ldi r18,lo8(1)
+ 341               	.LVL13:
+ 342               	.L6:
+ 116:quantum/encoder.c ****         encoder_value[index]--;
+ 343               		.loc 1 116 5 is_stmt 1 view .LVU75
+ 116:quantum/encoder.c ****         encoder_value[index]--;
+ 344               		.loc 1 116 8 is_stmt 0 view .LVU76
+ 345 0090 8091 0000 		lds r24,encoder_pulses
+ 346 0094 8F3F      		cpi r24,lo8(-1)
+ 347 0096 04F4      		brge .L7
+ 117:quantum/encoder.c ****         changed = true;
+ 348               		.loc 1 117 9 is_stmt 1 view .LVU77
+ 117:quantum/encoder.c ****         changed = true;
+ 349               		.loc 1 117 22 is_stmt 0 view .LVU78
+ 350 0098 EC2F      		mov r30,r28
+ 351 009a F0E0      		ldi r31,0
+ 117:quantum/encoder.c ****         changed = true;
+ 352               		.loc 1 117 29 view .LVU79
+ 353 009c E050      		subi r30,lo8(-(encoder_value))
+ 354 009e F040      		sbci r31,hi8(-(encoder_value))
+ 355 00a0 8081      		ld r24,Z
+ 356 00a2 8150      		subi r24,lo8(-(-1))
+ 357 00a4 8083      		st Z,r24
+ 118:quantum/encoder.c ****         encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 358               		.loc 1 118 9 is_stmt 1 view .LVU80
+ 359               	.LVL14:
+ 119:quantum/encoder.c ****     }
+ 360               		.loc 1 119 9 view .LVU81
+ 361 00a6 61E0      		ldi r22,lo8(1)
+ 362 00a8 8C2F      		mov r24,r28
+ 363 00aa 0E94 0000 		call encoder_update_kb
+ 364               	.LVL15:
+ 118:quantum/encoder.c ****         encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 365               		.loc 1 118 17 is_stmt 0 view .LVU82
+ 366 00ae 21E0      		ldi r18,lo8(1)
+ 367               	.LVL16:
+ 368               	.L7:
+ 121:quantum/encoder.c **** #ifdef ENCODER_DEFAULT_POS
+ 369               		.loc 1 121 5 is_stmt 1 view .LVU83
+ 121:quantum/encoder.c **** #ifdef ENCODER_DEFAULT_POS
+ 370               		.loc 1 121 23 is_stmt 0 view .LVU84
+ 371 00b0 8091 0000 		lds r24,encoder_pulses
+ 372 00b4 082E      		mov __tmp_reg__,r24
+ 373 00b6 000C      		lsl r0
+ 374 00b8 990B      		sbc r25,r25
+ 375 00ba 62E0      		ldi r22,lo8(2)
+ 376 00bc 70E0      		ldi r23,0
+ 377 00be 0E94 0000 		call __divmodhi4
+ 378 00c2 8093 0000 		sts encoder_pulses,r24
+ 127:quantum/encoder.c **** }
+ 379               		.loc 1 127 5 is_stmt 1 view .LVU85
+ 380               	.LVL17:
+ 127:quantum/encoder.c **** }
+ 381               		.loc 1 127 5 is_stmt 0 view .LVU86
+ 382               	.LBE10:
+ 383               	.LBE9:
+ 132:quantum/encoder.c ****         encoder_state[i] <<= 2;
+ 384               		.loc 1 132 50 is_stmt 1 view .LVU87
+ 132:quantum/encoder.c ****         encoder_state[i] <<= 2;
+ 385               		.loc 1 132 27 view .LVU88
+ 386               	.LBE8:
+ 136:quantum/encoder.c ****     }
+ 137:quantum/encoder.c ****     return changed;
+ 387               		.loc 1 137 5 view .LVU89
+ 138:quantum/encoder.c **** }
+ 388               		.loc 1 138 1 is_stmt 0 view .LVU90
+ 389 00c6 822F      		mov r24,r18
+ 390               	/* epilogue start */
+ 391 00c8 CF91      		pop r28
+ 392 00ca 0895      		ret
+ 393               		.cfi_endproc
+ 394               	.LFE35:
+ 396               		.section	.text.encoder_state_raw,"ax",@progbits
+ 397               	.global	encoder_state_raw
+ 399               	encoder_state_raw:
+ 400               	.LVL18:
+ 401               	.LFB36:
+ 139:quantum/encoder.c **** 
+ 140:quantum/encoder.c **** #ifdef SPLIT_KEYBOARD
+ 141:quantum/encoder.c **** void last_encoder_activity_trigger(void);
+ 142:quantum/encoder.c **** 
+ 143:quantum/encoder.c **** void encoder_state_raw(uint8_t* slave_state) { memcpy(slave_state, &encoder_value[thisHand], sizeof
+ 402               		.loc 1 143 46 is_stmt 1 view -0
+ 403               		.cfi_startproc
+ 404               	/* prologue: function */
+ 405               	/* frame size = 0 */
+ 406               	/* stack size = 0 */
+ 407               	.L__stack_usage = 0
+ 408               		.loc 1 143 48 view .LVU92
+ 409               		.loc 1 143 82 is_stmt 0 view .LVU93
+ 410 0000 E091 0000 		lds r30,thisHand
+ 411 0004 F0E0      		ldi r31,0
+ 412 0006 E050      		subi r30,lo8(-(encoder_value))
+ 413 0008 F040      		sbci r31,hi8(-(encoder_value))
+ 414 000a 2081      		ld r18,Z
+ 415               		.loc 1 143 48 view .LVU94
+ 416 000c FC01      		movw r30,r24
+ 417 000e 2083      		st Z,r18
+ 418               	/* epilogue start */
+ 419               		.loc 1 143 133 view .LVU95
+ 420 0010 0895      		ret
+ 421               		.cfi_endproc
+ 422               	.LFE36:
+ 424               		.section	.text.encoder_update_raw,"ax",@progbits
+ 425               	.global	encoder_update_raw
+ 427               	encoder_update_raw:
+ 428               	.LVL19:
+ 429               	.LFB37:
+ 144:quantum/encoder.c **** 
+ 145:quantum/encoder.c **** void encoder_update_raw(uint8_t* slave_state) {
+ 430               		.loc 1 145 47 is_stmt 1 view -0
+ 431               		.cfi_startproc
+ 432               		.loc 1 145 47 is_stmt 0 view .LVU97
+ 433 0000 FF92      		push r15
+ 434               	.LCFI3:
+ 435               		.cfi_def_cfa_offset 3
+ 436               		.cfi_offset 15, -2
+ 437 0002 0F93      		push r16
+ 438               	.LCFI4:
+ 439               		.cfi_def_cfa_offset 4
+ 440               		.cfi_offset 16, -3
+ 441 0004 1F93      		push r17
+ 442               	.LCFI5:
+ 443               		.cfi_def_cfa_offset 5
+ 444               		.cfi_offset 17, -4
+ 445 0006 CF93      		push r28
+ 446               	.LCFI6:
+ 447               		.cfi_def_cfa_offset 6
+ 448               		.cfi_offset 28, -5
+ 449 0008 DF93      		push r29
+ 450               	.LCFI7:
+ 451               		.cfi_def_cfa_offset 7
+ 452               		.cfi_offset 29, -6
+ 453               	/* prologue: function */
+ 454               	/* frame size = 0 */
+ 455               	/* stack size = 5 */
+ 456               	.L__stack_usage = 5
+ 146:quantum/encoder.c ****     bool changed = false;
+ 457               		.loc 1 146 5 is_stmt 1 view .LVU98
+ 458               	.LVL20:
+ 147:quantum/encoder.c ****     for (uint8_t i = 0; i < NUMBER_OF_ENCODERS; i++) {
+ 459               		.loc 1 147 5 view .LVU99
+ 460               	.LBB11:
+ 461               		.loc 1 147 10 view .LVU100
+ 462               		.loc 1 147 27 view .LVU101
+ 463               	.LBB12:
+ 148:quantum/encoder.c ****         uint8_t index = i + thatHand;
+ 464               		.loc 1 148 9 view .LVU102
+ 465               		.loc 1 148 27 is_stmt 0 view .LVU103
+ 466 000a D091 0000 		lds r29,thatHand
+ 467               	.LVL21:
+ 149:quantum/encoder.c ****         int8_t  delta = slave_state[i] - encoder_value[index];
+ 468               		.loc 1 149 9 is_stmt 1 view .LVU104
+ 469               		.loc 1 149 55 is_stmt 0 view .LVU105
+ 470 000e 0D2F      		mov r16,r29
+ 471 0010 10E0      		ldi r17,0
+ 472 0012 0050      		subi r16,lo8(-(encoder_value))
+ 473 0014 1040      		sbci r17,hi8(-(encoder_value))
+ 474               		.loc 1 149 40 view .LVU106
+ 475 0016 FC01      		movw r30,r24
+ 476 0018 C081      		ld r28,Z
+ 477 001a F801      		movw r30,r16
+ 478 001c 8081      		ld r24,Z
+ 479               	.LVL22:
+ 480               		.loc 1 149 40 view .LVU107
+ 481 001e C81B      		sub r28,r24
+ 482               	.LVL23:
+ 150:quantum/encoder.c ****         while (delta > 0) {
+ 483               		.loc 1 150 9 is_stmt 1 view .LVU108
+ 149:quantum/encoder.c ****         int8_t  delta = slave_state[i] - encoder_value[index];
+ 484               		.loc 1 149 17 is_stmt 0 view .LVU109
+ 485 0020 FC2E      		mov r15,r28
+ 486               	.LBE12:
+ 487               	.LBE11:
+ 146:quantum/encoder.c ****     for (uint8_t i = 0; i < NUMBER_OF_ENCODERS; i++) {
+ 488               		.loc 1 146 10 view .LVU110
+ 489 0022 80E0      		ldi r24,0
+ 490               	.LVL24:
+ 491               	.L11:
+ 492               	.LBB15:
+ 493               	.LBB13:
+ 494               		.loc 1 150 22 is_stmt 1 view .LVU111
+ 495 0024 1F14      		cp __zero_reg__,r15
+ 496 0026 04F0      		brlt .L12
+ 497               		.loc 1 150 22 is_stmt 0 view .LVU112
+ 498 0028 9C2F      		mov r25,r28
+ 499 002a C7FD      		sbrc r28,7
+ 500 002c 90E0      		ldi r25,0
+ 501               	.L13:
+ 502 002e C91B      		sub r28,r25
+ 503               	.LVL25:
+ 504               	.L14:
+ 151:quantum/encoder.c ****             delta--;
+ 152:quantum/encoder.c ****             encoder_value[index]++;
+ 153:quantum/encoder.c ****             changed = true;
+ 154:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_COUNTER_CLOCKWISE);
+ 155:quantum/encoder.c ****         }
+ 156:quantum/encoder.c ****         while (delta < 0) {
+ 505               		.loc 1 156 22 is_stmt 1 view .LVU113
+ 506 0030 C111      		cpse r28,__zero_reg__
+ 507 0032 00C0      		rjmp .L15
+ 508               	.LVL26:
+ 509               		.loc 1 156 22 is_stmt 0 view .LVU114
+ 510               	.LBE13:
+ 147:quantum/encoder.c ****         uint8_t index = i + thatHand;
+ 511               		.loc 1 147 27 is_stmt 1 view .LVU115
+ 512               	.LBE15:
+ 157:quantum/encoder.c ****             delta++;
+ 158:quantum/encoder.c ****             encoder_value[index]--;
+ 159:quantum/encoder.c ****             changed = true;
+ 160:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 161:quantum/encoder.c ****         }
+ 162:quantum/encoder.c ****     }
+ 163:quantum/encoder.c **** 
+ 164:quantum/encoder.c ****     // Update the last encoder input time -- handled external to encoder_read() when we're running 
+ 165:quantum/encoder.c ****     if (changed) last_encoder_activity_trigger();
+ 513               		.loc 1 165 5 view .LVU116
+ 514               		.loc 1 165 8 is_stmt 0 view .LVU117
+ 515 0034 8823      		tst r24
+ 516 0036 01F0      		breq .L10
+ 517               		.loc 1 165 18 is_stmt 1 discriminator 1 view .LVU118
+ 518               	/* epilogue start */
+ 166:quantum/encoder.c **** }
+ 519               		.loc 1 166 1 is_stmt 0 discriminator 1 view .LVU119
+ 520 0038 DF91      		pop r29
+ 521               	.LVL27:
+ 522               		.loc 1 166 1 discriminator 1 view .LVU120
+ 523 003a CF91      		pop r28
+ 524               	.LVL28:
+ 525               		.loc 1 166 1 discriminator 1 view .LVU121
+ 526 003c 1F91      		pop r17
+ 527 003e 0F91      		pop r16
+ 528 0040 FF90      		pop r15
+ 165:quantum/encoder.c **** }
+ 529               		.loc 1 165 18 discriminator 1 view .LVU122
+ 530 0042 0C94 0000 		jmp last_encoder_activity_trigger
+ 531               	.LVL29:
+ 532               	.L12:
+ 533               	.LBB16:
+ 534               	.LBB14:
+ 151:quantum/encoder.c ****             encoder_value[index]++;
+ 535               		.loc 1 151 13 is_stmt 1 view .LVU123
+ 536 0046 FA94      		dec r15
+ 537               	.LVL30:
+ 152:quantum/encoder.c ****             changed = true;
+ 538               		.loc 1 152 13 view .LVU124
+ 152:quantum/encoder.c ****             changed = true;
+ 539               		.loc 1 152 33 is_stmt 0 view .LVU125
+ 540 0048 F801      		movw r30,r16
+ 541 004a 8081      		ld r24,Z
+ 542               	.LVL31:
+ 152:quantum/encoder.c ****             changed = true;
+ 543               		.loc 1 152 33 view .LVU126
+ 544 004c 8F5F      		subi r24,lo8(-(1))
+ 545 004e 8083      		st Z,r24
+ 153:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_COUNTER_CLOCKWISE);
+ 546               		.loc 1 153 13 is_stmt 1 view .LVU127
+ 547               	.LVL32:
+ 154:quantum/encoder.c ****         }
+ 548               		.loc 1 154 13 view .LVU128
+ 549 0050 60E0      		ldi r22,0
+ 550 0052 8D2F      		mov r24,r29
+ 551 0054 0E94 0000 		call encoder_update_kb
+ 552               	.LVL33:
+ 153:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_COUNTER_CLOCKWISE);
+ 553               		.loc 1 153 21 is_stmt 0 view .LVU129
+ 554 0058 81E0      		ldi r24,lo8(1)
+ 555 005a 00C0      		rjmp .L11
+ 556               	.LVL34:
+ 557               	.L15:
+ 157:quantum/encoder.c ****             encoder_value[index]--;
+ 558               		.loc 1 157 13 is_stmt 1 view .LVU130
+ 559 005c CF5F      		subi r28,lo8(-(1))
+ 560               	.LVL35:
+ 158:quantum/encoder.c ****             changed = true;
+ 561               		.loc 1 158 13 view .LVU131
+ 158:quantum/encoder.c ****             changed = true;
+ 562               		.loc 1 158 33 is_stmt 0 view .LVU132
+ 563 005e F801      		movw r30,r16
+ 564 0060 8081      		ld r24,Z
+ 565               	.LVL36:
+ 158:quantum/encoder.c ****             changed = true;
+ 566               		.loc 1 158 33 view .LVU133
+ 567 0062 8150      		subi r24,lo8(-(-1))
+ 568 0064 8083      		st Z,r24
+ 159:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 569               		.loc 1 159 13 is_stmt 1 view .LVU134
+ 570               	.LVL37:
+ 160:quantum/encoder.c ****         }
+ 571               		.loc 1 160 13 view .LVU135
+ 572 0066 61E0      		ldi r22,lo8(1)
+ 573 0068 8D2F      		mov r24,r29
+ 574 006a 0E94 0000 		call encoder_update_kb
+ 575               	.LVL38:
+ 159:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 576               		.loc 1 159 21 is_stmt 0 view .LVU136
+ 577 006e 81E0      		ldi r24,lo8(1)
+ 578 0070 00C0      		rjmp .L14
+ 579               	.LVL39:
+ 580               	.L10:
+ 581               	/* epilogue start */
+ 159:quantum/encoder.c ****             encoder_update_kb(index, ENCODER_CLOCKWISE);
+ 582               		.loc 1 159 21 view .LVU137
+ 583               	.LBE14:
+ 584               	.LBE16:
+ 585               		.loc 1 166 1 view .LVU138
+ 586 0072 DF91      		pop r29
+ 587               	.LVL40:
+ 588               		.loc 1 166 1 view .LVU139
+ 589 0074 CF91      		pop r28
+ 590               	.LVL41:
+ 591               		.loc 1 166 1 view .LVU140
+ 592 0076 1F91      		pop r17
+ 593 0078 0F91      		pop r16
+ 594 007a FF90      		pop r15
+ 595 007c 0895      		ret
+ 596               		.cfi_endproc
+ 597               	.LFE37:
+ 599               		.section	.bss.thatHand,"aw",@nobits
+ 602               	thatHand:
+ 603 0000 00        		.zero	1
+ 604               		.section	.bss.thisHand,"aw",@nobits
+ 607               	thisHand:
+ 608 0000 00        		.zero	1
+ 609               		.section	.bss.encoder_value,"aw",@nobits
+ 612               	encoder_value:
+ 613 0000 0000      		.zero	2
+ 614               		.section	.bss.encoder_pulses,"aw",@nobits
+ 617               	encoder_pulses:
+ 618 0000 00        		.zero	1
+ 619               		.section	.bss.encoder_state,"aw",@nobits
+ 622               	encoder_state:
+ 623 0000 00        		.zero	1
+ 624               		.section	.rodata.encoder_LUT,"a"
+ 627               	encoder_LUT:
+ 628 0000 00        		.string	""
+ 629 0001 FF01 00   		.string	"\377\001"
+ 630 0004 0100      		.string	"\001"
+ 631 0006 00        		.string	""
+ 632 0007 FFFF 00   		.string	"\377\377"
+ 633 000a 00        		.string	""
+ 634 000b 0100      		.string	"\001"
+ 635 000d 01FF 00   		.string	"\001\377"
+ 636               		.section	.data.encoders_pad_b,"aw"
+ 639               	encoders_pad_b:
+ 640 0000 F4        		.ascii	"\364"
+ 641               		.section	.data.encoders_pad_a,"aw"
+ 644               	encoders_pad_a:
+ 645 0000 F5        		.ascii	"\365"
+ 646               		.text
+ 647               	.Letext0:
+ 648               		.file 2 "/usr/avr/include/stdint.h"
+ 649               		.file 3 "tmk_core/common/avr/gpio.h"
+ 650               		.file 4 "quantum/split_common/split_util.h"
+ 651               		.file 5 "quantum/sequencer/sequencer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 encoder.c
+     /tmp/cc2VlRcE.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc2VlRcE.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc2VlRcE.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc2VlRcE.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc2VlRcE.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc2VlRcE.s:13     .text.encoder_update_user:0000000000000000 encoder_update_user
+     /tmp/cc2VlRcE.s:36     .text.encoder_update_kb:0000000000000000 encoder_update_kb
+     /tmp/cc2VlRcE.s:56     .text.encoder_init:0000000000000000 encoder_init
+     /tmp/cc2VlRcE.s:644    .data.encoders_pad_a:0000000000000000 encoders_pad_a
+     /tmp/cc2VlRcE.s:639    .data.encoders_pad_b:0000000000000000 encoders_pad_b
+     /tmp/cc2VlRcE.s:622    .bss.encoder_state:0000000000000000 encoder_state
+     /tmp/cc2VlRcE.s:607    .bss.thisHand:0000000000000000 thisHand
+     /tmp/cc2VlRcE.s:602    .bss.thatHand:0000000000000000 thatHand
+     /tmp/cc2VlRcE.s:218    .text.encoder_read:0000000000000000 encoder_read
+     /tmp/cc2VlRcE.s:627    .rodata.encoder_LUT:0000000000000000 encoder_LUT
+     /tmp/cc2VlRcE.s:617    .bss.encoder_pulses:0000000000000000 encoder_pulses
+     /tmp/cc2VlRcE.s:612    .bss.encoder_value:0000000000000000 encoder_value
+     /tmp/cc2VlRcE.s:399    .text.encoder_state_raw:0000000000000000 encoder_state_raw
+     /tmp/cc2VlRcE.s:427    .text.encoder_update_raw:0000000000000000 encoder_update_raw
+
+UNDEFINED SYMBOLS
+isLeftHand
+__divmodhi4
+last_encoder_activity_trigger
+__do_copy_data
+__do_clear_bss

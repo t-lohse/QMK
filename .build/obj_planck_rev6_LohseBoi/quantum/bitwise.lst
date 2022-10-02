@@ -1,0 +1,698 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"bitwise.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/bitwise.c"
+  20              		.section	.text.bitpop,"ax",%progbits
+  21              		.align	1
+  22              		.global	bitpop
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	bitpop:
+  28              	.LVL0:
+  29              	.LFB0:
+   1:quantum/bitwise.c **** /*
+   2:quantum/bitwise.c **** Copyright 2011 Jun Wako <wakojun@gmail.com>
+   3:quantum/bitwise.c **** 
+   4:quantum/bitwise.c **** This program is free software: you can redistribute it and/or modify
+   5:quantum/bitwise.c **** it under the terms of the GNU General Public License as published by
+   6:quantum/bitwise.c **** the Free Software Foundation, either version 2 of the License, or
+   7:quantum/bitwise.c **** (at your option) any later version.
+   8:quantum/bitwise.c **** 
+   9:quantum/bitwise.c **** This program is distributed in the hope that it will be useful,
+  10:quantum/bitwise.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/bitwise.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/bitwise.c **** GNU General Public License for more details.
+  13:quantum/bitwise.c **** 
+  14:quantum/bitwise.c **** You should have received a copy of the GNU General Public License
+  15:quantum/bitwise.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/bitwise.c **** */
+  17:quantum/bitwise.c **** 
+  18:quantum/bitwise.c **** #include "util.h"
+  19:quantum/bitwise.c **** 
+  20:quantum/bitwise.c **** // bit population - return number of on-bit
+  21:quantum/bitwise.c **** __attribute__((noinline)) uint8_t bitpop(uint8_t bits) {
+  30              		.loc 1 21 56 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  22:quantum/bitwise.c ****     uint8_t c;
+  35              		.loc 1 22 5 view .LVU1
+  23:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+  36              		.loc 1 23 5 view .LVU2
+  37              		.loc 1 23 5 is_stmt 0 view .LVU3
+  38 0000 0023     		movs	r3, #0
+  39              	.LVL1:
+  40              	.L2:
+  41              		.loc 1 23 17 is_stmt 1 discriminator 1 view .LVU4
+  42 0002 5A1C     		adds	r2, r3, #1
+  43 0004 08B9     		cbnz	r0, .L3
+  24:quantum/bitwise.c ****     return c;
+  44              		.loc 1 24 5 view .LVU5
+  25:quantum/bitwise.c ****     /*
+  26:quantum/bitwise.c ****         const uint8_t bit_count[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
+  27:quantum/bitwise.c ****         return bit_count[bits>>4] + bit_count[bits&0x0F]
+  28:quantum/bitwise.c ****     */
+  29:quantum/bitwise.c **** }
+  45              		.loc 1 29 1 is_stmt 0 view .LVU6
+  46 0006 D8B2     		uxtb	r0, r3
+  47              	.LVL2:
+  48              		.loc 1 29 1 view .LVU7
+  49 0008 7047     		bx	lr
+  50              	.LVL3:
+  51              	.L3:
+  23:quantum/bitwise.c ****     return c;
+  52              		.loc 1 23 28 is_stmt 1 discriminator 3 view .LVU8
+  23:quantum/bitwise.c ****     return c;
+  53              		.loc 1 23 41 is_stmt 0 discriminator 3 view .LVU9
+  54 000a 431E     		subs	r3, r0, #1
+  55              	.LVL4:
+  23:quantum/bitwise.c ****     return c;
+  56              		.loc 1 23 41 discriminator 3 view .LVU10
+  57 000c 1840     		ands	r0, r0, r3
+  58              	.LVL5:
+  23:quantum/bitwise.c ****     return c;
+  59              		.loc 1 23 24 is_stmt 1 discriminator 3 view .LVU11
+  23:quantum/bitwise.c ****     return c;
+  60              		.loc 1 23 41 is_stmt 0 discriminator 3 view .LVU12
+  61 000e 1346     		mov	r3, r2
+  62 0010 F7E7     		b	.L2
+  63              		.cfi_endproc
+  64              	.LFE0:
+  66              		.section	.text.bitpop16,"ax",%progbits
+  67              		.align	1
+  68              		.global	bitpop16
+  69              		.syntax unified
+  70              		.thumb
+  71              		.thumb_func
+  73              	bitpop16:
+  74              	.LVL6:
+  75              	.LFB1:
+  30:quantum/bitwise.c **** 
+  31:quantum/bitwise.c **** uint8_t bitpop16(uint16_t bits) {
+  76              		.loc 1 31 33 is_stmt 1 view -0
+  77              		.cfi_startproc
+  78              		@ args = 0, pretend = 0, frame = 0
+  79              		@ frame_needed = 0, uses_anonymous_args = 0
+  80              		@ link register save eliminated.
+  32:quantum/bitwise.c ****     uint8_t c;
+  81              		.loc 1 32 5 view .LVU14
+  33:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+  82              		.loc 1 33 5 view .LVU15
+  83              		.loc 1 33 5 is_stmt 0 view .LVU16
+  84 0000 0023     		movs	r3, #0
+  85              	.LVL7:
+  86              	.L5:
+  87              		.loc 1 33 17 is_stmt 1 discriminator 1 view .LVU17
+  88 0002 5A1C     		adds	r2, r3, #1
+  89 0004 08B9     		cbnz	r0, .L6
+  34:quantum/bitwise.c ****     return c;
+  90              		.loc 1 34 5 view .LVU18
+  35:quantum/bitwise.c **** }
+  91              		.loc 1 35 1 is_stmt 0 view .LVU19
+  92 0006 D8B2     		uxtb	r0, r3
+  93              	.LVL8:
+  94              		.loc 1 35 1 view .LVU20
+  95 0008 7047     		bx	lr
+  96              	.LVL9:
+  97              	.L6:
+  33:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+  98              		.loc 1 33 28 is_stmt 1 discriminator 3 view .LVU21
+  33:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+  99              		.loc 1 33 41 is_stmt 0 discriminator 3 view .LVU22
+ 100 000a 431E     		subs	r3, r0, #1
+ 101              	.LVL10:
+  33:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 102              		.loc 1 33 41 discriminator 3 view .LVU23
+ 103 000c 1840     		ands	r0, r0, r3
+ 104              	.LVL11:
+  33:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 105              		.loc 1 33 24 is_stmt 1 discriminator 3 view .LVU24
+  33:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 106              		.loc 1 33 41 is_stmt 0 discriminator 3 view .LVU25
+ 107 000e 1346     		mov	r3, r2
+ 108 0010 F7E7     		b	.L5
+ 109              		.cfi_endproc
+ 110              	.LFE1:
+ 112              		.section	.text.bitpop32,"ax",%progbits
+ 113              		.align	1
+ 114              		.global	bitpop32
+ 115              		.syntax unified
+ 116              		.thumb
+ 117              		.thumb_func
+ 119              	bitpop32:
+ 120              	.LVL12:
+ 121              	.LFB2:
+  36:quantum/bitwise.c **** 
+  37:quantum/bitwise.c **** uint8_t bitpop32(uint32_t bits) {
+ 122              		.loc 1 37 33 is_stmt 1 view -0
+ 123              		.cfi_startproc
+ 124              		@ args = 0, pretend = 0, frame = 0
+ 125              		@ frame_needed = 0, uses_anonymous_args = 0
+ 126              		@ link register save eliminated.
+  38:quantum/bitwise.c ****     uint8_t c;
+ 127              		.loc 1 38 5 view .LVU27
+  39:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 128              		.loc 1 39 5 view .LVU28
+ 129              		.loc 1 39 5 is_stmt 0 view .LVU29
+ 130 0000 0023     		movs	r3, #0
+ 131              	.LVL13:
+ 132              	.L8:
+ 133              		.loc 1 39 17 is_stmt 1 discriminator 1 view .LVU30
+ 134 0002 5A1C     		adds	r2, r3, #1
+ 135 0004 08B9     		cbnz	r0, .L9
+  40:quantum/bitwise.c ****     return c;
+ 136              		.loc 1 40 5 view .LVU31
+  41:quantum/bitwise.c **** }
+ 137              		.loc 1 41 1 is_stmt 0 view .LVU32
+ 138 0006 D8B2     		uxtb	r0, r3
+ 139              	.LVL14:
+ 140              		.loc 1 41 1 view .LVU33
+ 141 0008 7047     		bx	lr
+ 142              	.LVL15:
+ 143              	.L9:
+  39:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 144              		.loc 1 39 28 is_stmt 1 discriminator 3 view .LVU34
+  39:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 145              		.loc 1 39 41 is_stmt 0 discriminator 3 view .LVU35
+ 146 000a 431E     		subs	r3, r0, #1
+ 147              	.LVL16:
+  39:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 148              		.loc 1 39 33 discriminator 3 view .LVU36
+ 149 000c 1840     		ands	r0, r0, r3
+ 150              	.LVL17:
+  39:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 151              		.loc 1 39 24 is_stmt 1 discriminator 3 view .LVU37
+  39:quantum/bitwise.c ****     for (c = 0; bits; c++) bits &= bits - 1;
+ 152              		.loc 1 39 33 is_stmt 0 discriminator 3 view .LVU38
+ 153 000e 1346     		mov	r3, r2
+ 154 0010 F7E7     		b	.L8
+ 155              		.cfi_endproc
+ 156              	.LFE2:
+ 158              		.section	.text.biton,"ax",%progbits
+ 159              		.align	1
+ 160              		.global	biton
+ 161              		.syntax unified
+ 162              		.thumb
+ 163              		.thumb_func
+ 165              	biton:
+ 166              	.LVL18:
+ 167              	.LFB3:
+  42:quantum/bitwise.c **** 
+  43:quantum/bitwise.c **** // most significant on-bit - return highest location of on-bit
+  44:quantum/bitwise.c **** // NOTE: return 0 when bit0 is on or all bits are off
+  45:quantum/bitwise.c **** __attribute__((noinline)) uint8_t biton(uint8_t bits) {
+ 168              		.loc 1 45 55 is_stmt 1 view -0
+ 169              		.cfi_startproc
+ 170              		@ args = 0, pretend = 0, frame = 0
+ 171              		@ frame_needed = 0, uses_anonymous_args = 0
+ 172              		@ link register save eliminated.
+  46:quantum/bitwise.c ****     uint8_t n = 0;
+ 173              		.loc 1 46 5 view .LVU40
+  47:quantum/bitwise.c ****     if (bits >> 4) {
+ 174              		.loc 1 47 5 view .LVU41
+  45:quantum/bitwise.c ****     uint8_t n = 0;
+ 175              		.loc 1 45 55 is_stmt 0 view .LVU42
+ 176 0000 0346     		mov	r3, r0
+ 177              		.loc 1 47 8 view .LVU43
+ 178 0002 0009     		lsrs	r0, r0, #4
+ 179              	.LVL19:
+ 180              		.loc 1 47 8 view .LVU44
+ 181 0004 1CBF     		itt	ne
+ 182 0006 0346     		movne	r3, r0
+  48:quantum/bitwise.c ****         bits >>= 4;
+  49:quantum/bitwise.c ****         n += 4;
+ 183              		.loc 1 49 11 view .LVU45
+ 184 0008 0420     		movne	r0, #4
+ 185              	.LVL20:
+  50:quantum/bitwise.c ****     }
+  51:quantum/bitwise.c ****     if (bits >> 2) {
+ 186              		.loc 1 51 5 is_stmt 1 view .LVU46
+ 187              		.loc 1 51 8 is_stmt 0 view .LVU47
+ 188 000a 9A08     		lsrs	r2, r3, #2
+  52:quantum/bitwise.c ****         bits >>= 2;
+ 189              		.loc 1 52 9 is_stmt 1 view .LVU48
+ 190              	.LVL21:
+  53:quantum/bitwise.c ****         n += 2;
+ 191              		.loc 1 53 9 view .LVU49
+ 192              		.loc 1 53 11 is_stmt 0 view .LVU50
+ 193 000c 1EBF     		ittt	ne
+ 194 000e 0230     		addne	r0, r0, #2
+ 195              	.LVL22:
+ 196              		.loc 1 53 11 view .LVU51
+ 197 0010 1346     		movne	r3, r2
+ 198 0012 C0B2     		uxtbne	r0, r0
+ 199              	.LVL23:
+  54:quantum/bitwise.c ****     }
+  55:quantum/bitwise.c ****     if (bits >> 1) {
+ 200              		.loc 1 55 5 is_stmt 1 view .LVU52
+ 201              		.loc 1 55 8 is_stmt 0 view .LVU53
+ 202 0014 5B08     		lsrs	r3, r3, #1
+ 203              	.LVL24:
+  56:quantum/bitwise.c ****         bits >>= 1;
+ 204              		.loc 1 56 9 is_stmt 1 view .LVU54
+  57:quantum/bitwise.c ****         n += 1;
+ 205              		.loc 1 57 9 view .LVU55
+ 206              		.loc 1 57 11 is_stmt 0 view .LVU56
+ 207 0016 1CBF     		itt	ne
+ 208 0018 0130     		addne	r0, r0, #1
+ 209              	.LVL25:
+ 210              		.loc 1 57 11 view .LVU57
+ 211 001a C0B2     		uxtbne	r0, r0
+ 212              	.LVL26:
+  58:quantum/bitwise.c ****     }
+  59:quantum/bitwise.c ****     return n;
+ 213              		.loc 1 59 5 is_stmt 1 view .LVU58
+  60:quantum/bitwise.c **** }
+ 214              		.loc 1 60 1 is_stmt 0 view .LVU59
+ 215 001c 7047     		bx	lr
+ 216              		.cfi_endproc
+ 217              	.LFE3:
+ 219              		.section	.text.biton16,"ax",%progbits
+ 220              		.align	1
+ 221              		.global	biton16
+ 222              		.syntax unified
+ 223              		.thumb
+ 224              		.thumb_func
+ 226              	biton16:
+ 227              	.LVL27:
+ 228              	.LFB4:
+  61:quantum/bitwise.c **** 
+  62:quantum/bitwise.c **** uint8_t biton16(uint16_t bits) {
+ 229              		.loc 1 62 32 is_stmt 1 view -0
+ 230              		.cfi_startproc
+ 231              		@ args = 0, pretend = 0, frame = 0
+ 232              		@ frame_needed = 0, uses_anonymous_args = 0
+ 233              		@ link register save eliminated.
+  63:quantum/bitwise.c ****     uint8_t n = 0;
+ 234              		.loc 1 63 5 view .LVU61
+  64:quantum/bitwise.c ****     if (bits >> 8) {
+ 235              		.loc 1 64 5 view .LVU62
+ 236              		.loc 1 64 9 is_stmt 0 view .LVU63
+ 237 0000 020A     		lsrs	r2, r0, #8
+ 238              		.loc 1 64 8 view .LVU64
+ 239 0002 002A     		cmp	r2, #0
+  62:quantum/bitwise.c ****     uint8_t n = 0;
+ 240              		.loc 1 62 32 view .LVU65
+ 241 0004 0346     		mov	r3, r0
+ 242              		.loc 1 64 8 view .LVU66
+ 243 0006 0BBF     		itete	eq
+ 244 0008 0346     		moveq	r3, r0
+ 245 000a 1346     		movne	r3, r2
+ 246 000c 0020     		moveq	r0, #0
+ 247              	.LVL28:
+ 248              		.loc 1 64 8 view .LVU67
+ 249 000e 0820     		movne	r0, #8
+ 250              	.LVL29:
+  65:quantum/bitwise.c ****         bits >>= 8;
+  66:quantum/bitwise.c ****         n += 8;
+  67:quantum/bitwise.c ****     }
+  68:quantum/bitwise.c ****     if (bits >> 4) {
+ 251              		.loc 1 68 5 is_stmt 1 view .LVU68
+ 252              		.loc 1 68 8 is_stmt 0 view .LVU69
+ 253 0010 1A09     		lsrs	r2, r3, #4
+  69:quantum/bitwise.c ****         bits >>= 4;
+ 254              		.loc 1 69 9 is_stmt 1 view .LVU70
+ 255              	.LVL30:
+  70:quantum/bitwise.c ****         n += 4;
+ 256              		.loc 1 70 9 view .LVU71
+ 257              		.loc 1 70 11 is_stmt 0 view .LVU72
+ 258 0012 18BF     		it	ne
+ 259 0014 1346     		movne	r3, r2
+  71:quantum/bitwise.c ****     }
+  72:quantum/bitwise.c ****     if (bits >> 2) {
+ 260              		.loc 1 72 9 view .LVU73
+ 261 0016 C3F38F02 		ubfx	r2, r3, #2, #16
+ 262              	.LVL31:
+  70:quantum/bitwise.c ****         n += 4;
+ 263              		.loc 1 70 11 view .LVU74
+ 264 001a 18BF     		it	ne
+ 265 001c 0430     		addne	r0, r0, #4
+ 266              	.LVL32:
+ 267              		.loc 1 72 5 is_stmt 1 view .LVU75
+ 268              		.loc 1 72 8 is_stmt 0 view .LVU76
+ 269 001e 12B1     		cbz	r2, .L26
+  73:quantum/bitwise.c ****         bits >>= 2;
+ 270              		.loc 1 73 9 is_stmt 1 view .LVU77
+ 271              	.LVL33:
+  74:quantum/bitwise.c ****         n += 2;
+ 272              		.loc 1 74 9 view .LVU78
+ 273              		.loc 1 74 11 is_stmt 0 view .LVU79
+ 274 0020 0230     		adds	r0, r0, #2
+ 275              	.LVL34:
+ 276              		.loc 1 74 11 view .LVU80
+ 277 0022 C0B2     		uxtb	r0, r0
+ 278              	.LVL35:
+ 279              		.loc 1 74 11 view .LVU81
+ 280 0024 1346     		mov	r3, r2
+ 281              	.LVL36:
+ 282              	.L26:
+  75:quantum/bitwise.c ****     }
+  76:quantum/bitwise.c ****     if (bits >> 1) {
+ 283              		.loc 1 76 5 is_stmt 1 view .LVU82
+ 284              		.loc 1 76 8 is_stmt 0 view .LVU83
+ 285 0026 C3F34F03 		ubfx	r3, r3, #1, #16
+ 286              	.LVL37:
+ 287              		.loc 1 76 8 view .LVU84
+ 288 002a 0BB1     		cbz	r3, .L27
+  77:quantum/bitwise.c ****         bits >>= 1;
+ 289              		.loc 1 77 9 is_stmt 1 view .LVU85
+ 290              	.LVL38:
+  78:quantum/bitwise.c ****         n += 1;
+ 291              		.loc 1 78 9 view .LVU86
+ 292              		.loc 1 78 11 is_stmt 0 view .LVU87
+ 293 002c 0130     		adds	r0, r0, #1
+ 294              	.LVL39:
+ 295              		.loc 1 78 11 view .LVU88
+ 296 002e C0B2     		uxtb	r0, r0
+ 297              	.LVL40:
+ 298              	.L27:
+  79:quantum/bitwise.c ****     }
+  80:quantum/bitwise.c ****     return n;
+ 299              		.loc 1 80 5 is_stmt 1 view .LVU89
+  81:quantum/bitwise.c **** }
+ 300              		.loc 1 81 1 is_stmt 0 view .LVU90
+ 301 0030 7047     		bx	lr
+ 302              		.cfi_endproc
+ 303              	.LFE4:
+ 305              		.section	.text.biton32,"ax",%progbits
+ 306              		.align	1
+ 307              		.global	biton32
+ 308              		.syntax unified
+ 309              		.thumb
+ 310              		.thumb_func
+ 312              	biton32:
+ 313              	.LVL41:
+ 314              	.LFB5:
+  82:quantum/bitwise.c **** 
+  83:quantum/bitwise.c **** uint8_t biton32(uint32_t bits) {
+ 315              		.loc 1 83 32 is_stmt 1 view -0
+ 316              		.cfi_startproc
+ 317              		@ args = 0, pretend = 0, frame = 0
+ 318              		@ frame_needed = 0, uses_anonymous_args = 0
+ 319              		@ link register save eliminated.
+  84:quantum/bitwise.c ****     uint8_t n = 0;
+ 320              		.loc 1 84 5 view .LVU92
+  85:quantum/bitwise.c ****     if (bits >> 16) {
+ 321              		.loc 1 85 5 view .LVU93
+ 322              		.loc 1 85 14 is_stmt 0 view .LVU94
+ 323 0000 020C     		lsrs	r2, r0, #16
+ 324              		.loc 1 85 8 view .LVU95
+ 325 0002 002A     		cmp	r2, #0
+  83:quantum/bitwise.c ****     uint8_t n = 0;
+ 326              		.loc 1 83 32 view .LVU96
+ 327 0004 0346     		mov	r3, r0
+ 328              		.loc 1 85 8 view .LVU97
+ 329 0006 0BBF     		itete	eq
+ 330 0008 0346     		moveq	r3, r0
+ 331 000a 1346     		movne	r3, r2
+ 332 000c 0020     		moveq	r0, #0
+ 333              	.LVL42:
+ 334              		.loc 1 85 8 view .LVU98
+ 335 000e 1020     		movne	r0, #16
+ 336              	.LVL43:
+  86:quantum/bitwise.c ****         bits >>= 16;
+  87:quantum/bitwise.c ****         n += 16;
+  88:quantum/bitwise.c ****     }
+  89:quantum/bitwise.c ****     if (bits >> 8) {
+ 337              		.loc 1 89 5 is_stmt 1 view .LVU99
+ 338              		.loc 1 89 8 is_stmt 0 view .LVU100
+ 339 0010 1A0A     		lsrs	r2, r3, #8
+  90:quantum/bitwise.c ****         bits >>= 8;
+ 340              		.loc 1 90 9 is_stmt 1 view .LVU101
+ 341              	.LVL44:
+  91:quantum/bitwise.c ****         n += 8;
+ 342              		.loc 1 91 9 view .LVU102
+ 343              		.loc 1 91 11 is_stmt 0 view .LVU103
+ 344 0012 1CBF     		itt	ne
+ 345 0014 1346     		movne	r3, r2
+ 346 0016 0830     		addne	r0, r0, #8
+ 347              	.LVL45:
+  92:quantum/bitwise.c ****     }
+  93:quantum/bitwise.c ****     if (bits >> 4) {
+ 348              		.loc 1 93 5 is_stmt 1 view .LVU104
+ 349              		.loc 1 93 8 is_stmt 0 view .LVU105
+ 350 0018 1A09     		lsrs	r2, r3, #4
+  94:quantum/bitwise.c ****         bits >>= 4;
+ 351              		.loc 1 94 9 is_stmt 1 view .LVU106
+ 352              	.LVL46:
+  95:quantum/bitwise.c ****         n += 4;
+ 353              		.loc 1 95 9 view .LVU107
+ 354              		.loc 1 95 11 is_stmt 0 view .LVU108
+ 355 001a 1EBF     		ittt	ne
+ 356 001c 0430     		addne	r0, r0, #4
+ 357              	.LVL47:
+ 358              		.loc 1 95 11 view .LVU109
+ 359 001e 1346     		movne	r3, r2
+ 360 0020 C0B2     		uxtbne	r0, r0
+ 361              	.LVL48:
+  96:quantum/bitwise.c ****     }
+  97:quantum/bitwise.c ****     if (bits >> 2) {
+ 362              		.loc 1 97 5 is_stmt 1 view .LVU110
+ 363              		.loc 1 97 8 is_stmt 0 view .LVU111
+ 364 0022 9A08     		lsrs	r2, r3, #2
+  98:quantum/bitwise.c ****         bits >>= 2;
+ 365              		.loc 1 98 9 is_stmt 1 view .LVU112
+ 366              	.LVL49:
+  99:quantum/bitwise.c ****         n += 2;
+ 367              		.loc 1 99 9 view .LVU113
+ 368              		.loc 1 99 11 is_stmt 0 view .LVU114
+ 369 0024 1EBF     		ittt	ne
+ 370 0026 0230     		addne	r0, r0, #2
+ 371              	.LVL50:
+ 372              		.loc 1 99 11 view .LVU115
+ 373 0028 1346     		movne	r3, r2
+ 374 002a C0B2     		uxtbne	r0, r0
+ 375              	.LVL51:
+ 100:quantum/bitwise.c ****     }
+ 101:quantum/bitwise.c ****     if (bits >> 1) {
+ 376              		.loc 1 101 5 is_stmt 1 view .LVU116
+ 377              		.loc 1 101 8 is_stmt 0 view .LVU117
+ 378 002c 5B08     		lsrs	r3, r3, #1
+ 379              	.LVL52:
+ 102:quantum/bitwise.c ****         bits >>= 1;
+ 380              		.loc 1 102 9 is_stmt 1 view .LVU118
+ 103:quantum/bitwise.c ****         n += 1;
+ 381              		.loc 1 103 9 view .LVU119
+ 382              		.loc 1 103 11 is_stmt 0 view .LVU120
+ 383 002e 1CBF     		itt	ne
+ 384 0030 0130     		addne	r0, r0, #1
+ 385              	.LVL53:
+ 386              		.loc 1 103 11 view .LVU121
+ 387 0032 C0B2     		uxtbne	r0, r0
+ 388              	.LVL54:
+ 104:quantum/bitwise.c ****     }
+ 105:quantum/bitwise.c ****     return n;
+ 389              		.loc 1 105 5 is_stmt 1 view .LVU122
+ 106:quantum/bitwise.c **** }
+ 390              		.loc 1 106 1 is_stmt 0 view .LVU123
+ 391 0034 7047     		bx	lr
+ 392              		.cfi_endproc
+ 393              	.LFE5:
+ 395              		.section	.text.bitrev,"ax",%progbits
+ 396              		.align	1
+ 397              		.global	bitrev
+ 398              		.syntax unified
+ 399              		.thumb
+ 400              		.thumb_func
+ 402              	bitrev:
+ 403              	.LVL55:
+ 404              	.LFB6:
+ 107:quantum/bitwise.c **** 
+ 108:quantum/bitwise.c **** __attribute__((noinline)) uint8_t bitrev(uint8_t bits) {
+ 405              		.loc 1 108 56 is_stmt 1 view -0
+ 406              		.cfi_startproc
+ 407              		@ args = 0, pretend = 0, frame = 0
+ 408              		@ frame_needed = 0, uses_anonymous_args = 0
+ 409              		@ link register save eliminated.
+ 109:quantum/bitwise.c ****     bits = (bits & 0x0f) << 4 | (bits & 0xf0) >> 4;
+ 410              		.loc 1 109 5 view .LVU125
+ 411              		.loc 1 109 26 is_stmt 0 view .LVU126
+ 412 0000 0301     		lsls	r3, r0, #4
+ 413 0002 DBB2     		uxtb	r3, r3
+ 414              	.LVL56:
+ 110:quantum/bitwise.c ****     bits = (bits & 0b00110011) << 2 | (bits & 0b11001100) >> 2;
+ 415              		.loc 1 110 5 is_stmt 1 view .LVU127
+ 416              		.loc 1 110 32 is_stmt 0 view .LVU128
+ 417 0004 43EA1010 		orr	r0, r3, r0, lsr #4
+ 418              	.LVL57:
+ 111:quantum/bitwise.c ****     bits = (bits & 0b01010101) << 1 | (bits & 0b10101010) >> 1;
+ 419              		.loc 1 111 5 is_stmt 1 view .LVU129
+ 110:quantum/bitwise.c ****     bits = (bits & 0b00110011) << 2 | (bits & 0b11001100) >> 2;
+ 420              		.loc 1 110 32 is_stmt 0 view .LVU130
+ 421 0008 8300     		lsls	r3, r0, #2
+ 110:quantum/bitwise.c ****     bits = (bits & 0b00110011) << 2 | (bits & 0b11001100) >> 2;
+ 422              		.loc 1 110 59 view .LVU131
+ 423 000a 8010     		asrs	r0, r0, #2
+ 424              	.LVL58:
+ 110:quantum/bitwise.c ****     bits = (bits & 0b00110011) << 2 | (bits & 0b11001100) >> 2;
+ 425              		.loc 1 110 59 view .LVU132
+ 426 000c 00F03300 		and	r0, r0, #51
+ 110:quantum/bitwise.c ****     bits = (bits & 0b00110011) << 2 | (bits & 0b11001100) >> 2;
+ 427              		.loc 1 110 37 view .LVU133
+ 428 0010 03F0CC03 		and	r3, r3, #204
+ 429              		.loc 1 111 32 view .LVU134
+ 430 0014 0343     		orrs	r3, r3, r0
+ 431              	.LVL59:
+ 112:quantum/bitwise.c ****     return bits;
+ 432              		.loc 1 112 5 is_stmt 1 view .LVU135
+ 111:quantum/bitwise.c ****     bits = (bits & 0b01010101) << 1 | (bits & 0b10101010) >> 1;
+ 433              		.loc 1 111 32 is_stmt 0 view .LVU136
+ 434 0016 5800     		lsls	r0, r3, #1
+ 111:quantum/bitwise.c ****     bits = (bits & 0b01010101) << 1 | (bits & 0b10101010) >> 1;
+ 435              		.loc 1 111 59 view .LVU137
+ 436 0018 5B10     		asrs	r3, r3, #1
+ 437              	.LVL60:
+ 111:quantum/bitwise.c ****     bits = (bits & 0b01010101) << 1 | (bits & 0b10101010) >> 1;
+ 438              		.loc 1 111 59 view .LVU138
+ 439 001a 03F05503 		and	r3, r3, #85
+ 111:quantum/bitwise.c ****     bits = (bits & 0b01010101) << 1 | (bits & 0b10101010) >> 1;
+ 440              		.loc 1 111 37 view .LVU139
+ 441 001e 00F0AA00 		and	r0, r0, #170
+ 113:quantum/bitwise.c **** }
+ 442              		.loc 1 113 1 view .LVU140
+ 443 0022 1843     		orrs	r0, r0, r3
+ 444 0024 7047     		bx	lr
+ 445              		.cfi_endproc
+ 446              	.LFE6:
+ 448              		.section	.text.bitrev16,"ax",%progbits
+ 449              		.align	1
+ 450              		.global	bitrev16
+ 451              		.syntax unified
+ 452              		.thumb
+ 453              		.thumb_func
+ 455              	bitrev16:
+ 456              	.LVL61:
+ 457              	.LFB7:
+ 114:quantum/bitwise.c **** 
+ 115:quantum/bitwise.c **** uint16_t bitrev16(uint16_t bits) {
+ 458              		.loc 1 115 34 is_stmt 1 view -0
+ 459              		.cfi_startproc
+ 460              		@ args = 0, pretend = 0, frame = 0
+ 461              		@ frame_needed = 0, uses_anonymous_args = 0
+ 116:quantum/bitwise.c ****     bits = bitrev(bits & 0x00ff) << 8 | bitrev((bits & 0xff00) >> 8);
+ 462              		.loc 1 116 5 view .LVU142
+ 115:quantum/bitwise.c ****     bits = bitrev(bits & 0x00ff) << 8 | bitrev((bits & 0xff00) >> 8);
+ 463              		.loc 1 115 34 is_stmt 0 view .LVU143
+ 464 0000 08B5     		push	{r3, lr}
+ 465              		.cfi_def_cfa_offset 8
+ 466              		.cfi_offset 3, -8
+ 467              		.cfi_offset 14, -4
+ 115:quantum/bitwise.c ****     bits = bitrev(bits & 0x00ff) << 8 | bitrev((bits & 0xff00) >> 8);
+ 468              		.loc 1 115 34 view .LVU144
+ 469 0002 0246     		mov	r2, r0
+ 470              		.loc 1 116 12 view .LVU145
+ 471 0004 C0B2     		uxtb	r0, r0
+ 472              	.LVL62:
+ 473              		.loc 1 116 12 view .LVU146
+ 474 0006 FFF7FEFF 		bl	bitrev
+ 475              	.LVL63:
+ 476 000a 0146     		mov	r1, r0
+ 477              		.loc 1 116 41 view .LVU147
+ 478 000c 100A     		lsrs	r0, r2, #8
+ 479 000e FFF7FEFF 		bl	bitrev
+ 480              	.LVL64:
+ 117:quantum/bitwise.c ****     return bits;
+ 481              		.loc 1 117 5 is_stmt 1 view .LVU148
+ 116:quantum/bitwise.c ****     bits = bitrev(bits & 0x00ff) << 8 | bitrev((bits & 0xff00) >> 8);
+ 482              		.loc 1 116 39 is_stmt 0 view .LVU149
+ 483 0012 40EA0120 		orr	r0, r0, r1, lsl #8
+ 484              	.LVL65:
+ 118:quantum/bitwise.c **** }
+ 485              		.loc 1 118 1 view .LVU150
+ 486 0016 80B2     		uxth	r0, r0
+ 487 0018 08BD     		pop	{r3, pc}
+ 488              		.cfi_endproc
+ 489              	.LFE7:
+ 491              		.section	.text.bitrev32,"ax",%progbits
+ 492              		.align	1
+ 493              		.global	bitrev32
+ 494              		.syntax unified
+ 495              		.thumb
+ 496              		.thumb_func
+ 498              	bitrev32:
+ 499              	.LVL66:
+ 500              	.LFB8:
+ 119:quantum/bitwise.c **** 
+ 120:quantum/bitwise.c **** uint32_t bitrev32(uint32_t bits) {
+ 501              		.loc 1 120 34 is_stmt 1 view -0
+ 502              		.cfi_startproc
+ 503              		@ args = 0, pretend = 0, frame = 0
+ 504              		@ frame_needed = 0, uses_anonymous_args = 0
+ 121:quantum/bitwise.c ****     bits = (uint32_t)bitrev16(bits & 0x0000ffff) << 16 | bitrev16((bits & 0xffff0000) >> 16);
+ 505              		.loc 1 121 5 view .LVU152
+ 120:quantum/bitwise.c ****     bits = (uint32_t)bitrev16(bits & 0x0000ffff) << 16 | bitrev16((bits & 0xffff0000) >> 16);
+ 506              		.loc 1 120 34 is_stmt 0 view .LVU153
+ 507 0000 38B5     		push	{r3, r4, r5, lr}
+ 508              		.cfi_def_cfa_offset 16
+ 509              		.cfi_offset 3, -16
+ 510              		.cfi_offset 4, -12
+ 511              		.cfi_offset 5, -8
+ 512              		.cfi_offset 14, -4
+ 120:quantum/bitwise.c ****     bits = (uint32_t)bitrev16(bits & 0x0000ffff) << 16 | bitrev16((bits & 0xffff0000) >> 16);
+ 513              		.loc 1 120 34 view .LVU154
+ 514 0002 0446     		mov	r4, r0
+ 515              		.loc 1 121 22 view .LVU155
+ 516 0004 80B2     		uxth	r0, r0
+ 517              	.LVL67:
+ 518              		.loc 1 121 22 view .LVU156
+ 519 0006 FFF7FEFF 		bl	bitrev16
+ 520              	.LVL68:
+ 521 000a 0546     		mov	r5, r0
+ 522              		.loc 1 121 58 view .LVU157
+ 523 000c 200C     		lsrs	r0, r4, #16
+ 524 000e FFF7FEFF 		bl	bitrev16
+ 525              	.LVL69:
+ 122:quantum/bitwise.c ****     return bits;
+ 526              		.loc 1 122 5 is_stmt 1 view .LVU158
+ 123:quantum/bitwise.c **** }
+ 527              		.loc 1 123 1 is_stmt 0 view .LVU159
+ 528 0012 40EA0540 		orr	r0, r0, r5, lsl #16
+ 529              	.LVL70:
+ 530              		.loc 1 123 1 view .LVU160
+ 531 0016 38BD     		pop	{r3, r4, r5, pc}
+ 532              		.loc 1 123 1 view .LVU161
+ 533              		.cfi_endproc
+ 534              	.LFE8:
+ 536              		.text
+ 537              	.Letext0:
+ 538              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 539              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 bitwise.c
+     /tmp/ccjAhxIx.s:21     .text.bitpop:0000000000000000 $t
+     /tmp/ccjAhxIx.s:27     .text.bitpop:0000000000000000 bitpop
+     /tmp/ccjAhxIx.s:67     .text.bitpop16:0000000000000000 $t
+     /tmp/ccjAhxIx.s:73     .text.bitpop16:0000000000000000 bitpop16
+     /tmp/ccjAhxIx.s:113    .text.bitpop32:0000000000000000 $t
+     /tmp/ccjAhxIx.s:119    .text.bitpop32:0000000000000000 bitpop32
+     /tmp/ccjAhxIx.s:159    .text.biton:0000000000000000 $t
+     /tmp/ccjAhxIx.s:165    .text.biton:0000000000000000 biton
+     /tmp/ccjAhxIx.s:220    .text.biton16:0000000000000000 $t
+     /tmp/ccjAhxIx.s:226    .text.biton16:0000000000000000 biton16
+     /tmp/ccjAhxIx.s:306    .text.biton32:0000000000000000 $t
+     /tmp/ccjAhxIx.s:312    .text.biton32:0000000000000000 biton32
+     /tmp/ccjAhxIx.s:396    .text.bitrev:0000000000000000 $t
+     /tmp/ccjAhxIx.s:402    .text.bitrev:0000000000000000 bitrev
+     /tmp/ccjAhxIx.s:449    .text.bitrev16:0000000000000000 $t
+     /tmp/ccjAhxIx.s:455    .text.bitrev16:0000000000000000 bitrev16
+     /tmp/ccjAhxIx.s:492    .text.bitrev32:0000000000000000 $t
+     /tmp/ccjAhxIx.s:498    .text.bitrev32:0000000000000000 bitrev32
+
+NO UNDEFINED SYMBOLS

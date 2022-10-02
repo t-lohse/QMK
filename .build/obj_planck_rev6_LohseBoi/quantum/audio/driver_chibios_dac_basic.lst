@@ -1,0 +1,1700 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"driver_chibios_dac_basic.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/audio/driver_chibios_dac_basic.c"
+  20              		.section	.text.channel_1_start,"ax",%progbits
+  21              		.align	1
+  22              		.global	channel_1_start
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	channel_1_start:
+  28              	.LFB341:
+   1:quantum/audio/driver_chibios_dac_basic.c **** /* Copyright 2016-2020 Jack Humbert
+   2:quantum/audio/driver_chibios_dac_basic.c ****  * Copyright 2020 JohSchneider
+   3:quantum/audio/driver_chibios_dac_basic.c ****  *
+   4:quantum/audio/driver_chibios_dac_basic.c ****  * This program is free software: you can redistribute it and/or modify
+   5:quantum/audio/driver_chibios_dac_basic.c ****  * it under the terms of the GNU General Public License as published by
+   6:quantum/audio/driver_chibios_dac_basic.c ****  * the Free Software Foundation, either version 2 of the License, or
+   7:quantum/audio/driver_chibios_dac_basic.c ****  * (at your option) any later version.
+   8:quantum/audio/driver_chibios_dac_basic.c ****  *
+   9:quantum/audio/driver_chibios_dac_basic.c ****  * This program is distributed in the hope that it will be useful,
+  10:quantum/audio/driver_chibios_dac_basic.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/audio/driver_chibios_dac_basic.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/audio/driver_chibios_dac_basic.c ****  * GNU General Public License for more details.
+  13:quantum/audio/driver_chibios_dac_basic.c ****  *
+  14:quantum/audio/driver_chibios_dac_basic.c ****  * You should have received a copy of the GNU General Public License
+  15:quantum/audio/driver_chibios_dac_basic.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/audio/driver_chibios_dac_basic.c ****  */
+  17:quantum/audio/driver_chibios_dac_basic.c **** 
+  18:quantum/audio/driver_chibios_dac_basic.c **** #include "audio.h"
+  19:quantum/audio/driver_chibios_dac_basic.c **** #include "ch.h"
+  20:quantum/audio/driver_chibios_dac_basic.c **** #include "hal.h"
+  21:quantum/audio/driver_chibios_dac_basic.c **** 
+  22:quantum/audio/driver_chibios_dac_basic.c **** /*
+  23:quantum/audio/driver_chibios_dac_basic.c ****   Audio Driver: DAC
+  24:quantum/audio/driver_chibios_dac_basic.c **** 
+  25:quantum/audio/driver_chibios_dac_basic.c ****   which utilizes both channels of the DAC unit many STM32 are equipped with to output a modulated s
+  26:quantum/audio/driver_chibios_dac_basic.c **** 
+  27:quantum/audio/driver_chibios_dac_basic.c ****   this driver can either be used to drive to separate speakers, wired to A4+Gnd and A5+Gnd, which a
+  28:quantum/audio/driver_chibios_dac_basic.c ****   OR
+  29:quantum/audio/driver_chibios_dac_basic.c ****   one speaker wired to A4+A5 with the AUDIO_PIN_ALT_AS_NEGATIVE define set - see docs/feature_audio
+  30:quantum/audio/driver_chibios_dac_basic.c **** 
+  31:quantum/audio/driver_chibios_dac_basic.c **** */
+  32:quantum/audio/driver_chibios_dac_basic.c **** 
+  33:quantum/audio/driver_chibios_dac_basic.c **** #if !defined(AUDIO_PIN)
+  34:quantum/audio/driver_chibios_dac_basic.c **** #    pragma message "Audio feature enabled, but no suitable pin selected as AUDIO_PIN - see docs/fe
+  35:quantum/audio/driver_chibios_dac_basic.c **** // TODO: make this an 'error' instead; go through a breaking change, and add AUDIO_PIN A5 to all ke
+  36:quantum/audio/driver_chibios_dac_basic.c **** #    define AUDIO_PIN A5
+  37:quantum/audio/driver_chibios_dac_basic.c **** #endif
+  38:quantum/audio/driver_chibios_dac_basic.c **** // check configuration for ONE speaker, connected to both DAC pins
+  39:quantum/audio/driver_chibios_dac_basic.c **** #if defined(AUDIO_PIN_ALT_AS_NEGATIVE) && !defined(AUDIO_PIN_ALT)
+  40:quantum/audio/driver_chibios_dac_basic.c **** #    error "Audio feature: AUDIO_PIN_ALT_AS_NEGATIVE set, but no pin configured as AUDIO_PIN_ALT"
+  41:quantum/audio/driver_chibios_dac_basic.c **** #endif
+  42:quantum/audio/driver_chibios_dac_basic.c **** 
+  43:quantum/audio/driver_chibios_dac_basic.c **** #ifndef AUDIO_PIN_ALT
+  44:quantum/audio/driver_chibios_dac_basic.c **** // no ALT pin defined is valid, but the c-ifs below need some value set
+  45:quantum/audio/driver_chibios_dac_basic.c **** #    define AUDIO_PIN_ALT -1
+  46:quantum/audio/driver_chibios_dac_basic.c **** #endif
+  47:quantum/audio/driver_chibios_dac_basic.c **** 
+  48:quantum/audio/driver_chibios_dac_basic.c **** #if !defined(AUDIO_STATE_TIMER)
+  49:quantum/audio/driver_chibios_dac_basic.c **** #    define AUDIO_STATE_TIMER GPTD8
+  50:quantum/audio/driver_chibios_dac_basic.c **** #endif
+  51:quantum/audio/driver_chibios_dac_basic.c **** 
+  52:quantum/audio/driver_chibios_dac_basic.c **** // square-wave
+  53:quantum/audio/driver_chibios_dac_basic.c **** static const dacsample_t dac_buffer_1[AUDIO_DAC_BUFFER_SIZE] = {
+  54:quantum/audio/driver_chibios_dac_basic.c ****     // First half is max, second half is 0
+  55:quantum/audio/driver_chibios_dac_basic.c ****     [0 ... AUDIO_DAC_BUFFER_SIZE / 2 - 1]                     = AUDIO_DAC_SAMPLE_MAX,
+  56:quantum/audio/driver_chibios_dac_basic.c ****     [AUDIO_DAC_BUFFER_SIZE / 2 ... AUDIO_DAC_BUFFER_SIZE - 1] = 0,
+  57:quantum/audio/driver_chibios_dac_basic.c **** };
+  58:quantum/audio/driver_chibios_dac_basic.c **** 
+  59:quantum/audio/driver_chibios_dac_basic.c **** // square-wave
+  60:quantum/audio/driver_chibios_dac_basic.c **** static const dacsample_t dac_buffer_2[AUDIO_DAC_BUFFER_SIZE] = {
+  61:quantum/audio/driver_chibios_dac_basic.c ****     // opposite of dac_buffer above
+  62:quantum/audio/driver_chibios_dac_basic.c ****     [0 ... AUDIO_DAC_BUFFER_SIZE / 2 - 1]                     = 0,
+  63:quantum/audio/driver_chibios_dac_basic.c ****     [AUDIO_DAC_BUFFER_SIZE / 2 ... AUDIO_DAC_BUFFER_SIZE - 1] = AUDIO_DAC_SAMPLE_MAX,
+  64:quantum/audio/driver_chibios_dac_basic.c **** };
+  65:quantum/audio/driver_chibios_dac_basic.c **** 
+  66:quantum/audio/driver_chibios_dac_basic.c **** GPTConfig gpt6cfg1 = {.frequency = AUDIO_DAC_SAMPLE_RATE,
+  67:quantum/audio/driver_chibios_dac_basic.c ****                       .callback  = NULL,
+  68:quantum/audio/driver_chibios_dac_basic.c ****                       .cr2       = TIM_CR2_MMS_1, /* MMS = 010 = TRGO on Update Event.    */
+  69:quantum/audio/driver_chibios_dac_basic.c ****                       .dier      = 0U};
+  70:quantum/audio/driver_chibios_dac_basic.c **** GPTConfig gpt7cfg1 = {.frequency = AUDIO_DAC_SAMPLE_RATE,
+  71:quantum/audio/driver_chibios_dac_basic.c ****                       .callback  = NULL,
+  72:quantum/audio/driver_chibios_dac_basic.c ****                       .cr2       = TIM_CR2_MMS_1, /* MMS = 010 = TRGO on Update Event.    */
+  73:quantum/audio/driver_chibios_dac_basic.c ****                       .dier      = 0U};
+  74:quantum/audio/driver_chibios_dac_basic.c **** 
+  75:quantum/audio/driver_chibios_dac_basic.c **** static void gpt_audio_state_cb(GPTDriver *gptp);
+  76:quantum/audio/driver_chibios_dac_basic.c **** GPTConfig   gptStateUpdateCfg = {.frequency = 10,
+  77:quantum/audio/driver_chibios_dac_basic.c ****                                .callback  = gpt_audio_state_cb,
+  78:quantum/audio/driver_chibios_dac_basic.c ****                                .cr2       = TIM_CR2_MMS_1, /* MMS = 010 = TRGO on Update Event.    
+  79:quantum/audio/driver_chibios_dac_basic.c ****                                .dier      = 0U};
+  80:quantum/audio/driver_chibios_dac_basic.c **** 
+  81:quantum/audio/driver_chibios_dac_basic.c **** static const DACConfig dac_conf_ch1 = {.init = AUDIO_DAC_OFF_VALUE, .datamode = DAC_DHRM_12BIT_RIGH
+  82:quantum/audio/driver_chibios_dac_basic.c **** static const DACConfig dac_conf_ch2 = {.init = AUDIO_DAC_OFF_VALUE, .datamode = DAC_DHRM_12BIT_RIGH
+  83:quantum/audio/driver_chibios_dac_basic.c **** 
+  84:quantum/audio/driver_chibios_dac_basic.c **** /**
+  85:quantum/audio/driver_chibios_dac_basic.c ****  * @note The DAC_TRG(0) here selects the Timer 6 TRGO event, which is triggered
+  86:quantum/audio/driver_chibios_dac_basic.c ****  * on the rising edge after 3 APB1 clock cycles, causing our gpt6cfg1.frequency
+  87:quantum/audio/driver_chibios_dac_basic.c ****  * to be a third of what we expect.
+  88:quantum/audio/driver_chibios_dac_basic.c ****  *
+  89:quantum/audio/driver_chibios_dac_basic.c ****  * Here are all the values for DAC_TRG (TSEL in the ref manual)
+  90:quantum/audio/driver_chibios_dac_basic.c ****  * TIM15_TRGO 0b011
+  91:quantum/audio/driver_chibios_dac_basic.c ****  * TIM2_TRGO  0b100
+  92:quantum/audio/driver_chibios_dac_basic.c ****  * TIM3_TRGO  0b001
+  93:quantum/audio/driver_chibios_dac_basic.c ****  * TIM6_TRGO  0b000
+  94:quantum/audio/driver_chibios_dac_basic.c ****  * TIM7_TRGO  0b010
+  95:quantum/audio/driver_chibios_dac_basic.c ****  * EXTI9      0b110
+  96:quantum/audio/driver_chibios_dac_basic.c ****  * SWTRIG     0b111
+  97:quantum/audio/driver_chibios_dac_basic.c ****  */
+  98:quantum/audio/driver_chibios_dac_basic.c **** static const DACConversionGroup dac_conv_grp_ch1 = {.num_channels = 1U, .trigger = DAC_TRG(0b000)};
+  99:quantum/audio/driver_chibios_dac_basic.c **** static const DACConversionGroup dac_conv_grp_ch2 = {.num_channels = 1U, .trigger = DAC_TRG(0b010)};
+ 100:quantum/audio/driver_chibios_dac_basic.c **** 
+ 101:quantum/audio/driver_chibios_dac_basic.c **** void channel_1_start(void) {
+  29              		.loc 1 101 28 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+ 102:quantum/audio/driver_chibios_dac_basic.c ****     gptStart(&GPTD6, &gpt6cfg1);
+  33              		.loc 1 102 5 view .LVU1
+ 101:quantum/audio/driver_chibios_dac_basic.c ****     gptStart(&GPTD6, &gpt6cfg1);
+  34              		.loc 1 101 28 is_stmt 0 view .LVU2
+  35 0000 10B5     		push	{r4, lr}
+  36              		.cfi_def_cfa_offset 8
+  37              		.cfi_offset 4, -8
+  38              		.cfi_offset 14, -4
+  39              		.loc 1 102 5 view .LVU3
+  40 0002 084C     		ldr	r4, .L2
+  41 0004 0849     		ldr	r1, .L2+4
+  42 0006 2046     		mov	r0, r4
+  43 0008 FFF7FEFF 		bl	gptStart
+  44              	.LVL0:
+ 103:quantum/audio/driver_chibios_dac_basic.c ****     gptStartContinuous(&GPTD6, 2U);
+  45              		.loc 1 103 5 is_stmt 1 view .LVU4
+  46 000c 2046     		mov	r0, r4
+  47 000e 0221     		movs	r1, #2
+  48 0010 FFF7FEFF 		bl	gptStartContinuous
+  49              	.LVL1:
+ 104:quantum/audio/driver_chibios_dac_basic.c ****     palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+  50              		.loc 1 104 5 view .LVU5
+ 105:quantum/audio/driver_chibios_dac_basic.c **** }
+  51              		.loc 1 105 1 is_stmt 0 view .LVU6
+  52 0014 BDE81040 		pop	{r4, lr}
+  53              		.cfi_restore 14
+  54              		.cfi_restore 4
+  55              		.cfi_def_cfa_offset 0
+ 104:quantum/audio/driver_chibios_dac_basic.c ****     palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+  56              		.loc 1 104 5 view .LVU7
+  57 0018 0322     		movs	r2, #3
+  58 001a 1021     		movs	r1, #16
+  59 001c 4FF09040 		mov	r0, #1207959552
+  60 0020 FFF7FEBF 		b	_pal_lld_setgroupmode
+  61              	.LVL2:
+  62              	.L3:
+  63              		.align	2
+  64              	.L2:
+  65 0024 00000000 		.word	GPTD6
+  66 0028 00000000 		.word	gpt6cfg1
+  67              		.cfi_endproc
+  68              	.LFE341:
+  70              		.section	.text.channel_1_stop,"ax",%progbits
+  71              		.align	1
+  72              		.global	channel_1_stop
+  73              		.syntax unified
+  74              		.thumb
+  75              		.thumb_func
+  77              	channel_1_stop:
+  78              	.LFB342:
+ 106:quantum/audio/driver_chibios_dac_basic.c **** 
+ 107:quantum/audio/driver_chibios_dac_basic.c **** void channel_1_stop(void) {
+  79              		.loc 1 107 27 is_stmt 1 view -0
+  80              		.cfi_startproc
+  81              		@ args = 0, pretend = 0, frame = 0
+  82              		@ frame_needed = 0, uses_anonymous_args = 0
+ 108:quantum/audio/driver_chibios_dac_basic.c ****     gptStopTimer(&GPTD6);
+  83              		.loc 1 108 5 view .LVU9
+ 107:quantum/audio/driver_chibios_dac_basic.c ****     gptStopTimer(&GPTD6);
+  84              		.loc 1 107 27 is_stmt 0 view .LVU10
+  85 0000 08B5     		push	{r3, lr}
+  86              		.cfi_def_cfa_offset 8
+  87              		.cfi_offset 3, -8
+  88              		.cfi_offset 14, -4
+  89              		.loc 1 108 5 view .LVU11
+  90 0002 0748     		ldr	r0, .L5
+  91 0004 FFF7FEFF 		bl	gptStopTimer
+  92              	.LVL3:
+ 109:quantum/audio/driver_chibios_dac_basic.c ****     palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
+  93              		.loc 1 109 5 is_stmt 1 view .LVU12
+  94 0008 0122     		movs	r2, #1
+  95 000a 1021     		movs	r1, #16
+  96 000c 4FF09040 		mov	r0, #1207959552
+  97 0010 FFF7FEFF 		bl	_pal_lld_setgroupmode
+  98              	.LVL4:
+ 110:quantum/audio/driver_chibios_dac_basic.c ****     palSetPad(GPIOA, 4);
+  99              		.loc 1 110 5 view .LVU13
+ 100 0014 4FF09043 		mov	r3, #1207959552
+ 101 0018 1022     		movs	r2, #16
+ 102 001a 1A83     		strh	r2, [r3, #24]	@ movhi
+ 111:quantum/audio/driver_chibios_dac_basic.c **** }
+ 103              		.loc 1 111 1 is_stmt 0 view .LVU14
+ 104 001c 08BD     		pop	{r3, pc}
+ 105              	.L6:
+ 106 001e 00BF     		.align	2
+ 107              	.L5:
+ 108 0020 00000000 		.word	GPTD6
+ 109              		.cfi_endproc
+ 110              	.LFE342:
+ 112              		.section	.text.channel_1_set_frequency,"ax",%progbits
+ 113              		.align	1
+ 114              		.global	channel_1_set_frequency
+ 115              		.syntax unified
+ 116              		.thumb
+ 117              		.thumb_func
+ 119              	channel_1_set_frequency:
+ 120              	.LVL5:
+ 121              	.LFB343:
+ 112:quantum/audio/driver_chibios_dac_basic.c **** 
+ 113:quantum/audio/driver_chibios_dac_basic.c **** static float channel_1_frequency = 0.0f;
+ 114:quantum/audio/driver_chibios_dac_basic.c **** void         channel_1_set_frequency(float freq) {
+ 122              		.loc 1 114 50 is_stmt 1 view -0
+ 123              		.cfi_startproc
+ 124              		@ args = 0, pretend = 0, frame = 0
+ 125              		@ frame_needed = 0, uses_anonymous_args = 0
+ 115:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_frequency = freq;
+ 126              		.loc 1 115 5 view .LVU16
+ 114:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_frequency = freq;
+ 127              		.loc 1 114 50 is_stmt 0 view .LVU17
+ 128 0000 08B5     		push	{r3, lr}
+ 129              		.cfi_def_cfa_offset 8
+ 130              		.cfi_offset 3, -8
+ 131              		.cfi_offset 14, -4
+ 132              		.loc 1 115 25 view .LVU18
+ 133 0002 114B     		ldr	r3, .L9
+ 114:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_frequency = freq;
+ 134              		.loc 1 114 50 view .LVU19
+ 135 0004 2DED028B 		vpush.64	{d8}
+ 136              		.cfi_def_cfa_offset 16
+ 137              		.cfi_offset 80, -16
+ 138              		.cfi_offset 81, -12
+ 114:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_frequency = freq;
+ 139              		.loc 1 114 50 view .LVU20
+ 140 0008 B0EE408A 		vmov.f32	s16, s0
+ 141              		.loc 1 115 25 view .LVU21
+ 142 000c 83ED000A 		vstr.32	s0, [r3]
+ 116:quantum/audio/driver_chibios_dac_basic.c **** 
+ 117:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_stop();
+ 143              		.loc 1 117 5 is_stmt 1 view .LVU22
+ 144 0010 FFF7FEFF 		bl	channel_1_stop
+ 145              	.LVL6:
+ 118:quantum/audio/driver_chibios_dac_basic.c ****     if (freq <= 0.0)  // a pause/rest has freq=0
+ 146              		.loc 1 118 5 view .LVU23
+ 147              		.loc 1 118 8 is_stmt 0 view .LVU24
+ 148 0014 B5EEC08A 		vcmpe.f32	s16, #0
+ 149 0018 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 150 001c 10D9     		bls	.L7
+ 151              	.LVL7:
+ 152              	.LBB4:
+ 153              	.LBI4:
+ 114:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_frequency = freq;
+ 154              		.loc 1 114 14 is_stmt 1 view .LVU25
+ 155              	.LBB5:
+ 119:quantum/audio/driver_chibios_dac_basic.c ****         return;
+ 120:quantum/audio/driver_chibios_dac_basic.c **** 
+ 121:quantum/audio/driver_chibios_dac_basic.c ****     gpt6cfg1.frequency = 2 * freq * AUDIO_DAC_BUFFER_SIZE;
+ 156              		.loc 1 121 5 view .LVU26
+ 157              		.loc 1 121 28 is_stmt 0 view .LVU27
+ 158 001e 38EE088A 		vadd.f32	s16, s16, s16
+ 159              	.LVL8:
+ 160              		.loc 1 121 35 view .LVU28
+ 161 0022 DFED0A7A 		vldr.32	s15, .L9+4
+ 162              		.loc 1 121 24 view .LVU29
+ 163 0026 0A4B     		ldr	r3, .L9+8
+ 164              		.loc 1 121 35 view .LVU30
+ 165 0028 28EE278A 		vmul.f32	s16, s16, s15
+ 166              		.loc 1 121 24 view .LVU31
+ 167 002c BCEEC88A 		vcvt.u32.f32	s16, s16
+ 168 0030 83ED008A 		vstr.32	s16, [r3]	@ int
+ 122:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_start();
+ 169              		.loc 1 122 5 is_stmt 1 view .LVU32
+ 170              	.LBE5:
+ 171              	.LBE4:
+ 123:quantum/audio/driver_chibios_dac_basic.c **** }
+ 172              		.loc 1 123 1 is_stmt 0 view .LVU33
+ 173 0034 BDEC028B 		vldm	sp!, {d8}
+ 174              		.cfi_remember_state
+ 175              		.cfi_restore 80
+ 176              		.cfi_restore 81
+ 177              		.cfi_def_cfa_offset 8
+ 178 0038 BDE80840 		pop	{r3, lr}
+ 179              		.cfi_restore 14
+ 180              		.cfi_restore 3
+ 181              		.cfi_def_cfa_offset 0
+ 182              	.LBB7:
+ 183              	.LBB6:
+ 122:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_start();
+ 184              		.loc 1 122 5 view .LVU34
+ 185 003c FFF7FEBF 		b	channel_1_start
+ 186              	.LVL9:
+ 187              	.L7:
+ 188              		.cfi_restore_state
+ 122:quantum/audio/driver_chibios_dac_basic.c ****     channel_1_start();
+ 189              		.loc 1 122 5 view .LVU35
+ 190              	.LBE6:
+ 191              	.LBE7:
+ 192              		.loc 1 123 1 view .LVU36
+ 193 0040 BDEC028B 		vldm	sp!, {d8}
+ 194              		.cfi_restore 80
+ 195              		.cfi_restore 81
+ 196              		.cfi_def_cfa_offset 8
+ 197              	.LVL10:
+ 198              		.loc 1 123 1 view .LVU37
+ 199 0044 08BD     		pop	{r3, pc}
+ 200              	.L10:
+ 201 0046 00BF     		.align	2
+ 202              	.L9:
+ 203 0048 00000000 		.word	channel_1_frequency
+ 204 004c 00008043 		.word	1132462080
+ 205 0050 00000000 		.word	gpt6cfg1
+ 206              		.cfi_endproc
+ 207              	.LFE343:
+ 209              		.section	.text.channel_1_get_frequency,"ax",%progbits
+ 210              		.align	1
+ 211              		.global	channel_1_get_frequency
+ 212              		.syntax unified
+ 213              		.thumb
+ 214              		.thumb_func
+ 216              	channel_1_get_frequency:
+ 217              	.LFB344:
+ 124:quantum/audio/driver_chibios_dac_basic.c **** float channel_1_get_frequency(void) { return channel_1_frequency; }
+ 218              		.loc 1 124 37 is_stmt 1 view -0
+ 219              		.cfi_startproc
+ 220              		@ args = 0, pretend = 0, frame = 0
+ 221              		@ frame_needed = 0, uses_anonymous_args = 0
+ 222              		@ link register save eliminated.
+ 223              		.loc 1 124 39 view .LVU39
+ 224              		.loc 1 124 67 is_stmt 0 view .LVU40
+ 225 0000 014B     		ldr	r3, .L12
+ 226 0002 93ED000A 		vldr.32	s0, [r3]
+ 227 0006 7047     		bx	lr
+ 228              	.L13:
+ 229              		.align	2
+ 230              	.L12:
+ 231 0008 00000000 		.word	channel_1_frequency
+ 232              		.cfi_endproc
+ 233              	.LFE344:
+ 235              		.section	.text.channel_2_start,"ax",%progbits
+ 236              		.align	1
+ 237              		.global	channel_2_start
+ 238              		.syntax unified
+ 239              		.thumb
+ 240              		.thumb_func
+ 242              	channel_2_start:
+ 243              	.LFB345:
+ 125:quantum/audio/driver_chibios_dac_basic.c **** 
+ 126:quantum/audio/driver_chibios_dac_basic.c **** void channel_2_start(void) {
+ 244              		.loc 1 126 28 is_stmt 1 view -0
+ 245              		.cfi_startproc
+ 246              		@ args = 0, pretend = 0, frame = 0
+ 247              		@ frame_needed = 0, uses_anonymous_args = 0
+ 127:quantum/audio/driver_chibios_dac_basic.c ****     gptStart(&GPTD7, &gpt7cfg1);
+ 248              		.loc 1 127 5 view .LVU42
+ 126:quantum/audio/driver_chibios_dac_basic.c ****     gptStart(&GPTD7, &gpt7cfg1);
+ 249              		.loc 1 126 28 is_stmt 0 view .LVU43
+ 250 0000 10B5     		push	{r4, lr}
+ 251              		.cfi_def_cfa_offset 8
+ 252              		.cfi_offset 4, -8
+ 253              		.cfi_offset 14, -4
+ 254              		.loc 1 127 5 view .LVU44
+ 255 0002 084C     		ldr	r4, .L15
+ 256 0004 0849     		ldr	r1, .L15+4
+ 257 0006 2046     		mov	r0, r4
+ 258 0008 FFF7FEFF 		bl	gptStart
+ 259              	.LVL11:
+ 128:quantum/audio/driver_chibios_dac_basic.c ****     gptStartContinuous(&GPTD7, 2U);
+ 260              		.loc 1 128 5 is_stmt 1 view .LVU45
+ 261 000c 2046     		mov	r0, r4
+ 262 000e 0221     		movs	r1, #2
+ 263 0010 FFF7FEFF 		bl	gptStartContinuous
+ 264              	.LVL12:
+ 129:quantum/audio/driver_chibios_dac_basic.c ****     palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+ 265              		.loc 1 129 5 view .LVU46
+ 130:quantum/audio/driver_chibios_dac_basic.c **** }
+ 266              		.loc 1 130 1 is_stmt 0 view .LVU47
+ 267 0014 BDE81040 		pop	{r4, lr}
+ 268              		.cfi_restore 14
+ 269              		.cfi_restore 4
+ 270              		.cfi_def_cfa_offset 0
+ 129:quantum/audio/driver_chibios_dac_basic.c ****     palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+ 271              		.loc 1 129 5 view .LVU48
+ 272 0018 0322     		movs	r2, #3
+ 273 001a 2021     		movs	r1, #32
+ 274 001c 4FF09040 		mov	r0, #1207959552
+ 275 0020 FFF7FEBF 		b	_pal_lld_setgroupmode
+ 276              	.LVL13:
+ 277              	.L16:
+ 278              		.align	2
+ 279              	.L15:
+ 280 0024 00000000 		.word	GPTD7
+ 281 0028 00000000 		.word	gpt7cfg1
+ 282              		.cfi_endproc
+ 283              	.LFE345:
+ 285              		.section	.text.channel_2_stop,"ax",%progbits
+ 286              		.align	1
+ 287              		.global	channel_2_stop
+ 288              		.syntax unified
+ 289              		.thumb
+ 290              		.thumb_func
+ 292              	channel_2_stop:
+ 293              	.LFB346:
+ 131:quantum/audio/driver_chibios_dac_basic.c **** 
+ 132:quantum/audio/driver_chibios_dac_basic.c **** void channel_2_stop(void) {
+ 294              		.loc 1 132 27 is_stmt 1 view -0
+ 295              		.cfi_startproc
+ 296              		@ args = 0, pretend = 0, frame = 0
+ 297              		@ frame_needed = 0, uses_anonymous_args = 0
+ 133:quantum/audio/driver_chibios_dac_basic.c ****     gptStopTimer(&GPTD7);
+ 298              		.loc 1 133 5 view .LVU50
+ 132:quantum/audio/driver_chibios_dac_basic.c ****     gptStopTimer(&GPTD7);
+ 299              		.loc 1 132 27 is_stmt 0 view .LVU51
+ 300 0000 08B5     		push	{r3, lr}
+ 301              		.cfi_def_cfa_offset 8
+ 302              		.cfi_offset 3, -8
+ 303              		.cfi_offset 14, -4
+ 304              		.loc 1 133 5 view .LVU52
+ 305 0002 0748     		ldr	r0, .L18
+ 306 0004 FFF7FEFF 		bl	gptStopTimer
+ 307              	.LVL14:
+ 134:quantum/audio/driver_chibios_dac_basic.c ****     palSetPadMode(GPIOA, 5, PAL_MODE_OUTPUT_PUSHPULL);
+ 308              		.loc 1 134 5 is_stmt 1 view .LVU53
+ 309 0008 0122     		movs	r2, #1
+ 310 000a 2021     		movs	r1, #32
+ 311 000c 4FF09040 		mov	r0, #1207959552
+ 312 0010 FFF7FEFF 		bl	_pal_lld_setgroupmode
+ 313              	.LVL15:
+ 135:quantum/audio/driver_chibios_dac_basic.c ****     palSetPad(GPIOA, 5);
+ 314              		.loc 1 135 5 view .LVU54
+ 315 0014 4FF09043 		mov	r3, #1207959552
+ 316 0018 2022     		movs	r2, #32
+ 317 001a 1A83     		strh	r2, [r3, #24]	@ movhi
+ 136:quantum/audio/driver_chibios_dac_basic.c **** }
+ 318              		.loc 1 136 1 is_stmt 0 view .LVU55
+ 319 001c 08BD     		pop	{r3, pc}
+ 320              	.L19:
+ 321 001e 00BF     		.align	2
+ 322              	.L18:
+ 323 0020 00000000 		.word	GPTD7
+ 324              		.cfi_endproc
+ 325              	.LFE346:
+ 327              		.section	.text.channel_2_set_frequency,"ax",%progbits
+ 328              		.align	1
+ 329              		.global	channel_2_set_frequency
+ 330              		.syntax unified
+ 331              		.thumb
+ 332              		.thumb_func
+ 334              	channel_2_set_frequency:
+ 335              	.LVL16:
+ 336              	.LFB347:
+ 137:quantum/audio/driver_chibios_dac_basic.c **** 
+ 138:quantum/audio/driver_chibios_dac_basic.c **** static float channel_2_frequency = 0.0f;
+ 139:quantum/audio/driver_chibios_dac_basic.c **** void         channel_2_set_frequency(float freq) {
+ 337              		.loc 1 139 50 is_stmt 1 view -0
+ 338              		.cfi_startproc
+ 339              		@ args = 0, pretend = 0, frame = 0
+ 340              		@ frame_needed = 0, uses_anonymous_args = 0
+ 140:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_frequency = freq;
+ 341              		.loc 1 140 5 view .LVU57
+ 139:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_frequency = freq;
+ 342              		.loc 1 139 50 is_stmt 0 view .LVU58
+ 343 0000 08B5     		push	{r3, lr}
+ 344              		.cfi_def_cfa_offset 8
+ 345              		.cfi_offset 3, -8
+ 346              		.cfi_offset 14, -4
+ 347              		.loc 1 140 25 view .LVU59
+ 348 0002 114B     		ldr	r3, .L22
+ 139:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_frequency = freq;
+ 349              		.loc 1 139 50 view .LVU60
+ 350 0004 2DED028B 		vpush.64	{d8}
+ 351              		.cfi_def_cfa_offset 16
+ 352              		.cfi_offset 80, -16
+ 353              		.cfi_offset 81, -12
+ 139:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_frequency = freq;
+ 354              		.loc 1 139 50 view .LVU61
+ 355 0008 B0EE408A 		vmov.f32	s16, s0
+ 356              		.loc 1 140 25 view .LVU62
+ 357 000c 83ED000A 		vstr.32	s0, [r3]
+ 141:quantum/audio/driver_chibios_dac_basic.c **** 
+ 142:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_stop();
+ 358              		.loc 1 142 5 is_stmt 1 view .LVU63
+ 359 0010 FFF7FEFF 		bl	channel_2_stop
+ 360              	.LVL17:
+ 143:quantum/audio/driver_chibios_dac_basic.c ****     if (freq <= 0.0)  // a pause/rest has freq=0
+ 361              		.loc 1 143 5 view .LVU64
+ 362              		.loc 1 143 8 is_stmt 0 view .LVU65
+ 363 0014 B5EEC08A 		vcmpe.f32	s16, #0
+ 364 0018 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 365 001c 10D9     		bls	.L20
+ 366              	.LVL18:
+ 367              	.LBB10:
+ 368              	.LBI10:
+ 139:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_frequency = freq;
+ 369              		.loc 1 139 14 is_stmt 1 view .LVU66
+ 370              	.LBB11:
+ 144:quantum/audio/driver_chibios_dac_basic.c ****         return;
+ 145:quantum/audio/driver_chibios_dac_basic.c **** 
+ 146:quantum/audio/driver_chibios_dac_basic.c ****     gpt7cfg1.frequency = 2 * freq * AUDIO_DAC_BUFFER_SIZE;
+ 371              		.loc 1 146 5 view .LVU67
+ 372              		.loc 1 146 28 is_stmt 0 view .LVU68
+ 373 001e 38EE088A 		vadd.f32	s16, s16, s16
+ 374              	.LVL19:
+ 375              		.loc 1 146 35 view .LVU69
+ 376 0022 DFED0A7A 		vldr.32	s15, .L22+4
+ 377              		.loc 1 146 24 view .LVU70
+ 378 0026 0A4B     		ldr	r3, .L22+8
+ 379              		.loc 1 146 35 view .LVU71
+ 380 0028 28EE278A 		vmul.f32	s16, s16, s15
+ 381              		.loc 1 146 24 view .LVU72
+ 382 002c BCEEC88A 		vcvt.u32.f32	s16, s16
+ 383 0030 83ED008A 		vstr.32	s16, [r3]	@ int
+ 147:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_start();
+ 384              		.loc 1 147 5 is_stmt 1 view .LVU73
+ 385              	.LBE11:
+ 386              	.LBE10:
+ 148:quantum/audio/driver_chibios_dac_basic.c **** }
+ 387              		.loc 1 148 1 is_stmt 0 view .LVU74
+ 388 0034 BDEC028B 		vldm	sp!, {d8}
+ 389              		.cfi_remember_state
+ 390              		.cfi_restore 80
+ 391              		.cfi_restore 81
+ 392              		.cfi_def_cfa_offset 8
+ 393 0038 BDE80840 		pop	{r3, lr}
+ 394              		.cfi_restore 14
+ 395              		.cfi_restore 3
+ 396              		.cfi_def_cfa_offset 0
+ 397              	.LBB13:
+ 398              	.LBB12:
+ 147:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_start();
+ 399              		.loc 1 147 5 view .LVU75
+ 400 003c FFF7FEBF 		b	channel_2_start
+ 401              	.LVL20:
+ 402              	.L20:
+ 403              		.cfi_restore_state
+ 147:quantum/audio/driver_chibios_dac_basic.c ****     channel_2_start();
+ 404              		.loc 1 147 5 view .LVU76
+ 405              	.LBE12:
+ 406              	.LBE13:
+ 407              		.loc 1 148 1 view .LVU77
+ 408 0040 BDEC028B 		vldm	sp!, {d8}
+ 409              		.cfi_restore 80
+ 410              		.cfi_restore 81
+ 411              		.cfi_def_cfa_offset 8
+ 412              	.LVL21:
+ 413              		.loc 1 148 1 view .LVU78
+ 414 0044 08BD     		pop	{r3, pc}
+ 415              	.L23:
+ 416 0046 00BF     		.align	2
+ 417              	.L22:
+ 418 0048 00000000 		.word	channel_2_frequency
+ 419 004c 00008043 		.word	1132462080
+ 420 0050 00000000 		.word	gpt7cfg1
+ 421              		.cfi_endproc
+ 422              	.LFE347:
+ 424              		.section	.text.gpt_audio_state_cb,"ax",%progbits
+ 425              		.align	1
+ 426              		.syntax unified
+ 427              		.thumb
+ 428              		.thumb_func
+ 430              	gpt_audio_state_cb:
+ 431              	.LVL22:
+ 432              	.LFB349:
+ 149:quantum/audio/driver_chibios_dac_basic.c **** float channel_2_get_frequency(void) { return channel_2_frequency; }
+ 150:quantum/audio/driver_chibios_dac_basic.c **** 
+ 151:quantum/audio/driver_chibios_dac_basic.c **** static void gpt_audio_state_cb(GPTDriver *gptp) {
+ 433              		.loc 1 151 49 is_stmt 1 view -0
+ 434              		.cfi_startproc
+ 435              		@ args = 0, pretend = 0, frame = 0
+ 436              		@ frame_needed = 0, uses_anonymous_args = 0
+ 152:quantum/audio/driver_chibios_dac_basic.c ****     if (audio_update_state()) {
+ 437              		.loc 1 152 5 view .LVU80
+ 151:quantum/audio/driver_chibios_dac_basic.c ****     if (audio_update_state()) {
+ 438              		.loc 1 151 49 is_stmt 0 view .LVU81
+ 439 0000 08B5     		push	{r3, lr}
+ 440              		.cfi_def_cfa_offset 8
+ 441              		.cfi_offset 3, -8
+ 442              		.cfi_offset 14, -4
+ 443              		.loc 1 152 9 view .LVU82
+ 444 0002 FFF7FEFF 		bl	audio_update_state
+ 445              	.LVL23:
+ 446              		.loc 1 152 8 view .LVU83
+ 447 0006 58B1     		cbz	r0, .L24
+ 448              	.LBB16:
+ 449              	.LBI16:
+ 151:quantum/audio/driver_chibios_dac_basic.c ****     if (audio_update_state()) {
+ 450              		.loc 1 151 13 is_stmt 1 view .LVU84
+ 451              	.LVL24:
+ 452              	.LBB17:
+ 153:quantum/audio/driver_chibios_dac_basic.c **** #if defined(AUDIO_PIN_ALT_AS_NEGATIVE)
+ 154:quantum/audio/driver_chibios_dac_basic.c ****         // one piezo/speaker connected to both audio pins, the generated square-waves are inverted
+ 155:quantum/audio/driver_chibios_dac_basic.c ****         channel_1_set_frequency(audio_get_processed_frequency(0));
+ 453              		.loc 1 155 9 view .LVU85
+ 454 0008 0020     		movs	r0, #0
+ 455 000a FFF7FEFF 		bl	audio_get_processed_frequency
+ 456              	.LVL25:
+ 457 000e FFF7FEFF 		bl	channel_1_set_frequency
+ 458              	.LVL26:
+ 156:quantum/audio/driver_chibios_dac_basic.c ****         channel_2_set_frequency(audio_get_processed_frequency(0));
+ 459              		.loc 1 156 9 view .LVU86
+ 460 0012 0020     		movs	r0, #0
+ 461 0014 FFF7FEFF 		bl	audio_get_processed_frequency
+ 462              	.LVL27:
+ 463              	.LBE17:
+ 464              	.LBE16:
+ 157:quantum/audio/driver_chibios_dac_basic.c **** 
+ 158:quantum/audio/driver_chibios_dac_basic.c **** #else  // two separate audio outputs/speakers
+ 159:quantum/audio/driver_chibios_dac_basic.c ****        // primary speaker on A4, optional secondary on A5
+ 160:quantum/audio/driver_chibios_dac_basic.c ****         if (AUDIO_PIN == A4) {
+ 161:quantum/audio/driver_chibios_dac_basic.c ****             channel_1_set_frequency(audio_get_processed_frequency(0));
+ 162:quantum/audio/driver_chibios_dac_basic.c ****             if (AUDIO_PIN_ALT == A5) {
+ 163:quantum/audio/driver_chibios_dac_basic.c ****                 if (audio_get_number_of_active_tones() > 1) {
+ 164:quantum/audio/driver_chibios_dac_basic.c ****                     channel_2_set_frequency(audio_get_processed_frequency(1));
+ 165:quantum/audio/driver_chibios_dac_basic.c ****                 } else {
+ 166:quantum/audio/driver_chibios_dac_basic.c ****                     channel_2_stop();
+ 167:quantum/audio/driver_chibios_dac_basic.c ****                 }
+ 168:quantum/audio/driver_chibios_dac_basic.c ****             }
+ 169:quantum/audio/driver_chibios_dac_basic.c ****         }
+ 170:quantum/audio/driver_chibios_dac_basic.c **** 
+ 171:quantum/audio/driver_chibios_dac_basic.c ****         // primary speaker on A5, optional secondary on A4
+ 172:quantum/audio/driver_chibios_dac_basic.c ****         if (AUDIO_PIN == A5) {
+ 173:quantum/audio/driver_chibios_dac_basic.c ****             channel_2_set_frequency(audio_get_processed_frequency(0));
+ 174:quantum/audio/driver_chibios_dac_basic.c ****             if (AUDIO_PIN_ALT == A4) {
+ 175:quantum/audio/driver_chibios_dac_basic.c ****                 if (audio_get_number_of_active_tones() > 1) {
+ 176:quantum/audio/driver_chibios_dac_basic.c ****                     channel_1_set_frequency(audio_get_processed_frequency(1));
+ 177:quantum/audio/driver_chibios_dac_basic.c ****                 } else {
+ 178:quantum/audio/driver_chibios_dac_basic.c ****                     channel_1_stop();
+ 179:quantum/audio/driver_chibios_dac_basic.c ****                 }
+ 180:quantum/audio/driver_chibios_dac_basic.c ****             }
+ 181:quantum/audio/driver_chibios_dac_basic.c ****         }
+ 182:quantum/audio/driver_chibios_dac_basic.c **** #endif
+ 183:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 184:quantum/audio/driver_chibios_dac_basic.c **** }
+ 465              		.loc 1 184 1 is_stmt 0 view .LVU87
+ 466 0018 BDE80840 		pop	{r3, lr}
+ 467              		.cfi_remember_state
+ 468              		.cfi_restore 14
+ 469              		.cfi_restore 3
+ 470              		.cfi_def_cfa_offset 0
+ 471              	.LBB19:
+ 472              	.LBB18:
+ 156:quantum/audio/driver_chibios_dac_basic.c ****         channel_2_set_frequency(audio_get_processed_frequency(0));
+ 473              		.loc 1 156 9 view .LVU88
+ 474 001c FFF7FEBF 		b	channel_2_set_frequency
+ 475              	.LVL28:
+ 476              	.L24:
+ 477              		.cfi_restore_state
+ 156:quantum/audio/driver_chibios_dac_basic.c ****         channel_2_set_frequency(audio_get_processed_frequency(0));
+ 478              		.loc 1 156 9 view .LVU89
+ 479              	.LBE18:
+ 480              	.LBE19:
+ 481              		.loc 1 184 1 view .LVU90
+ 482 0020 08BD     		pop	{r3, pc}
+ 483              		.cfi_endproc
+ 484              	.LFE349:
+ 486              		.section	.text.channel_2_get_frequency,"ax",%progbits
+ 487              		.align	1
+ 488              		.global	channel_2_get_frequency
+ 489              		.syntax unified
+ 490              		.thumb
+ 491              		.thumb_func
+ 493              	channel_2_get_frequency:
+ 494              	.LFB348:
+ 149:quantum/audio/driver_chibios_dac_basic.c **** 
+ 495              		.loc 1 149 37 is_stmt 1 view -0
+ 496              		.cfi_startproc
+ 497              		@ args = 0, pretend = 0, frame = 0
+ 498              		@ frame_needed = 0, uses_anonymous_args = 0
+ 499              		@ link register save eliminated.
+ 149:quantum/audio/driver_chibios_dac_basic.c **** 
+ 500              		.loc 1 149 39 view .LVU92
+ 149:quantum/audio/driver_chibios_dac_basic.c **** 
+ 501              		.loc 1 149 67 is_stmt 0 view .LVU93
+ 502 0000 014B     		ldr	r3, .L27
+ 503 0002 93ED000A 		vldr.32	s0, [r3]
+ 504 0006 7047     		bx	lr
+ 505              	.L28:
+ 506              		.align	2
+ 507              	.L27:
+ 508 0008 00000000 		.word	channel_2_frequency
+ 509              		.cfi_endproc
+ 510              	.LFE348:
+ 512              		.section	.text.audio_driver_initialize,"ax",%progbits
+ 513              		.align	1
+ 514              		.global	audio_driver_initialize
+ 515              		.syntax unified
+ 516              		.thumb
+ 517              		.thumb_func
+ 519              	audio_driver_initialize:
+ 520              	.LFB350:
+ 185:quantum/audio/driver_chibios_dac_basic.c **** 
+ 186:quantum/audio/driver_chibios_dac_basic.c **** void audio_driver_initialize() {
+ 521              		.loc 1 186 32 is_stmt 1 view -0
+ 522              		.cfi_startproc
+ 523              		@ args = 0, pretend = 0, frame = 0
+ 524              		@ frame_needed = 0, uses_anonymous_args = 0
+ 187:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A4) || (AUDIO_PIN_ALT == A4)) {
+ 525              		.loc 1 187 5 view .LVU95
+ 188:quantum/audio/driver_chibios_dac_basic.c ****         palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+ 526              		.loc 1 188 9 view .LVU96
+ 186:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A4) || (AUDIO_PIN_ALT == A4)) {
+ 527              		.loc 1 186 32 is_stmt 0 view .LVU97
+ 528 0000 38B5     		push	{r3, r4, r5, lr}
+ 529              		.cfi_def_cfa_offset 16
+ 530              		.cfi_offset 3, -16
+ 531              		.cfi_offset 4, -12
+ 532              		.cfi_offset 5, -8
+ 533              		.cfi_offset 14, -4
+ 189:quantum/audio/driver_chibios_dac_basic.c ****         dacStart(&DACD1, &dac_conf_ch1);
+ 534              		.loc 1 189 9 view .LVU98
+ 535 0002 184D     		ldr	r5, .L30
+ 190:quantum/audio/driver_chibios_dac_basic.c **** 
+ 191:quantum/audio/driver_chibios_dac_basic.c ****         // initial setup of the dac-triggering timer is still required, even
+ 192:quantum/audio/driver_chibios_dac_basic.c ****         // though it gets reconfigured and restarted later on
+ 193:quantum/audio/driver_chibios_dac_basic.c ****         gptStart(&GPTD6, &gpt6cfg1);
+ 194:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 195:quantum/audio/driver_chibios_dac_basic.c **** 
+ 196:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A5) || (AUDIO_PIN_ALT == A5)) {
+ 197:quantum/audio/driver_chibios_dac_basic.c ****         palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+ 198:quantum/audio/driver_chibios_dac_basic.c ****         dacStart(&DACD2, &dac_conf_ch2);
+ 536              		.loc 1 198 9 view .LVU99
+ 537 0004 184C     		ldr	r4, .L30+4
+ 188:quantum/audio/driver_chibios_dac_basic.c ****         dacStart(&DACD1, &dac_conf_ch1);
+ 538              		.loc 1 188 9 view .LVU100
+ 539 0006 0322     		movs	r2, #3
+ 540 0008 1021     		movs	r1, #16
+ 541 000a 4FF09040 		mov	r0, #1207959552
+ 542 000e FFF7FEFF 		bl	_pal_lld_setgroupmode
+ 543              	.LVL29:
+ 189:quantum/audio/driver_chibios_dac_basic.c ****         dacStart(&DACD1, &dac_conf_ch1);
+ 544              		.loc 1 189 9 is_stmt 1 view .LVU101
+ 545 0012 2846     		mov	r0, r5
+ 546 0014 1549     		ldr	r1, .L30+8
+ 547 0016 FFF7FEFF 		bl	dacStart
+ 548              	.LVL30:
+ 193:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 549              		.loc 1 193 9 view .LVU102
+ 550 001a 1549     		ldr	r1, .L30+12
+ 551 001c 1548     		ldr	r0, .L30+16
+ 552 001e FFF7FEFF 		bl	gptStart
+ 553              	.LVL31:
+ 196:quantum/audio/driver_chibios_dac_basic.c ****         palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+ 554              		.loc 1 196 5 view .LVU103
+ 197:quantum/audio/driver_chibios_dac_basic.c ****         dacStart(&DACD2, &dac_conf_ch2);
+ 555              		.loc 1 197 9 view .LVU104
+ 556 0022 0322     		movs	r2, #3
+ 557 0024 2021     		movs	r1, #32
+ 558 0026 4FF09040 		mov	r0, #1207959552
+ 559 002a FFF7FEFF 		bl	_pal_lld_setgroupmode
+ 560              	.LVL32:
+ 561              		.loc 1 198 9 view .LVU105
+ 562 002e 2046     		mov	r0, r4
+ 563 0030 1149     		ldr	r1, .L30+20
+ 564 0032 FFF7FEFF 		bl	dacStart
+ 565              	.LVL33:
+ 199:quantum/audio/driver_chibios_dac_basic.c **** 
+ 200:quantum/audio/driver_chibios_dac_basic.c ****         gptStart(&GPTD7, &gpt7cfg1);
+ 566              		.loc 1 200 9 view .LVU106
+ 567 0036 1149     		ldr	r1, .L30+24
+ 568 0038 1148     		ldr	r0, .L30+28
+ 569 003a FFF7FEFF 		bl	gptStart
+ 570              	.LVL34:
+ 201:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 202:quantum/audio/driver_chibios_dac_basic.c **** 
+ 203:quantum/audio/driver_chibios_dac_basic.c ****     /* enable the output buffer, to directly drive external loads with no additional circuitry
+ 204:quantum/audio/driver_chibios_dac_basic.c ****      *
+ 205:quantum/audio/driver_chibios_dac_basic.c ****      * see: AN4566 Application note: Extending the DAC performance of STM32 microcontrollers
+ 206:quantum/audio/driver_chibios_dac_basic.c ****      * Note: Buffer-Off bit -> has to be set 0 to enable the output buffer
+ 207:quantum/audio/driver_chibios_dac_basic.c ****      * Note: enabling the output buffer imparts an additional dc-offset of a couple mV
+ 208:quantum/audio/driver_chibios_dac_basic.c ****      *
+ 209:quantum/audio/driver_chibios_dac_basic.c ****      * this is done here, reaching directly into the stm32 registers since chibios has not implemen
+ 210:quantum/audio/driver_chibios_dac_basic.c ****      * (see: chibios/os/hal/ports/STM32/todo.txt '- BOFF handling in DACv1.'
+ 211:quantum/audio/driver_chibios_dac_basic.c ****      */
+ 212:quantum/audio/driver_chibios_dac_basic.c ****     DACD1.params->dac->CR &= ~DAC_CR_BOFF1;
+ 571              		.loc 1 212 5 view .LVU107
+ 572              		.loc 1 212 17 is_stmt 0 view .LVU108
+ 573 003e AB6A     		ldr	r3, [r5, #40]
+ 213:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 214:quantum/audio/driver_chibios_dac_basic.c **** 
+ 215:quantum/audio/driver_chibios_dac_basic.c ****     // start state-updater
+ 216:quantum/audio/driver_chibios_dac_basic.c ****     gptStart(&AUDIO_STATE_TIMER, &gptStateUpdateCfg);
+ 574              		.loc 1 216 5 view .LVU109
+ 575 0040 1049     		ldr	r1, .L30+32
+ 212:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 576              		.loc 1 212 17 view .LVU110
+ 577 0042 1A68     		ldr	r2, [r3]
+ 578              		.loc 1 216 5 view .LVU111
+ 579 0044 1048     		ldr	r0, .L30+36
+ 212:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 580              		.loc 1 212 22 view .LVU112
+ 581 0046 1368     		ldr	r3, [r2]
+ 212:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 582              		.loc 1 212 27 view .LVU113
+ 583 0048 23F00203 		bic	r3, r3, #2
+ 584 004c 1360     		str	r3, [r2]
+ 213:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 585              		.loc 1 213 5 is_stmt 1 view .LVU114
+ 213:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 586              		.loc 1 213 17 is_stmt 0 view .LVU115
+ 587 004e A36A     		ldr	r3, [r4, #40]
+ 588 0050 1A68     		ldr	r2, [r3]
+ 213:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 589              		.loc 1 213 22 view .LVU116
+ 590 0052 1368     		ldr	r3, [r2]
+ 213:quantum/audio/driver_chibios_dac_basic.c ****     DACD2.params->dac->CR &= ~DAC_CR_BOFF2;
+ 591              		.loc 1 213 27 view .LVU117
+ 592 0054 23F40033 		bic	r3, r3, #131072
+ 593 0058 1360     		str	r3, [r2]
+ 594              		.loc 1 216 5 is_stmt 1 view .LVU118
+ 217:quantum/audio/driver_chibios_dac_basic.c **** }
+ 595              		.loc 1 217 1 is_stmt 0 view .LVU119
+ 596 005a BDE83840 		pop	{r3, r4, r5, lr}
+ 597              		.cfi_restore 14
+ 598              		.cfi_restore 5
+ 599              		.cfi_restore 4
+ 600              		.cfi_restore 3
+ 601              		.cfi_def_cfa_offset 0
+ 216:quantum/audio/driver_chibios_dac_basic.c **** }
+ 602              		.loc 1 216 5 view .LVU120
+ 603 005e FFF7FEBF 		b	gptStart
+ 604              	.LVL35:
+ 605              	.L31:
+ 606 0062 00BF     		.align	2
+ 607              	.L30:
+ 608 0064 00000000 		.word	DACD1
+ 609 0068 00000000 		.word	DACD2
+ 610 006c 00000000 		.word	dac_conf_ch1
+ 611 0070 00000000 		.word	gpt6cfg1
+ 612 0074 00000000 		.word	GPTD6
+ 613 0078 00000000 		.word	dac_conf_ch2
+ 614 007c 00000000 		.word	gpt7cfg1
+ 615 0080 00000000 		.word	GPTD7
+ 616 0084 00000000 		.word	gptStateUpdateCfg
+ 617 0088 00000000 		.word	GPTD8
+ 618              		.cfi_endproc
+ 619              	.LFE350:
+ 621              		.section	.text.audio_driver_stop,"ax",%progbits
+ 622              		.align	1
+ 623              		.global	audio_driver_stop
+ 624              		.syntax unified
+ 625              		.thumb
+ 626              		.thumb_func
+ 628              	audio_driver_stop:
+ 629              	.LFB351:
+ 218:quantum/audio/driver_chibios_dac_basic.c **** 
+ 219:quantum/audio/driver_chibios_dac_basic.c **** void audio_driver_stop(void) {
+ 630              		.loc 1 219 30 is_stmt 1 view -0
+ 631              		.cfi_startproc
+ 632              		@ args = 0, pretend = 0, frame = 0
+ 633              		@ frame_needed = 0, uses_anonymous_args = 0
+ 220:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A4) || (AUDIO_PIN_ALT == A4)) {
+ 634              		.loc 1 220 5 view .LVU122
+ 221:quantum/audio/driver_chibios_dac_basic.c ****         gptStopTimer(&GPTD6);
+ 635              		.loc 1 221 9 view .LVU123
+ 219:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A4) || (AUDIO_PIN_ALT == A4)) {
+ 636              		.loc 1 219 30 is_stmt 0 view .LVU124
+ 637 0000 10B5     		push	{r4, lr}
+ 638              		.cfi_def_cfa_offset 8
+ 639              		.cfi_offset 4, -8
+ 640              		.cfi_offset 14, -4
+ 222:quantum/audio/driver_chibios_dac_basic.c **** 
+ 223:quantum/audio/driver_chibios_dac_basic.c ****         // stop the ongoing conversion and put the output in a known state
+ 224:quantum/audio/driver_chibios_dac_basic.c ****         dacStopConversion(&DACD1);
+ 641              		.loc 1 224 9 view .LVU125
+ 642 0002 0F4C     		ldr	r4, .L33
+ 221:quantum/audio/driver_chibios_dac_basic.c **** 
+ 643              		.loc 1 221 9 view .LVU126
+ 644 0004 0F48     		ldr	r0, .L33+4
+ 645 0006 FFF7FEFF 		bl	gptStopTimer
+ 646              	.LVL36:
+ 647              		.loc 1 224 9 is_stmt 1 view .LVU127
+ 648 000a 2046     		mov	r0, r4
+ 649 000c FFF7FEFF 		bl	dacStopConversion
+ 650              	.LVL37:
+ 225:quantum/audio/driver_chibios_dac_basic.c ****         dacPutChannelX(&DACD1, 0, AUDIO_DAC_OFF_VALUE);
+ 651              		.loc 1 225 9 view .LVU128
+ 652 0010 40F2FF72 		movw	r2, #2047
+ 653 0014 0021     		movs	r1, #0
+ 654 0016 2046     		mov	r0, r4
+ 226:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 227:quantum/audio/driver_chibios_dac_basic.c **** 
+ 228:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A5) || (AUDIO_PIN_ALT == A5)) {
+ 229:quantum/audio/driver_chibios_dac_basic.c ****         gptStopTimer(&GPTD7);
+ 230:quantum/audio/driver_chibios_dac_basic.c **** 
+ 231:quantum/audio/driver_chibios_dac_basic.c ****         dacStopConversion(&DACD2);
+ 655              		.loc 1 231 9 is_stmt 0 view .LVU129
+ 656 0018 0B4C     		ldr	r4, .L33+8
+ 225:quantum/audio/driver_chibios_dac_basic.c ****         dacPutChannelX(&DACD1, 0, AUDIO_DAC_OFF_VALUE);
+ 657              		.loc 1 225 9 view .LVU130
+ 658 001a FFF7FEFF 		bl	dacPutChannelX
+ 659              	.LVL38:
+ 228:quantum/audio/driver_chibios_dac_basic.c ****         gptStopTimer(&GPTD7);
+ 660              		.loc 1 228 5 is_stmt 1 view .LVU131
+ 229:quantum/audio/driver_chibios_dac_basic.c **** 
+ 661              		.loc 1 229 9 view .LVU132
+ 662 001e 0B48     		ldr	r0, .L33+12
+ 663 0020 FFF7FEFF 		bl	gptStopTimer
+ 664              	.LVL39:
+ 665              		.loc 1 231 9 view .LVU133
+ 666 0024 2046     		mov	r0, r4
+ 667 0026 FFF7FEFF 		bl	dacStopConversion
+ 668              	.LVL40:
+ 232:quantum/audio/driver_chibios_dac_basic.c ****         dacPutChannelX(&DACD2, 0, AUDIO_DAC_OFF_VALUE);
+ 669              		.loc 1 232 9 view .LVU134
+ 670 002a 2046     		mov	r0, r4
+ 671 002c 40F2FF72 		movw	r2, #2047
+ 672 0030 0021     		movs	r1, #0
+ 673 0032 FFF7FEFF 		bl	dacPutChannelX
+ 674              	.LVL41:
+ 233:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 234:quantum/audio/driver_chibios_dac_basic.c ****     gptStopTimer(&AUDIO_STATE_TIMER);
+ 675              		.loc 1 234 5 view .LVU135
+ 235:quantum/audio/driver_chibios_dac_basic.c **** }
+ 676              		.loc 1 235 1 is_stmt 0 view .LVU136
+ 677 0036 BDE81040 		pop	{r4, lr}
+ 678              		.cfi_restore 14
+ 679              		.cfi_restore 4
+ 680              		.cfi_def_cfa_offset 0
+ 234:quantum/audio/driver_chibios_dac_basic.c **** }
+ 681              		.loc 1 234 5 view .LVU137
+ 682 003a 0548     		ldr	r0, .L33+16
+ 683 003c FFF7FEBF 		b	gptStopTimer
+ 684              	.LVL42:
+ 685              	.L34:
+ 686              		.align	2
+ 687              	.L33:
+ 688 0040 00000000 		.word	DACD1
+ 689 0044 00000000 		.word	GPTD6
+ 690 0048 00000000 		.word	DACD2
+ 691 004c 00000000 		.word	GPTD7
+ 692 0050 00000000 		.word	GPTD8
+ 693              		.cfi_endproc
+ 694              	.LFE351:
+ 696              		.section	.text.audio_driver_start,"ax",%progbits
+ 697              		.align	1
+ 698              		.global	audio_driver_start
+ 699              		.syntax unified
+ 700              		.thumb
+ 701              		.thumb_func
+ 703              	audio_driver_start:
+ 704              	.LFB352:
+ 236:quantum/audio/driver_chibios_dac_basic.c **** 
+ 237:quantum/audio/driver_chibios_dac_basic.c **** void audio_driver_start(void) {
+ 705              		.loc 1 237 31 is_stmt 1 view -0
+ 706              		.cfi_startproc
+ 707              		@ args = 0, pretend = 0, frame = 0
+ 708              		@ frame_needed = 0, uses_anonymous_args = 0
+ 238:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A4) || (AUDIO_PIN_ALT == A4)) {
+ 709              		.loc 1 238 5 view .LVU139
+ 239:quantum/audio/driver_chibios_dac_basic.c ****         dacStartConversion(&DACD1, &dac_conv_grp_ch1, (dacsample_t *)dac_buffer_1, AUDIO_DAC_BUFFER
+ 710              		.loc 1 239 9 view .LVU140
+ 237:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A4) || (AUDIO_PIN_ALT == A4)) {
+ 711              		.loc 1 237 31 is_stmt 0 view .LVU141
+ 712 0000 08B5     		push	{r3, lr}
+ 713              		.cfi_def_cfa_offset 8
+ 714              		.cfi_offset 3, -8
+ 715              		.cfi_offset 14, -4
+ 716              		.loc 1 239 9 view .LVU142
+ 717 0002 0A4A     		ldr	r2, .L36
+ 718 0004 0A49     		ldr	r1, .L36+4
+ 719 0006 0B48     		ldr	r0, .L36+8
+ 720 0008 4FF48073 		mov	r3, #256
+ 721 000c FFF7FEFF 		bl	dacStartConversion
+ 722              	.LVL43:
+ 240:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 241:quantum/audio/driver_chibios_dac_basic.c ****     if ((AUDIO_PIN == A5) || (AUDIO_PIN_ALT == A5)) {
+ 723              		.loc 1 241 5 is_stmt 1 view .LVU143
+ 242:quantum/audio/driver_chibios_dac_basic.c ****         dacStartConversion(&DACD2, &dac_conv_grp_ch2, (dacsample_t *)dac_buffer_2, AUDIO_DAC_BUFFER
+ 724              		.loc 1 242 9 view .LVU144
+ 725 0010 0949     		ldr	r1, .L36+12
+ 726 0012 0A48     		ldr	r0, .L36+16
+ 727 0014 0A4A     		ldr	r2, .L36+20
+ 728 0016 4FF48073 		mov	r3, #256
+ 729 001a FFF7FEFF 		bl	dacStartConversion
+ 730              	.LVL44:
+ 243:quantum/audio/driver_chibios_dac_basic.c ****     }
+ 244:quantum/audio/driver_chibios_dac_basic.c ****     gptStartContinuous(&AUDIO_STATE_TIMER, 2U);
+ 731              		.loc 1 244 5 view .LVU145
+ 245:quantum/audio/driver_chibios_dac_basic.c **** }
+ 732              		.loc 1 245 1 is_stmt 0 view .LVU146
+ 733 001e BDE80840 		pop	{r3, lr}
+ 734              		.cfi_restore 14
+ 735              		.cfi_restore 3
+ 736              		.cfi_def_cfa_offset 0
+ 244:quantum/audio/driver_chibios_dac_basic.c **** }
+ 737              		.loc 1 244 5 view .LVU147
+ 738 0022 0848     		ldr	r0, .L36+24
+ 739 0024 0221     		movs	r1, #2
+ 740 0026 FFF7FEBF 		b	gptStartContinuous
+ 741              	.LVL45:
+ 742              	.L37:
+ 743 002a 00BF     		.align	2
+ 744              	.L36:
+ 745 002c 00000000 		.word	dac_buffer_1
+ 746 0030 00000000 		.word	dac_conv_grp_ch1
+ 747 0034 00000000 		.word	DACD1
+ 748 0038 00000000 		.word	dac_conv_grp_ch2
+ 749 003c 00000000 		.word	DACD2
+ 750 0040 00000000 		.word	dac_buffer_2
+ 751 0044 00000000 		.word	GPTD8
+ 752              		.cfi_endproc
+ 753              	.LFE352:
+ 755              		.section	.bss.channel_2_frequency,"aw",%nobits
+ 756              		.align	2
+ 759              	channel_2_frequency:
+ 760 0000 00000000 		.space	4
+ 761              		.section	.bss.channel_1_frequency,"aw",%nobits
+ 762              		.align	2
+ 765              	channel_1_frequency:
+ 766 0000 00000000 		.space	4
+ 767              		.section	.rodata.dac_conv_grp_ch2,"a"
+ 768              		.align	2
+ 771              	dac_conv_grp_ch2:
+ 772 0000 01000000 		.word	1
+ 773 0004 00000000 		.space	8
+ 773      00000000 
+ 774 000c 02000000 		.word	2
+ 775              		.section	.rodata.dac_conv_grp_ch1,"a"
+ 776              		.align	2
+ 779              	dac_conv_grp_ch1:
+ 780 0000 01000000 		.word	1
+ 781 0004 00000000 		.space	8
+ 781      00000000 
+ 782 000c 00000000 		.word	0
+ 783              		.section	.rodata.dac_conf_ch2,"a"
+ 784              		.align	2
+ 787              	dac_conf_ch2:
+ 788 0000 FF07     		.short	2047
+ 789 0002 00       		.byte	0
+ 790 0003 00000000 		.space	5
+ 790      00
+ 791              		.section	.rodata.dac_conf_ch1,"a"
+ 792              		.align	2
+ 795              	dac_conf_ch1:
+ 796 0000 FF07     		.short	2047
+ 797 0002 00       		.byte	0
+ 798 0003 00000000 		.space	5
+ 798      00
+ 799              		.global	gptStateUpdateCfg
+ 800              		.section	.data.gptStateUpdateCfg,"aw"
+ 801              		.align	2
+ 804              	gptStateUpdateCfg:
+ 805 0000 0A000000 		.word	10
+ 806 0004 00000000 		.word	gpt_audio_state_cb
+ 807 0008 20000000 		.word	32
+ 808 000c 00000000 		.word	0
+ 809              		.global	gpt7cfg1
+ 810              		.section	.data.gpt7cfg1,"aw"
+ 811              		.align	2
+ 814              	gpt7cfg1:
+ 815 0000 00400000 		.word	16384
+ 816 0004 00000000 		.word	0
+ 817 0008 20000000 		.word	32
+ 818 000c 00000000 		.word	0
+ 819              		.global	gpt6cfg1
+ 820              		.section	.data.gpt6cfg1,"aw"
+ 821              		.align	2
+ 824              	gpt6cfg1:
+ 825 0000 00400000 		.word	16384
+ 826 0004 00000000 		.word	0
+ 827 0008 20000000 		.word	32
+ 828 000c 00000000 		.word	0
+ 829              		.section	.rodata.dac_buffer_2,"a"
+ 830              		.align	1
+ 833              	dac_buffer_2:
+ 834 0000 0000     		.short	0
+ 835 0002 0000     		.short	0
+ 836 0004 0000     		.short	0
+ 837 0006 0000     		.short	0
+ 838 0008 0000     		.short	0
+ 839 000a 0000     		.short	0
+ 840 000c 0000     		.short	0
+ 841 000e 0000     		.short	0
+ 842 0010 0000     		.short	0
+ 843 0012 0000     		.short	0
+ 844 0014 0000     		.short	0
+ 845 0016 0000     		.short	0
+ 846 0018 0000     		.short	0
+ 847 001a 0000     		.short	0
+ 848 001c 0000     		.short	0
+ 849 001e 0000     		.short	0
+ 850 0020 0000     		.short	0
+ 851 0022 0000     		.short	0
+ 852 0024 0000     		.short	0
+ 853 0026 0000     		.short	0
+ 854 0028 0000     		.short	0
+ 855 002a 0000     		.short	0
+ 856 002c 0000     		.short	0
+ 857 002e 0000     		.short	0
+ 858 0030 0000     		.short	0
+ 859 0032 0000     		.short	0
+ 860 0034 0000     		.short	0
+ 861 0036 0000     		.short	0
+ 862 0038 0000     		.short	0
+ 863 003a 0000     		.short	0
+ 864 003c 0000     		.short	0
+ 865 003e 0000     		.short	0
+ 866 0040 0000     		.short	0
+ 867 0042 0000     		.short	0
+ 868 0044 0000     		.short	0
+ 869 0046 0000     		.short	0
+ 870 0048 0000     		.short	0
+ 871 004a 0000     		.short	0
+ 872 004c 0000     		.short	0
+ 873 004e 0000     		.short	0
+ 874 0050 0000     		.short	0
+ 875 0052 0000     		.short	0
+ 876 0054 0000     		.short	0
+ 877 0056 0000     		.short	0
+ 878 0058 0000     		.short	0
+ 879 005a 0000     		.short	0
+ 880 005c 0000     		.short	0
+ 881 005e 0000     		.short	0
+ 882 0060 0000     		.short	0
+ 883 0062 0000     		.short	0
+ 884 0064 0000     		.short	0
+ 885 0066 0000     		.short	0
+ 886 0068 0000     		.short	0
+ 887 006a 0000     		.short	0
+ 888 006c 0000     		.short	0
+ 889 006e 0000     		.short	0
+ 890 0070 0000     		.short	0
+ 891 0072 0000     		.short	0
+ 892 0074 0000     		.short	0
+ 893 0076 0000     		.short	0
+ 894 0078 0000     		.short	0
+ 895 007a 0000     		.short	0
+ 896 007c 0000     		.short	0
+ 897 007e 0000     		.short	0
+ 898 0080 0000     		.short	0
+ 899 0082 0000     		.short	0
+ 900 0084 0000     		.short	0
+ 901 0086 0000     		.short	0
+ 902 0088 0000     		.short	0
+ 903 008a 0000     		.short	0
+ 904 008c 0000     		.short	0
+ 905 008e 0000     		.short	0
+ 906 0090 0000     		.short	0
+ 907 0092 0000     		.short	0
+ 908 0094 0000     		.short	0
+ 909 0096 0000     		.short	0
+ 910 0098 0000     		.short	0
+ 911 009a 0000     		.short	0
+ 912 009c 0000     		.short	0
+ 913 009e 0000     		.short	0
+ 914 00a0 0000     		.short	0
+ 915 00a2 0000     		.short	0
+ 916 00a4 0000     		.short	0
+ 917 00a6 0000     		.short	0
+ 918 00a8 0000     		.short	0
+ 919 00aa 0000     		.short	0
+ 920 00ac 0000     		.short	0
+ 921 00ae 0000     		.short	0
+ 922 00b0 0000     		.short	0
+ 923 00b2 0000     		.short	0
+ 924 00b4 0000     		.short	0
+ 925 00b6 0000     		.short	0
+ 926 00b8 0000     		.short	0
+ 927 00ba 0000     		.short	0
+ 928 00bc 0000     		.short	0
+ 929 00be 0000     		.short	0
+ 930 00c0 0000     		.short	0
+ 931 00c2 0000     		.short	0
+ 932 00c4 0000     		.short	0
+ 933 00c6 0000     		.short	0
+ 934 00c8 0000     		.short	0
+ 935 00ca 0000     		.short	0
+ 936 00cc 0000     		.short	0
+ 937 00ce 0000     		.short	0
+ 938 00d0 0000     		.short	0
+ 939 00d2 0000     		.short	0
+ 940 00d4 0000     		.short	0
+ 941 00d6 0000     		.short	0
+ 942 00d8 0000     		.short	0
+ 943 00da 0000     		.short	0
+ 944 00dc 0000     		.short	0
+ 945 00de 0000     		.short	0
+ 946 00e0 0000     		.short	0
+ 947 00e2 0000     		.short	0
+ 948 00e4 0000     		.short	0
+ 949 00e6 0000     		.short	0
+ 950 00e8 0000     		.short	0
+ 951 00ea 0000     		.short	0
+ 952 00ec 0000     		.short	0
+ 953 00ee 0000     		.short	0
+ 954 00f0 0000     		.short	0
+ 955 00f2 0000     		.short	0
+ 956 00f4 0000     		.short	0
+ 957 00f6 0000     		.short	0
+ 958 00f8 0000     		.short	0
+ 959 00fa 0000     		.short	0
+ 960 00fc 0000     		.short	0
+ 961 00fe 0000     		.short	0
+ 962 0100 FF0F     		.short	4095
+ 963 0102 FF0F     		.short	4095
+ 964 0104 FF0F     		.short	4095
+ 965 0106 FF0F     		.short	4095
+ 966 0108 FF0F     		.short	4095
+ 967 010a FF0F     		.short	4095
+ 968 010c FF0F     		.short	4095
+ 969 010e FF0F     		.short	4095
+ 970 0110 FF0F     		.short	4095
+ 971 0112 FF0F     		.short	4095
+ 972 0114 FF0F     		.short	4095
+ 973 0116 FF0F     		.short	4095
+ 974 0118 FF0F     		.short	4095
+ 975 011a FF0F     		.short	4095
+ 976 011c FF0F     		.short	4095
+ 977 011e FF0F     		.short	4095
+ 978 0120 FF0F     		.short	4095
+ 979 0122 FF0F     		.short	4095
+ 980 0124 FF0F     		.short	4095
+ 981 0126 FF0F     		.short	4095
+ 982 0128 FF0F     		.short	4095
+ 983 012a FF0F     		.short	4095
+ 984 012c FF0F     		.short	4095
+ 985 012e FF0F     		.short	4095
+ 986 0130 FF0F     		.short	4095
+ 987 0132 FF0F     		.short	4095
+ 988 0134 FF0F     		.short	4095
+ 989 0136 FF0F     		.short	4095
+ 990 0138 FF0F     		.short	4095
+ 991 013a FF0F     		.short	4095
+ 992 013c FF0F     		.short	4095
+ 993 013e FF0F     		.short	4095
+ 994 0140 FF0F     		.short	4095
+ 995 0142 FF0F     		.short	4095
+ 996 0144 FF0F     		.short	4095
+ 997 0146 FF0F     		.short	4095
+ 998 0148 FF0F     		.short	4095
+ 999 014a FF0F     		.short	4095
+ 1000 014c FF0F     		.short	4095
+ 1001 014e FF0F     		.short	4095
+ 1002 0150 FF0F     		.short	4095
+ 1003 0152 FF0F     		.short	4095
+ 1004 0154 FF0F     		.short	4095
+ 1005 0156 FF0F     		.short	4095
+ 1006 0158 FF0F     		.short	4095
+ 1007 015a FF0F     		.short	4095
+ 1008 015c FF0F     		.short	4095
+ 1009 015e FF0F     		.short	4095
+ 1010 0160 FF0F     		.short	4095
+ 1011 0162 FF0F     		.short	4095
+ 1012 0164 FF0F     		.short	4095
+ 1013 0166 FF0F     		.short	4095
+ 1014 0168 FF0F     		.short	4095
+ 1015 016a FF0F     		.short	4095
+ 1016 016c FF0F     		.short	4095
+ 1017 016e FF0F     		.short	4095
+ 1018 0170 FF0F     		.short	4095
+ 1019 0172 FF0F     		.short	4095
+ 1020 0174 FF0F     		.short	4095
+ 1021 0176 FF0F     		.short	4095
+ 1022 0178 FF0F     		.short	4095
+ 1023 017a FF0F     		.short	4095
+ 1024 017c FF0F     		.short	4095
+ 1025 017e FF0F     		.short	4095
+ 1026 0180 FF0F     		.short	4095
+ 1027 0182 FF0F     		.short	4095
+ 1028 0184 FF0F     		.short	4095
+ 1029 0186 FF0F     		.short	4095
+ 1030 0188 FF0F     		.short	4095
+ 1031 018a FF0F     		.short	4095
+ 1032 018c FF0F     		.short	4095
+ 1033 018e FF0F     		.short	4095
+ 1034 0190 FF0F     		.short	4095
+ 1035 0192 FF0F     		.short	4095
+ 1036 0194 FF0F     		.short	4095
+ 1037 0196 FF0F     		.short	4095
+ 1038 0198 FF0F     		.short	4095
+ 1039 019a FF0F     		.short	4095
+ 1040 019c FF0F     		.short	4095
+ 1041 019e FF0F     		.short	4095
+ 1042 01a0 FF0F     		.short	4095
+ 1043 01a2 FF0F     		.short	4095
+ 1044 01a4 FF0F     		.short	4095
+ 1045 01a6 FF0F     		.short	4095
+ 1046 01a8 FF0F     		.short	4095
+ 1047 01aa FF0F     		.short	4095
+ 1048 01ac FF0F     		.short	4095
+ 1049 01ae FF0F     		.short	4095
+ 1050 01b0 FF0F     		.short	4095
+ 1051 01b2 FF0F     		.short	4095
+ 1052 01b4 FF0F     		.short	4095
+ 1053 01b6 FF0F     		.short	4095
+ 1054 01b8 FF0F     		.short	4095
+ 1055 01ba FF0F     		.short	4095
+ 1056 01bc FF0F     		.short	4095
+ 1057 01be FF0F     		.short	4095
+ 1058 01c0 FF0F     		.short	4095
+ 1059 01c2 FF0F     		.short	4095
+ 1060 01c4 FF0F     		.short	4095
+ 1061 01c6 FF0F     		.short	4095
+ 1062 01c8 FF0F     		.short	4095
+ 1063 01ca FF0F     		.short	4095
+ 1064 01cc FF0F     		.short	4095
+ 1065 01ce FF0F     		.short	4095
+ 1066 01d0 FF0F     		.short	4095
+ 1067 01d2 FF0F     		.short	4095
+ 1068 01d4 FF0F     		.short	4095
+ 1069 01d6 FF0F     		.short	4095
+ 1070 01d8 FF0F     		.short	4095
+ 1071 01da FF0F     		.short	4095
+ 1072 01dc FF0F     		.short	4095
+ 1073 01de FF0F     		.short	4095
+ 1074 01e0 FF0F     		.short	4095
+ 1075 01e2 FF0F     		.short	4095
+ 1076 01e4 FF0F     		.short	4095
+ 1077 01e6 FF0F     		.short	4095
+ 1078 01e8 FF0F     		.short	4095
+ 1079 01ea FF0F     		.short	4095
+ 1080 01ec FF0F     		.short	4095
+ 1081 01ee FF0F     		.short	4095
+ 1082 01f0 FF0F     		.short	4095
+ 1083 01f2 FF0F     		.short	4095
+ 1084 01f4 FF0F     		.short	4095
+ 1085 01f6 FF0F     		.short	4095
+ 1086 01f8 FF0F     		.short	4095
+ 1087 01fa FF0F     		.short	4095
+ 1088 01fc FF0F     		.short	4095
+ 1089 01fe FF0F     		.short	4095
+ 1090              		.section	.rodata.dac_buffer_1,"a"
+ 1091              		.align	1
+ 1094              	dac_buffer_1:
+ 1095 0000 FF0F     		.short	4095
+ 1096 0002 FF0F     		.short	4095
+ 1097 0004 FF0F     		.short	4095
+ 1098 0006 FF0F     		.short	4095
+ 1099 0008 FF0F     		.short	4095
+ 1100 000a FF0F     		.short	4095
+ 1101 000c FF0F     		.short	4095
+ 1102 000e FF0F     		.short	4095
+ 1103 0010 FF0F     		.short	4095
+ 1104 0012 FF0F     		.short	4095
+ 1105 0014 FF0F     		.short	4095
+ 1106 0016 FF0F     		.short	4095
+ 1107 0018 FF0F     		.short	4095
+ 1108 001a FF0F     		.short	4095
+ 1109 001c FF0F     		.short	4095
+ 1110 001e FF0F     		.short	4095
+ 1111 0020 FF0F     		.short	4095
+ 1112 0022 FF0F     		.short	4095
+ 1113 0024 FF0F     		.short	4095
+ 1114 0026 FF0F     		.short	4095
+ 1115 0028 FF0F     		.short	4095
+ 1116 002a FF0F     		.short	4095
+ 1117 002c FF0F     		.short	4095
+ 1118 002e FF0F     		.short	4095
+ 1119 0030 FF0F     		.short	4095
+ 1120 0032 FF0F     		.short	4095
+ 1121 0034 FF0F     		.short	4095
+ 1122 0036 FF0F     		.short	4095
+ 1123 0038 FF0F     		.short	4095
+ 1124 003a FF0F     		.short	4095
+ 1125 003c FF0F     		.short	4095
+ 1126 003e FF0F     		.short	4095
+ 1127 0040 FF0F     		.short	4095
+ 1128 0042 FF0F     		.short	4095
+ 1129 0044 FF0F     		.short	4095
+ 1130 0046 FF0F     		.short	4095
+ 1131 0048 FF0F     		.short	4095
+ 1132 004a FF0F     		.short	4095
+ 1133 004c FF0F     		.short	4095
+ 1134 004e FF0F     		.short	4095
+ 1135 0050 FF0F     		.short	4095
+ 1136 0052 FF0F     		.short	4095
+ 1137 0054 FF0F     		.short	4095
+ 1138 0056 FF0F     		.short	4095
+ 1139 0058 FF0F     		.short	4095
+ 1140 005a FF0F     		.short	4095
+ 1141 005c FF0F     		.short	4095
+ 1142 005e FF0F     		.short	4095
+ 1143 0060 FF0F     		.short	4095
+ 1144 0062 FF0F     		.short	4095
+ 1145 0064 FF0F     		.short	4095
+ 1146 0066 FF0F     		.short	4095
+ 1147 0068 FF0F     		.short	4095
+ 1148 006a FF0F     		.short	4095
+ 1149 006c FF0F     		.short	4095
+ 1150 006e FF0F     		.short	4095
+ 1151 0070 FF0F     		.short	4095
+ 1152 0072 FF0F     		.short	4095
+ 1153 0074 FF0F     		.short	4095
+ 1154 0076 FF0F     		.short	4095
+ 1155 0078 FF0F     		.short	4095
+ 1156 007a FF0F     		.short	4095
+ 1157 007c FF0F     		.short	4095
+ 1158 007e FF0F     		.short	4095
+ 1159 0080 FF0F     		.short	4095
+ 1160 0082 FF0F     		.short	4095
+ 1161 0084 FF0F     		.short	4095
+ 1162 0086 FF0F     		.short	4095
+ 1163 0088 FF0F     		.short	4095
+ 1164 008a FF0F     		.short	4095
+ 1165 008c FF0F     		.short	4095
+ 1166 008e FF0F     		.short	4095
+ 1167 0090 FF0F     		.short	4095
+ 1168 0092 FF0F     		.short	4095
+ 1169 0094 FF0F     		.short	4095
+ 1170 0096 FF0F     		.short	4095
+ 1171 0098 FF0F     		.short	4095
+ 1172 009a FF0F     		.short	4095
+ 1173 009c FF0F     		.short	4095
+ 1174 009e FF0F     		.short	4095
+ 1175 00a0 FF0F     		.short	4095
+ 1176 00a2 FF0F     		.short	4095
+ 1177 00a4 FF0F     		.short	4095
+ 1178 00a6 FF0F     		.short	4095
+ 1179 00a8 FF0F     		.short	4095
+ 1180 00aa FF0F     		.short	4095
+ 1181 00ac FF0F     		.short	4095
+ 1182 00ae FF0F     		.short	4095
+ 1183 00b0 FF0F     		.short	4095
+ 1184 00b2 FF0F     		.short	4095
+ 1185 00b4 FF0F     		.short	4095
+ 1186 00b6 FF0F     		.short	4095
+ 1187 00b8 FF0F     		.short	4095
+ 1188 00ba FF0F     		.short	4095
+ 1189 00bc FF0F     		.short	4095
+ 1190 00be FF0F     		.short	4095
+ 1191 00c0 FF0F     		.short	4095
+ 1192 00c2 FF0F     		.short	4095
+ 1193 00c4 FF0F     		.short	4095
+ 1194 00c6 FF0F     		.short	4095
+ 1195 00c8 FF0F     		.short	4095
+ 1196 00ca FF0F     		.short	4095
+ 1197 00cc FF0F     		.short	4095
+ 1198 00ce FF0F     		.short	4095
+ 1199 00d0 FF0F     		.short	4095
+ 1200 00d2 FF0F     		.short	4095
+ 1201 00d4 FF0F     		.short	4095
+ 1202 00d6 FF0F     		.short	4095
+ 1203 00d8 FF0F     		.short	4095
+ 1204 00da FF0F     		.short	4095
+ 1205 00dc FF0F     		.short	4095
+ 1206 00de FF0F     		.short	4095
+ 1207 00e0 FF0F     		.short	4095
+ 1208 00e2 FF0F     		.short	4095
+ 1209 00e4 FF0F     		.short	4095
+ 1210 00e6 FF0F     		.short	4095
+ 1211 00e8 FF0F     		.short	4095
+ 1212 00ea FF0F     		.short	4095
+ 1213 00ec FF0F     		.short	4095
+ 1214 00ee FF0F     		.short	4095
+ 1215 00f0 FF0F     		.short	4095
+ 1216 00f2 FF0F     		.short	4095
+ 1217 00f4 FF0F     		.short	4095
+ 1218 00f6 FF0F     		.short	4095
+ 1219 00f8 FF0F     		.short	4095
+ 1220 00fa FF0F     		.short	4095
+ 1221 00fc FF0F     		.short	4095
+ 1222 00fe FF0F     		.short	4095
+ 1223 0100 0000     		.short	0
+ 1224 0102 0000     		.short	0
+ 1225 0104 0000     		.short	0
+ 1226 0106 0000     		.short	0
+ 1227 0108 0000     		.short	0
+ 1228 010a 0000     		.short	0
+ 1229 010c 0000     		.short	0
+ 1230 010e 0000     		.short	0
+ 1231 0110 0000     		.short	0
+ 1232 0112 0000     		.short	0
+ 1233 0114 0000     		.short	0
+ 1234 0116 0000     		.short	0
+ 1235 0118 0000     		.short	0
+ 1236 011a 0000     		.short	0
+ 1237 011c 0000     		.short	0
+ 1238 011e 0000     		.short	0
+ 1239 0120 0000     		.short	0
+ 1240 0122 0000     		.short	0
+ 1241 0124 0000     		.short	0
+ 1242 0126 0000     		.short	0
+ 1243 0128 0000     		.short	0
+ 1244 012a 0000     		.short	0
+ 1245 012c 0000     		.short	0
+ 1246 012e 0000     		.short	0
+ 1247 0130 0000     		.short	0
+ 1248 0132 0000     		.short	0
+ 1249 0134 0000     		.short	0
+ 1250 0136 0000     		.short	0
+ 1251 0138 0000     		.short	0
+ 1252 013a 0000     		.short	0
+ 1253 013c 0000     		.short	0
+ 1254 013e 0000     		.short	0
+ 1255 0140 0000     		.short	0
+ 1256 0142 0000     		.short	0
+ 1257 0144 0000     		.short	0
+ 1258 0146 0000     		.short	0
+ 1259 0148 0000     		.short	0
+ 1260 014a 0000     		.short	0
+ 1261 014c 0000     		.short	0
+ 1262 014e 0000     		.short	0
+ 1263 0150 0000     		.short	0
+ 1264 0152 0000     		.short	0
+ 1265 0154 0000     		.short	0
+ 1266 0156 0000     		.short	0
+ 1267 0158 0000     		.short	0
+ 1268 015a 0000     		.short	0
+ 1269 015c 0000     		.short	0
+ 1270 015e 0000     		.short	0
+ 1271 0160 0000     		.short	0
+ 1272 0162 0000     		.short	0
+ 1273 0164 0000     		.short	0
+ 1274 0166 0000     		.short	0
+ 1275 0168 0000     		.short	0
+ 1276 016a 0000     		.short	0
+ 1277 016c 0000     		.short	0
+ 1278 016e 0000     		.short	0
+ 1279 0170 0000     		.short	0
+ 1280 0172 0000     		.short	0
+ 1281 0174 0000     		.short	0
+ 1282 0176 0000     		.short	0
+ 1283 0178 0000     		.short	0
+ 1284 017a 0000     		.short	0
+ 1285 017c 0000     		.short	0
+ 1286 017e 0000     		.short	0
+ 1287 0180 0000     		.short	0
+ 1288 0182 0000     		.short	0
+ 1289 0184 0000     		.short	0
+ 1290 0186 0000     		.short	0
+ 1291 0188 0000     		.short	0
+ 1292 018a 0000     		.short	0
+ 1293 018c 0000     		.short	0
+ 1294 018e 0000     		.short	0
+ 1295 0190 0000     		.short	0
+ 1296 0192 0000     		.short	0
+ 1297 0194 0000     		.short	0
+ 1298 0196 0000     		.short	0
+ 1299 0198 0000     		.short	0
+ 1300 019a 0000     		.short	0
+ 1301 019c 0000     		.short	0
+ 1302 019e 0000     		.short	0
+ 1303 01a0 0000     		.short	0
+ 1304 01a2 0000     		.short	0
+ 1305 01a4 0000     		.short	0
+ 1306 01a6 0000     		.short	0
+ 1307 01a8 0000     		.short	0
+ 1308 01aa 0000     		.short	0
+ 1309 01ac 0000     		.short	0
+ 1310 01ae 0000     		.short	0
+ 1311 01b0 0000     		.short	0
+ 1312 01b2 0000     		.short	0
+ 1313 01b4 0000     		.short	0
+ 1314 01b6 0000     		.short	0
+ 1315 01b8 0000     		.short	0
+ 1316 01ba 0000     		.short	0
+ 1317 01bc 0000     		.short	0
+ 1318 01be 0000     		.short	0
+ 1319 01c0 0000     		.short	0
+ 1320 01c2 0000     		.short	0
+ 1321 01c4 0000     		.short	0
+ 1322 01c6 0000     		.short	0
+ 1323 01c8 0000     		.short	0
+ 1324 01ca 0000     		.short	0
+ 1325 01cc 0000     		.short	0
+ 1326 01ce 0000     		.short	0
+ 1327 01d0 0000     		.short	0
+ 1328 01d2 0000     		.short	0
+ 1329 01d4 0000     		.short	0
+ 1330 01d6 0000     		.short	0
+ 1331 01d8 0000     		.short	0
+ 1332 01da 0000     		.short	0
+ 1333 01dc 0000     		.short	0
+ 1334 01de 0000     		.short	0
+ 1335 01e0 0000     		.short	0
+ 1336 01e2 0000     		.short	0
+ 1337 01e4 0000     		.short	0
+ 1338 01e6 0000     		.short	0
+ 1339 01e8 0000     		.short	0
+ 1340 01ea 0000     		.short	0
+ 1341 01ec 0000     		.short	0
+ 1342 01ee 0000     		.short	0
+ 1343 01f0 0000     		.short	0
+ 1344 01f2 0000     		.short	0
+ 1345 01f4 0000     		.short	0
+ 1346 01f6 0000     		.short	0
+ 1347 01f8 0000     		.short	0
+ 1348 01fa 0000     		.short	0
+ 1349 01fc 0000     		.short	0
+ 1350 01fe 0000     		.short	0
+ 1351              		.text
+ 1352              	.Letext0:
+ 1353              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1354              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1355              		.file 4 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 1356              		.file 5 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 1357              		.file 6 "./lib/chibios/os/rt/include/chsystypes.h"
+ 1358              		.file 7 "./lib/chibios/os/rt/include/chschd.h"
+ 1359              		.file 8 "./lib/chibios/os/rt/include/chlists.h"
+ 1360              		.file 9 "./lib/chibios/os/common/ext/ST/STM32F3xx/stm32f303xc.h"
+ 1361              		.file 10 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 1362              		.file 11 "./lib/chibios/os/common/ports/ARMCMx/chcore_v7m.h"
+ 1363              		.file 12 "./lib/chibios/os/rt/include/chsem.h"
+ 1364              		.file 13 "./lib/chibios/os/rt/include/chmtx.h"
+ 1365              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 1366              		.file 15 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 1367              		.file 16 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 1368              		.file 17 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 1369              		.file 18 "./lib/chibios/os/hal/include/hal_dac.h"
+ 1370              		.file 19 "./lib/chibios/os/hal/ports/STM32/LLD/DACv1/hal_dac_lld.h"
+ 1371              		.file 20 "./lib/chibios/os/hal/include/hal_gpt.h"
+ 1372              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_gpt_lld.h"
+ 1373              		.file 22 "quantum/sequencer/sequencer.h"
+ 1374              		.file 23 "quantum/audio/audio.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 driver_chibios_dac_basic.c
+     /tmp/ccCJyUeG.s:21     .text.channel_1_start:0000000000000000 $t
+     /tmp/ccCJyUeG.s:27     .text.channel_1_start:0000000000000000 channel_1_start
+     /tmp/ccCJyUeG.s:65     .text.channel_1_start:0000000000000024 $d
+     /tmp/ccCJyUeG.s:824    .data.gpt6cfg1:0000000000000000 gpt6cfg1
+     /tmp/ccCJyUeG.s:71     .text.channel_1_stop:0000000000000000 $t
+     /tmp/ccCJyUeG.s:77     .text.channel_1_stop:0000000000000000 channel_1_stop
+     /tmp/ccCJyUeG.s:108    .text.channel_1_stop:0000000000000020 $d
+     /tmp/ccCJyUeG.s:113    .text.channel_1_set_frequency:0000000000000000 $t
+     /tmp/ccCJyUeG.s:119    .text.channel_1_set_frequency:0000000000000000 channel_1_set_frequency
+     /tmp/ccCJyUeG.s:203    .text.channel_1_set_frequency:0000000000000048 $d
+     /tmp/ccCJyUeG.s:765    .bss.channel_1_frequency:0000000000000000 channel_1_frequency
+     /tmp/ccCJyUeG.s:210    .text.channel_1_get_frequency:0000000000000000 $t
+     /tmp/ccCJyUeG.s:216    .text.channel_1_get_frequency:0000000000000000 channel_1_get_frequency
+     /tmp/ccCJyUeG.s:231    .text.channel_1_get_frequency:0000000000000008 $d
+     /tmp/ccCJyUeG.s:236    .text.channel_2_start:0000000000000000 $t
+     /tmp/ccCJyUeG.s:242    .text.channel_2_start:0000000000000000 channel_2_start
+     /tmp/ccCJyUeG.s:280    .text.channel_2_start:0000000000000024 $d
+     /tmp/ccCJyUeG.s:814    .data.gpt7cfg1:0000000000000000 gpt7cfg1
+     /tmp/ccCJyUeG.s:286    .text.channel_2_stop:0000000000000000 $t
+     /tmp/ccCJyUeG.s:292    .text.channel_2_stop:0000000000000000 channel_2_stop
+     /tmp/ccCJyUeG.s:323    .text.channel_2_stop:0000000000000020 $d
+     /tmp/ccCJyUeG.s:328    .text.channel_2_set_frequency:0000000000000000 $t
+     /tmp/ccCJyUeG.s:334    .text.channel_2_set_frequency:0000000000000000 channel_2_set_frequency
+     /tmp/ccCJyUeG.s:418    .text.channel_2_set_frequency:0000000000000048 $d
+     /tmp/ccCJyUeG.s:759    .bss.channel_2_frequency:0000000000000000 channel_2_frequency
+     /tmp/ccCJyUeG.s:425    .text.gpt_audio_state_cb:0000000000000000 $t
+     /tmp/ccCJyUeG.s:430    .text.gpt_audio_state_cb:0000000000000000 gpt_audio_state_cb
+     /tmp/ccCJyUeG.s:487    .text.channel_2_get_frequency:0000000000000000 $t
+     /tmp/ccCJyUeG.s:493    .text.channel_2_get_frequency:0000000000000000 channel_2_get_frequency
+     /tmp/ccCJyUeG.s:508    .text.channel_2_get_frequency:0000000000000008 $d
+     /tmp/ccCJyUeG.s:513    .text.audio_driver_initialize:0000000000000000 $t
+     /tmp/ccCJyUeG.s:519    .text.audio_driver_initialize:0000000000000000 audio_driver_initialize
+     /tmp/ccCJyUeG.s:608    .text.audio_driver_initialize:0000000000000064 $d
+     /tmp/ccCJyUeG.s:795    .rodata.dac_conf_ch1:0000000000000000 dac_conf_ch1
+     /tmp/ccCJyUeG.s:787    .rodata.dac_conf_ch2:0000000000000000 dac_conf_ch2
+     /tmp/ccCJyUeG.s:804    .data.gptStateUpdateCfg:0000000000000000 gptStateUpdateCfg
+     /tmp/ccCJyUeG.s:622    .text.audio_driver_stop:0000000000000000 $t
+     /tmp/ccCJyUeG.s:628    .text.audio_driver_stop:0000000000000000 audio_driver_stop
+     /tmp/ccCJyUeG.s:688    .text.audio_driver_stop:0000000000000040 $d
+     /tmp/ccCJyUeG.s:697    .text.audio_driver_start:0000000000000000 $t
+     /tmp/ccCJyUeG.s:703    .text.audio_driver_start:0000000000000000 audio_driver_start
+     /tmp/ccCJyUeG.s:745    .text.audio_driver_start:000000000000002c $d
+     /tmp/ccCJyUeG.s:1094   .rodata.dac_buffer_1:0000000000000000 dac_buffer_1
+     /tmp/ccCJyUeG.s:779    .rodata.dac_conv_grp_ch1:0000000000000000 dac_conv_grp_ch1
+     /tmp/ccCJyUeG.s:771    .rodata.dac_conv_grp_ch2:0000000000000000 dac_conv_grp_ch2
+     /tmp/ccCJyUeG.s:833    .rodata.dac_buffer_2:0000000000000000 dac_buffer_2
+     /tmp/ccCJyUeG.s:756    .bss.channel_2_frequency:0000000000000000 $d
+     /tmp/ccCJyUeG.s:762    .bss.channel_1_frequency:0000000000000000 $d
+     /tmp/ccCJyUeG.s:768    .rodata.dac_conv_grp_ch2:0000000000000000 $d
+     /tmp/ccCJyUeG.s:776    .rodata.dac_conv_grp_ch1:0000000000000000 $d
+     /tmp/ccCJyUeG.s:784    .rodata.dac_conf_ch2:0000000000000000 $d
+     /tmp/ccCJyUeG.s:792    .rodata.dac_conf_ch1:0000000000000000 $d
+     /tmp/ccCJyUeG.s:801    .data.gptStateUpdateCfg:0000000000000000 $d
+     /tmp/ccCJyUeG.s:811    .data.gpt7cfg1:0000000000000000 $d
+     /tmp/ccCJyUeG.s:821    .data.gpt6cfg1:0000000000000000 $d
+     /tmp/ccCJyUeG.s:830    .rodata.dac_buffer_2:0000000000000000 $d
+     /tmp/ccCJyUeG.s:1091   .rodata.dac_buffer_1:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+gptStart
+gptStartContinuous
+_pal_lld_setgroupmode
+GPTD6
+gptStopTimer
+GPTD7
+audio_update_state
+audio_get_processed_frequency
+dacStart
+DACD1
+DACD2
+GPTD8
+dacStopConversion
+dacPutChannelX
+dacStartConversion

@@ -1,0 +1,2304 @@
+   1               		.file	"keymap.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.oled_init_user,"ax",@progbits
+  11               	.global	oled_init_user
+  13               	oled_init_user:
+  14               	.LVL0:
+  15               	.LFB33:
+  16               		.file 1 "keyboards/sofle/keymaps/LohseBoi/keymap.c"
+   1:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //#include <stdio.h>
+   2:keyboards/sofle/keymaps/LohseBoi/keymap.c **** #include QMK_KEYBOARD_H
+   3:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+   4:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //WPM
+   5:keyboards/sofle/keymaps/LohseBoi/keymap.c **** static void to_string(char*, uint8_t);
+   6:keyboards/sofle/keymaps/LohseBoi/keymap.c **** uint16_t wpm_timer = 0;
+   7:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+   8:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //Shift/Caps
+   9:keyboards/sofle/keymaps/LohseBoi/keymap.c **** #define KC_SFTCL MT(MOD_LSFT, KC_CAPS)
+  10:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  11:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //Alt+Tab
+  12:keyboards/sofle/keymaps/LohseBoi/keymap.c **** #define ALT_TAB KC_ALT_TAB
+  13:keyboards/sofle/keymaps/LohseBoi/keymap.c **** bool alttab_active = false;
+  14:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  15:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //Lower hold/tap
+  16:keyboards/sofle/keymaps/LohseBoi/keymap.c **** uint16_t lwr_timer = 0;
+  17:keyboards/sofle/keymaps/LohseBoi/keymap.c **** bool lwr_tapped = false;
+  18:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  19:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //Media macro variables
+  20:keyboards/sofle/keymaps/LohseBoi/keymap.c **** const uint16_t media_time = 750;
+  21:keyboards/sofle/keymaps/LohseBoi/keymap.c **** bool is_media_active = false;
+  22:keyboards/sofle/keymaps/LohseBoi/keymap.c **** uint16_t media_timer = 0;
+  23:keyboards/sofle/keymaps/LohseBoi/keymap.c **** uint8_t media_counter = 0;
+  24:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  25:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //Encoder turning counter
+  26:keyboards/sofle/keymaps/LohseBoi/keymap.c **** uint8_t turner[2] = {0, 0};
+  27:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  28:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /*  TODO
+  29:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      _LOWER
+  30:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      _RAISE
+  31:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      _ADJUST
+  32:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      _GAMER
+  33:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      Perhaps arrow layer (WASD and HJKL) for dual play (Encoders could be directions as well - R
+  34:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      More macros
+  35:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      Secondary Screen Info - Ideas:
+  36:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *          - Date?
+  37:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *          - Time?
+  38:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *          - Noted cmd for bad memory (IE Server)
+  39:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+  40:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  41:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  42:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /*  Potential macros:
+  43:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      Ctrl+F and use encoder to scroll through (print search status on oled)
+  44:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *      PrintScreen (Screenshot)
+  45:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+  46:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  47:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  48:keyboards/sofle/keymaps/LohseBoi/keymap.c **** enum sofle_layers {
+  49:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     /* _M_XYZ = Mac Os, _W_XYZ = Win/Linux */
+  50:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     _QWERTY,
+  51:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     _GAMER,
+  52:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  53:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     _LOWER,
+  54:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     _RAISE,
+  55:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     _ADJUST
+  56:keyboards/sofle/keymaps/LohseBoi/keymap.c **** };
+  57:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  58:keyboards/sofle/keymaps/LohseBoi/keymap.c **** enum custom_keycodes {
+  59:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_QWERTY = SAFE_RANGE,
+  60:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_LOWER,
+  61:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_RAISE,
+  62:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_ADJUST,
+  63:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_GAMER, //Homemade
+  64:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  65:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //Homemade keycodes
+  66:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_MED,
+  67:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_ALT_TAB,
+  68:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     KC_HLWR,
+  69:keyboards/sofle/keymaps/LohseBoi/keymap.c **** };
+  70:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  71:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  72:keyboards/sofle/keymaps/LohseBoi/keymap.c **** const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+  73:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /*
+  74:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * QWERTY (DONE) - TG(layer) for toggle --- lctrl and win/super is switch cuz error I guess
+  75:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------.                    ,--------------------------------
+  76:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |   -  |   1  |   2  |   3  |   4  |   5  |                    |   6  |   7  |   8  |   9  |   0
+  77:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+  78:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * | ESC/`|   Q  |   W  |   E  |   R  |   T  |                    |   Y  |   U  |   I  |   O  |   P
+  79:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+  80:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |  TAB |   A  |   S  |   D  |   F  |   G  |-------.    ,-------|   H  |   J  |   K  |   L  |   ;
+  81:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------| MUTE  |    | Media |------+------+------+------+----
+  82:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |LSHIFT|   Z  |   X  |   C  |   V  |   B  |-------|    |-------|   N  |   M  |   ,  |   .  |   /
+  83:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------/       /    \       \--------------------------------
+  84:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |  [   | LCTRL| WIN/ |LOWER/| / Space /      \ Enter \  | RAISE| Lalt | Del  |   ]  |
+  85:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      |      | SUPER|  FN  |/       /        \       \ |      |      |      |      |
+  86:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            `-----------------------------------'          '-------`'---------------------------'
+  87:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+  88:keyboards/sofle/keymaps/LohseBoi/keymap.c **** [_QWERTY] = LAYOUT( \
+  89:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_MINS,  KC_1,   KC_2,    KC_3,    KC_4,    KC_5,                     KC_6,    KC_7,    KC_8,   
+  90:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_GESC,  KC_Q,   KC_W,    KC_E,    KC_R,    KC_T,                     KC_Y,    KC_U,    KC_I,   
+  91:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_TAB,   KC_A,   KC_S,    KC_D,    KC_F,    KC_G,                     KC_H,    KC_J,    KC_K,   
+  92:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_LSFT,  KC_Z,   KC_X,    KC_C,    KC_V,    KC_B, KC_MUTE,    KC_MED,KC_N,    KC_M, KC_COMM,  KC
+  93:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                  KC_LBRC, KC_LCTL, KC_LGUI, KC_HLWR, KC_SPC,      KC_ENT,  KC_RAISE, KC_LALT, KC_DE
+  94:keyboards/sofle/keymaps/LohseBoi/keymap.c **** ),
+  95:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+  96:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /* RAISE (NOT DONE - Macros like Alt+F4, and such)
+  97:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------.                    ,--------------------------------
+  98:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |   -  |   1  |   2  |   3  |   4  |   5  |                    |   6  |   7  |   8  |   9  |   0
+  99:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 100:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |  `   |      |  Å   |      |      |      |                    |      |      |      |      |   
+ 101:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 102:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * | TAB  |      |      |      |      |      |-------.    ,-------|      |      |      |   Ø  |   
+ 103:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------| MUTE  |    | Media |------+------+------+------+----
+ 104:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |SHIFT |  Æ   |      |      |      |      |-------|    |-------|      |      |      |      |   
+ 105:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------/       /    \       \--------------------------------
+ 106:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      | LCTRL| WIN/ |LOWER/| / Space /      \ Enter \  | RAISE| Lalt | Del  |      |
+ 107:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      |      | SUPER|  FN  |/       /        \       \ |      |      |      |      |
+ 108:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            `-----------------------------------'          '-------`'---------------------------'
+ 109:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+ 110:keyboards/sofle/keymaps/LohseBoi/keymap.c **** [_RAISE] = LAYOUT( \
+ 111:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   _______, _______, _______, _______, _______, _______,                        _______, _______, __
+ 112:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_GRAVE, XXXXXXX, RALT(KC_W), XXXXXXX, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXX
+ 113:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, X
+ 114:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_LSFT, RALT(KC_Z), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, _______,           _______, XXXXXXX, XXX
+ 115:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 116:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     XXXXXXX, _______, _______, _______, _______,           _______, _______, ______
+ 117:keyboards/sofle/keymaps/LohseBoi/keymap.c **** ),
+ 118:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 119:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /* LOWER (NOT DONE - fn, PgUp/Down, etc.)
+ 120:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * ,----------------------------------------.                    ,---------------------------------
+ 121:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |  F1  |  F2  |  F3  |  F4  |  F5  |  F6  |                    |  F7  |  F8  |  F9  |  F10 |  F1
+ 122:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 123:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |   `  |      |      |      |      |      |                    |      |      |      |      |    
+ 124:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 125:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |ALTTAB|      |      |      |      |      |-------.    ,-------| Left | Down |  Up  | Right|    
+ 126:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------| MUTE  |    | Media |------+------+------+------+----
+ 127:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * | S/CL |      |      |      |      |      |-------|    |-------|      ||     |      |      |    
+ 128:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------/       /    \       \--------------------------------
+ 129:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      | LCTRL| WIN/ |LOWER/| / Space /      \ Enter \  | RAISE| Lalt | Del  |      |
+ 130:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      |      | SUPER|  FN  |/       /        \       \ |      |      |      |      |
+ 131:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            `-----------------------------------'          '-------`'---------------------------'
+ 132:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+ 133:keyboards/sofle/keymaps/LohseBoi/keymap.c **** [_LOWER] = LAYOUT( \
+ 134:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_F1,   KC_F2,   KC_F3,    KC_F4,   KC_F5,   KC_F6,                           KC_F7,   KC_F8,   
+ 135:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_GRAVE, XXXXXXX, XXXXXXX, XXXXXXX,  XXXXXXX, XXXXXXX,                       XXXXXXX, XXXXXXX, X
+ 136:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   ALT_TAB,  XXXXXXX, XXXXXXX, XXXXXXX,  XXXXXXX, XXXXXXX,                       KC_LEFT, KC_DOWN, K
+ 137:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_SFTCL, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, _______,       _______, XXXXXXX, XXXXXXX, 
+ 138:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                      XXXXXXX, _______, _______, _______, _______,       _______, _______, _______, 
+ 139:keyboards/sofle/keymaps/LohseBoi/keymap.c **** ),
+ 140:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 141:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /* ADJUST (NOT DONE - perhaps macros)
+ 142:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------.                    ,--------------------------------
+ 143:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |      |      |      |      |      |      |                    |      |      |      |      |    
+ 144:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 145:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |      |QWERTY|      |      |      |      |                    |      |      |      |      |    
+ 146:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 147:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |      |      |MACWIN|      |      |GAMER |-------.    ,-------|      | VOLDO| MUTE | VOLUP|    
+ 148:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|  MUTE |    |       |------+------+------+------+----
+ 149:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |SHIFT |      |      |      |      |      |-------|    |-------|      | PREV | PLAY | NEXT |    
+ 150:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------/       /    \       \--------------------------------
+ 151:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      | LCTRL| WIN/ |LOWER/| / Space /      \ Enter \  | RAISE| Ralt | Del  |      |
+ 152:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      |      | SUPER|  FN  |/       /        \       \ |      |      |      |      |
+ 153:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            `-----------------------------------'          '-------`'---------------------------'
+ 154:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+ 155:keyboards/sofle/keymaps/LohseBoi/keymap.c **** [_ADJUST] = LAYOUT( \
+ 156:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   XXXXXXX , XXXXXXX,  XXXXXXX ,  XXXXXXX , XXXXXXX, XXXXXXX,                     XXXXXXX, XXXXXXX, 
+ 157:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   XXXXXXX , KC_QWERTY,XXXXXXX, XXXXXXX ,XXXXXXX,XXXXXXX,                     XXXXXXX, XXXXXXX, XXXX
+ 158:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   XXXXXXX , XXXXXXX,CG_TOGG, XXXXXXX,    XXXXXXX,  KC_GAMER,                     XXXXXXX, KC_VOLD, 
+ 159:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   _______ , XXXXXXX, XXXXXXX, XXXXXXX,    XXXXXXX,  XXXXXXX, XXXXXXX,     XXXXXXX, XXXXXXX, KC_MPRV
+ 160:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                    XXXXXXX, _______, _______, _______, _______,     _______, _______, _______, ____
+ 161:keyboards/sofle/keymaps/LohseBoi/keymap.c **** ),
+ 162:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 163:keyboards/sofle/keymaps/LohseBoi/keymap.c **** /*
+ 164:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * GAMER (NOT DONE)
+ 165:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * ,-----------------------------------------.                    ,--------------------------------
+ 166:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * | ESC  |   1  |   2  |   3  |   4  |   5  |                    |   6  |   7  |   8  |   9  |   0
+ 167:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 168:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * | TAB  |   Q  |   W  |   E  |   R  |   T  |                    |   Y  |   U  |   I  |   O  |   P
+ 169:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------|                    |------+------+------+------+----
+ 170:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * | CTRL |   A  |   S  |   D  |   F  |   G  |-------.    ,-------|   H  |   J  |   K  |   L  |   ;
+ 171:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |------+------+------+------+------+------| MUTE  |    | Media |------+------+------+------+----
+ 172:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * |LSHIFT|   Z  |   X  |   C  |   V  |   B  |-------|    |-------|   N  |   M  |   ,  |   .  |   /
+ 173:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  * `-----------------------------------------/       /    \       \--------------------------------
+ 174:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |LOWER |I(nv) |M(ap) | ALT  | / Space /      \ Enter \  | RAISE| Ralt | Del  |ADJUST|
+ 175:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            |      |      |      |      |/       /        \       \ |      |      |      |      |
+ 176:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  *            `-----------------------------------'          '-------`'---------------------------'
+ 177:keyboards/sofle/keymaps/LohseBoi/keymap.c ****  */
+ 178:keyboards/sofle/keymaps/LohseBoi/keymap.c **** [_GAMER] = LAYOUT( \
+ 179:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_ESC,   KC_1,   KC_2,    KC_3,    KC_4,    KC_5,                     KC_6,    KC_7,    KC_8,   
+ 180:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_TAB,   KC_Q,   KC_W,    KC_E,    KC_R,    KC_T,                     KC_Y,    KC_U,    KC_I,   
+ 181:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_LCTRL, KC_A,   KC_S,    KC_D,    KC_F,    KC_G,                     KC_H,    KC_J,    KC_K,   
+ 182:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   KC_LSFT,  KC_Z,   KC_X,    KC_C,    KC_V,    KC_B, KC_MUTE,    KC_MED, KC_N,    KC_M,    KC_COMM,
+ 183:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                       KC_LOWER, KC_I, KC_M, KC_LALT, _______,    _______, KC_RAISE, KC_LALT, KC_DEL
+ 184:keyboards/sofle/keymaps/LohseBoi/keymap.c ****   )
+ 185:keyboards/sofle/keymaps/LohseBoi/keymap.c **** };
+ 186:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 187:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //#ifdef OLED_DRIVER_ENABLE
+ 188:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 189:keyboards/sofle/keymaps/LohseBoi/keymap.c **** static void render_logo(void) {
+ 190:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     /*
+ 191:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     static const char PROGMEM logo[] = {  //archHub
+ 192:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 193:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 194:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 195:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xfc, 0
+ 196:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0
+ 197:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0
+ 198:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0
+ 199:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xfe, 0xfe, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 200:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 201:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0xc0, 0xf8, 0x1c, 0x1c, 0xf8, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 202:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xc0, 0xc0, 0x80, 0x80, 0xc0, 0xc0, 0x00, 0x00, 0x00, 0x80, 0xc0, 0xc0, 0xc0, 0x40, 0xc0, 0
+ 203:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0xfe, 0xfe, 0x80, 0xc0, 0x40, 0x40, 0xc0, 0xc0, 0x80, 0x00, 0x00, 0xff, 0xff, 0
+ 204:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x21, 0x21, 0xf3, 0xff, 0xff, 0x3f, 0
+ 205:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x3f, 0x7f, 0x3f, 0x3f, 0x3f, 0x3f, 0x7f, 0xff, 0xff, 0xff, 0x3f, 0x3f, 0x3f, 0xff, 0xff, 0
+ 206:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xff, 0x3f, 0x3f, 0x3f, 0xff, 0xff, 0xbf, 0x3f, 0x3f, 0x7f, 0xff, 0xff, 0x7f, 0x3f, 0x3f, 0
+ 207:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 208:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 209:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0xc0, 0xf8, 0x3f, 0x0f, 0x08, 0x08, 0x08, 0x08, 0x0f, 0x3f, 0xf8, 0xc0, 0x00, 0x00, 0
+ 210:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xff, 0xff, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x7f, 0xe1, 0xc0, 0xc0, 0x80, 0xc0, 0
+ 211:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0xff, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0
+ 212:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0xff, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0
+ 213:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0xfe, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xe0, 0x80, 0x00, 0x1f, 0x3f, 0
+ 214:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x3f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x7f, 0x3f, 0x0c, 0x80, 0xe1, 0xe1, 0x80, 0x0c, 0x3f, 0
+ 215:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 216:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 217:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 218:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 219:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x7f, 0
+ 220:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0
+ 221:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0
+ 222:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0
+ 223:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         0x7f, 0x7f, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
+ 224:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     };
+ 225:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_raw_P(logo, sizeof(logo));
+ 226:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     */
+ 227:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     
+ 228:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_P(PSTR("\n\n"), false);
+ 229:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(" WPM"), false);
+ 230:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //oled_write_ln_P(PSTR("NUM\n"), true); //True, when WPM is above a certain range
+ 231:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     char str[7] = {' ', ' ', ' ', ' ', ' ', '\n', 0};
+ 232:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     uint8_t wpm = get_current_wpm();
+ 233:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     to_string(str+1, wpm);
+ 234:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln(str, wpm > 69);
+ 235:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("More\nShit\n1234567890"), false);
+ 236:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (wpm == 0 && wpm_timer == 0 && is_oled_on())
+ 237:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = timer_read();
+ 238:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (wpm > 0)
+ 239:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = 0;
+ 240:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (timer_elapsed(wpm_timer) >= OLED_TIMEOUT) {
+ 241:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_off();
+ 242:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = 0;
+ 243:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 244:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 245:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 246:keyboards/sofle/keymaps/LohseBoi/keymap.c **** static void to_string(char* str, uint8_t num) {
+ 247:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     bool prev = false;
+ 248:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (num >= 100) {
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 100)) / 100) + 48;
+ 250:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 251:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         num = num % 100;
+ 252:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         prev = true;
+ 253:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 254:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 255:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (num >= 10) {
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 10)) / 10) + 48;
+ 257:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 258:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         num = num % 10;
+ 259:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         prev = true;
+ 260:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 261:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (prev == true) {
+ 262:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = '0';
+ 263:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 264:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 265:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 266:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     *str = num + 48;
+ 267:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //*(str+1) = '\n';
+ 268:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //*(str+2) = 0;
+ 269:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 270:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 271:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 272:keyboards/sofle/keymaps/LohseBoi/keymap.c **** static void print_status_narrow(void) {
+ 273:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current mode
+ 274:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_P(PSTR("\n\n"), false);
+ 275:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("MODE"), false);
+ 276:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(""), false);
+ 277:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (keymap_config.swap_lctl_lgui) {
+ 278:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_write_ln_P(PSTR("MAC"), false);
+ 279:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 280:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_write_ln_P(PSTR("WIN"), false);
+ 281:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 282:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 283:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (get_highest_layer(default_layer_state)) {
+ 284:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 285:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_ln_P(PSTR("Qwrt\n"), false);
+ 286:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 287:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _GAMER:
+ 288:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_ln_P(PSTR("GAMER"), false);
+ 289:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 290:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         default:
+ 291:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_P(PSTR("Undef"), false);
+ 292:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 293:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_P(PSTR("\n\n"), false);
+ 294:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current layer
+ 295:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("LAYER"), false);
+ 296:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (get_highest_layer(layer_state)) {
+ 297:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 298:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_P(PSTR("BASE\n"), false);
+ 299:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 300:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _GAMER:
+ 301:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_P(PSTR("GAMER\n"), false);
+ 302:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 303:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 304:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _RAISE:
+ 305:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_P(PSTR("RSE\n"), false);
+ 306:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 307:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _LOWER:
+ 308:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_P(PSTR("LWR\n"), false);
+ 309:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 310:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _ADJUST:
+ 311:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_P(PSTR("ADJ\n"), false);
+ 312:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 313:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         default:
+ 314:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             oled_write_ln_P(PSTR("Undef\n"), false);
+ 315:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 316:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_P(PSTR("\n\n\n"), false);
+ 317:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     led_t led_usb_state = host_keyboard_led_state();
+ 318:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("CPSLK"), led_usb_state.caps_lock);
+ 319:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 320:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 321:keyboards/sofle/keymaps/LohseBoi/keymap.c **** oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+  17               		.loc 1 321 58 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+ 322:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //if (is_keyboard_master()) {
+ 323:keyboards/sofle/keymaps/LohseBoi/keymap.c ****       //  return OLED_ROTATION_270;
+ 324:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //}
+ 325:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 326:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     return OLED_ROTATION_270;
+  23               		.loc 1 326 5 view .LVU1
+ 327:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     return rotation;
+ 328:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+  24               		.loc 1 328 1 is_stmt 0 view .LVU2
+  25 0000 83E0      		ldi r24,lo8(3)
+  26               	.LVL1:
+  27               	/* epilogue start */
+  28               		.loc 1 328 1 view .LVU3
+  29 0002 0895      		ret
+  30               		.cfi_endproc
+  31               	.LFE33:
+  33               		.section	.rodata.oled_task_user.str1.1,"aMS",@progbits,1
+  34               	.LC0:
+  35 0000 2020 2020 		.string	"     \n"
+  35      200A 00
+  36               		.section	.text.oled_task_user,"ax",@progbits
+  37               	.global	oled_task_user
+  39               	oled_task_user:
+  40               	.LFB34:
+ 329:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 330:keyboards/sofle/keymaps/LohseBoi/keymap.c **** void oled_task_user(void) {
+  41               		.loc 1 330 27 is_stmt 1 view -0
+  42               		.cfi_startproc
+  43 0000 EF92      		push r14
+  44               	.LCFI0:
+  45               		.cfi_def_cfa_offset 3
+  46               		.cfi_offset 14, -2
+  47 0002 FF92      		push r15
+  48               	.LCFI1:
+  49               		.cfi_def_cfa_offset 4
+  50               		.cfi_offset 15, -3
+  51 0004 1F93      		push r17
+  52               	.LCFI2:
+  53               		.cfi_def_cfa_offset 5
+  54               		.cfi_offset 17, -4
+  55 0006 CF93      		push r28
+  56               	.LCFI3:
+  57               		.cfi_def_cfa_offset 6
+  58               		.cfi_offset 28, -5
+  59 0008 DF93      		push r29
+  60               	.LCFI4:
+  61               		.cfi_def_cfa_offset 7
+  62               		.cfi_offset 29, -6
+  63 000a CDB7      		in r28,__SP_L__
+  64 000c DEB7      		in r29,__SP_H__
+  65               	.LCFI5:
+  66               		.cfi_def_cfa_register 28
+  67 000e 2B97      		sbiw r28,11
+  68               	.LCFI6:
+  69               		.cfi_def_cfa_offset 18
+  70 0010 0FB6      		in __tmp_reg__,__SREG__
+  71 0012 F894      		cli
+  72 0014 DEBF      		out __SP_H__,r29
+  73 0016 0FBE      		out __SREG__,__tmp_reg__
+  74 0018 CDBF      		out __SP_L__,r28
+  75               	/* prologue: function */
+  76               	/* frame size = 11 */
+  77               	/* stack size = 16 */
+  78               	.L__stack_usage = 16
+ 331:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (is_keyboard_master()) {
+  79               		.loc 1 331 5 view .LVU5
+  80               		.loc 1 331 9 is_stmt 0 view .LVU6
+  81 001a 0E94 0000 		call is_keyboard_master
+  82               	.LVL2:
+  83               	.LBB29:
+  84               	.LBB30:
+ 274:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("MODE"), false);
+  85               		.loc 1 274 5 view .LVU7
+  86 001e 60E0      		ldi r22,0
+  87               	.LBE30:
+  88               	.LBE29:
+  89               		.loc 1 331 8 view .LVU8
+  90 0020 8823      		tst r24
+  91 0022 01F4      		brne .+2
+  92 0024 00C0      		rjmp .L3
+ 332:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         print_status_narrow();
+  93               		.loc 1 332 9 is_stmt 1 view .LVU9
+  94               	.LBB51:
+  95               	.LBI29:
+ 272:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current mode
+  96               		.loc 1 272 13 view .LVU10
+  97               	.LBB31:
+ 274:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("MODE"), false);
+  98               		.loc 1 274 5 view .LVU11
+  99               	.LBE31:
+ 274:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("MODE"), false);
+ 100               		.loc 1 274 18 view .LVU12
+ 274:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("MODE"), false);
+ 101               		.loc 1 274 18 view .LVU13
+ 102               	.LBB32:
+ 274:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("MODE"), false);
+ 103               		.loc 1 274 5 is_stmt 0 view .LVU14
+ 104 0026 80E0      		ldi r24,lo8(__c.24)
+ 105 0028 90E0      		ldi r25,hi8(__c.24)
+ 106 002a 0E94 0000 		call oled_write_P
+ 107               	.LVL3:
+ 275:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(""), false);
+ 108               		.loc 1 275 5 is_stmt 1 view .LVU15
+ 109               	.LBE32:
+ 275:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(""), false);
+ 110               		.loc 1 275 21 view .LVU16
+ 275:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(""), false);
+ 111               		.loc 1 275 21 view .LVU17
+ 112               	.LBB33:
+ 275:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(""), false);
+ 113               		.loc 1 275 5 is_stmt 0 view .LVU18
+ 114 002e 60E0      		ldi r22,0
+ 115 0030 80E0      		ldi r24,lo8(__c.23)
+ 116 0032 90E0      		ldi r25,hi8(__c.23)
+ 117 0034 0E94 0000 		call oled_write_ln_P
+ 118               	.LVL4:
+ 276:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (keymap_config.swap_lctl_lgui) {
+ 119               		.loc 1 276 5 is_stmt 1 view .LVU19
+ 120               	.LBE33:
+ 276:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (keymap_config.swap_lctl_lgui) {
+ 121               		.loc 1 276 21 view .LVU20
+ 276:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (keymap_config.swap_lctl_lgui) {
+ 122               		.loc 1 276 21 view .LVU21
+ 123               	.LBB34:
+ 276:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (keymap_config.swap_lctl_lgui) {
+ 124               		.loc 1 276 5 is_stmt 0 view .LVU22
+ 125 0038 60E0      		ldi r22,0
+ 126 003a 80E0      		ldi r24,lo8(__c.22)
+ 127 003c 90E0      		ldi r25,hi8(__c.22)
+ 128 003e 0E94 0000 		call oled_write_ln_P
+ 129               	.LVL5:
+ 277:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_write_ln_P(PSTR("MAC"), false);
+ 130               		.loc 1 277 5 is_stmt 1 view .LVU23
+ 277:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_write_ln_P(PSTR("MAC"), false);
+ 131               		.loc 1 277 9 is_stmt 0 view .LVU24
+ 132 0042 8091 0000 		lds r24,keymap_config+1
+ 278:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 133               		.loc 1 278 9 view .LVU25
+ 134 0046 60E0      		ldi r22,0
+ 277:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_write_ln_P(PSTR("MAC"), false);
+ 135               		.loc 1 277 8 view .LVU26
+ 136 0048 80FF      		sbrs r24,0
+ 137 004a 00C0      		rjmp .L4
+ 278:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 138               		.loc 1 278 9 is_stmt 1 view .LVU27
+ 139               	.LBE34:
+ 278:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 140               		.loc 1 278 25 view .LVU28
+ 278:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 141               		.loc 1 278 25 view .LVU29
+ 142               	.LBB35:
+ 278:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 143               		.loc 1 278 9 is_stmt 0 view .LVU30
+ 144 004c 80E0      		ldi r24,lo8(__c.21)
+ 145 004e 90E0      		ldi r25,hi8(__c.21)
+ 146               	.L34:
+ 280:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 147               		.loc 1 280 9 view .LVU31
+ 148 0050 0E94 0000 		call oled_write_ln_P
+ 149               	.LVL6:
+ 283:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 150               		.loc 1 283 5 is_stmt 1 view .LVU32
+ 283:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 151               		.loc 1 283 13 is_stmt 0 view .LVU33
+ 152 0054 2091 0000 		lds r18,default_layer_state
+ 153 0058 3091 0000 		lds r19,default_layer_state+1
+ 154 005c 4091 0000 		lds r20,default_layer_state+2
+ 155 0060 5091 0000 		lds r21,default_layer_state+3
+ 156 0064 CA01      		movw r24,r20
+ 157 0066 B901      		movw r22,r18
+ 158 0068 0E94 0000 		call biton32
+ 159               	.LVL7:
+ 283:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 160               		.loc 1 283 5 view .LVU34
+ 161 006c 8823      		tst r24
+ 162 006e 01F0      		breq .L6
+ 163 0070 8130      		cpi r24,lo8(1)
+ 164 0072 01F4      		brne .+2
+ 165 0074 00C0      		rjmp .L7
+ 291:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 166               		.loc 1 291 13 is_stmt 1 view .LVU35
+ 167               	.LBE35:
+ 291:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 168               		.loc 1 291 26 view .LVU36
+ 291:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 169               		.loc 1 291 26 view .LVU37
+ 170               	.LBB36:
+ 291:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 171               		.loc 1 291 13 is_stmt 0 view .LVU38
+ 172 0076 60E0      		ldi r22,0
+ 173 0078 80E0      		ldi r24,lo8(__c.17)
+ 174 007a 90E0      		ldi r25,hi8(__c.17)
+ 175 007c 0E94 0000 		call oled_write_P
+ 176               	.LVL8:
+ 177 0080 00C0      		rjmp .L9
+ 178               	.L4:
+ 280:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 179               		.loc 1 280 9 is_stmt 1 view .LVU39
+ 180               	.LBE36:
+ 280:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 181               		.loc 1 280 25 view .LVU40
+ 280:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 182               		.loc 1 280 25 view .LVU41
+ 183               	.LBB37:
+ 280:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 184               		.loc 1 280 9 is_stmt 0 view .LVU42
+ 185 0082 80E0      		ldi r24,lo8(__c.20)
+ 186 0084 90E0      		ldi r25,hi8(__c.20)
+ 187 0086 00C0      		rjmp .L34
+ 188               	.L6:
+ 285:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 189               		.loc 1 285 13 is_stmt 1 view .LVU43
+ 190               	.LBE37:
+ 285:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 191               		.loc 1 285 29 view .LVU44
+ 285:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 192               		.loc 1 285 29 view .LVU45
+ 193               	.LBB38:
+ 285:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 194               		.loc 1 285 13 is_stmt 0 view .LVU46
+ 195 0088 60E0      		ldi r22,0
+ 196 008a 80E0      		ldi r24,lo8(__c.19)
+ 197 008c 90E0      		ldi r25,hi8(__c.19)
+ 198               	.L35:
+ 288:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 199               		.loc 1 288 13 view .LVU47
+ 200 008e 0E94 0000 		call oled_write_ln_P
+ 201               	.LVL9:
+ 289:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         default:
+ 202               		.loc 1 289 13 is_stmt 1 view .LVU48
+ 203               	.L9:
+ 293:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current layer
+ 204               		.loc 1 293 5 view .LVU49
+ 205               	.LBE38:
+ 293:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current layer
+ 206               		.loc 1 293 18 view .LVU50
+ 293:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current layer
+ 207               		.loc 1 293 18 view .LVU51
+ 208               	.LBB39:
+ 293:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     // Print current layer
+ 209               		.loc 1 293 5 is_stmt 0 view .LVU52
+ 210 0092 60E0      		ldi r22,0
+ 211 0094 80E0      		ldi r24,lo8(__c.16)
+ 212 0096 90E0      		ldi r25,hi8(__c.16)
+ 213 0098 0E94 0000 		call oled_write_P
+ 214               	.LVL10:
+ 295:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (get_highest_layer(layer_state)) {
+ 215               		.loc 1 295 5 is_stmt 1 view .LVU53
+ 216               	.LBE39:
+ 295:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (get_highest_layer(layer_state)) {
+ 217               		.loc 1 295 21 view .LVU54
+ 295:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (get_highest_layer(layer_state)) {
+ 218               		.loc 1 295 21 view .LVU55
+ 219               	.LBB40:
+ 295:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (get_highest_layer(layer_state)) {
+ 220               		.loc 1 295 5 is_stmt 0 view .LVU56
+ 221 009c 60E0      		ldi r22,0
+ 222 009e 80E0      		ldi r24,lo8(__c.15)
+ 223 00a0 90E0      		ldi r25,hi8(__c.15)
+ 224 00a2 0E94 0000 		call oled_write_ln_P
+ 225               	.LVL11:
+ 296:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 226               		.loc 1 296 5 is_stmt 1 view .LVU57
+ 296:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 227               		.loc 1 296 13 is_stmt 0 view .LVU58
+ 228 00a6 8091 0000 		lds r24,layer_state
+ 229 00aa 9091 0000 		lds r25,layer_state+1
+ 230 00ae A091 0000 		lds r26,layer_state+2
+ 231 00b2 B091 0000 		lds r27,layer_state+3
+ 232 00b6 8887      		std Y+8,r24
+ 233 00b8 9987      		std Y+9,r25
+ 234 00ba AA87      		std Y+10,r26
+ 235 00bc BB87      		std Y+11,r27
+ 236 00be BC01      		movw r22,r24
+ 237 00c0 CD01      		movw r24,r26
+ 238 00c2 0E94 0000 		call biton32
+ 239               	.LVL12:
+ 296:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 240               		.loc 1 296 5 view .LVU59
+ 241 00c6 8230      		cpi r24,lo8(2)
+ 242 00c8 01F0      		breq .L10
+ 243 00ca 00F4      		brsh .L11
+ 244 00cc 8111      		cpse r24,__zero_reg__
+ 245 00ce 00C0      		rjmp .L32
+ 298:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 246               		.loc 1 298 13 is_stmt 1 view .LVU60
+ 247               	.LBE40:
+ 298:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 248               		.loc 1 298 26 view .LVU61
+ 298:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 249               		.loc 1 298 26 view .LVU62
+ 250               	.LBB41:
+ 298:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 251               		.loc 1 298 13 is_stmt 0 view .LVU63
+ 252 00d0 60E0      		ldi r22,0
+ 253 00d2 80E0      		ldi r24,lo8(__c.14)
+ 254 00d4 90E0      		ldi r25,hi8(__c.14)
+ 255               	.L36:
+ 301:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 256               		.loc 1 301 13 view .LVU64
+ 257 00d6 0E94 0000 		call oled_write_P
+ 258               	.LVL13:
+ 302:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 259               		.loc 1 302 13 is_stmt 1 view .LVU65
+ 260               	.L17:
+ 316:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     led_t led_usb_state = host_keyboard_led_state();
+ 261               		.loc 1 316 5 view .LVU66
+ 262               	.LBE41:
+ 316:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     led_t led_usb_state = host_keyboard_led_state();
+ 263               		.loc 1 316 18 view .LVU67
+ 316:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     led_t led_usb_state = host_keyboard_led_state();
+ 264               		.loc 1 316 18 view .LVU68
+ 265               	.LBB42:
+ 316:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     led_t led_usb_state = host_keyboard_led_state();
+ 266               		.loc 1 316 5 is_stmt 0 view .LVU69
+ 267 00da 60E0      		ldi r22,0
+ 268 00dc 80E0      		ldi r24,lo8(__c.8)
+ 269 00de 90E0      		ldi r25,hi8(__c.8)
+ 270 00e0 0E94 0000 		call oled_write_P
+ 271               	.LVL14:
+ 317:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("CPSLK"), led_usb_state.caps_lock);
+ 272               		.loc 1 317 5 is_stmt 1 view .LVU70
+ 317:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("CPSLK"), led_usb_state.caps_lock);
+ 273               		.loc 1 317 27 is_stmt 0 view .LVU71
+ 274 00e4 0E94 0000 		call host_keyboard_led_state
+ 275               	.LVL15:
+ 318:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 276               		.loc 1 318 5 is_stmt 1 view .LVU72
+ 277               	.LBE42:
+ 318:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 278               		.loc 1 318 21 view .LVU73
+ 318:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 279               		.loc 1 318 21 view .LVU74
+ 280               	.LBB43:
+ 318:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 281               		.loc 1 318 5 is_stmt 0 view .LVU75
+ 282 00e8 81FB      		bst r24,1
+ 283 00ea 6627      		clr r22
+ 284 00ec 60F9      		bld r22,0
+ 285 00ee 80E0      		ldi r24,lo8(__c.7)
+ 286 00f0 90E0      		ldi r25,hi8(__c.7)
+ 287               	/* epilogue start */
+ 288               	.LBE43:
+ 289               	.LBE51:
+ 333:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else {
+ 334:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         render_logo();
+ 335:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 336:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 290               		.loc 1 336 1 view .LVU76
+ 291 00f2 2B96      		adiw r28,11
+ 292 00f4 0FB6      		in __tmp_reg__,__SREG__
+ 293 00f6 F894      		cli
+ 294 00f8 DEBF      		out __SP_H__,r29
+ 295 00fa 0FBE      		out __SREG__,__tmp_reg__
+ 296 00fc CDBF      		out __SP_L__,r28
+ 297 00fe DF91      		pop r29
+ 298 0100 CF91      		pop r28
+ 299 0102 1F91      		pop r17
+ 300 0104 FF90      		pop r15
+ 301 0106 EF90      		pop r14
+ 302               	.LBB52:
+ 303               	.LBB44:
+ 318:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 304               		.loc 1 318 5 view .LVU77
+ 305 0108 0C94 0000 		jmp oled_write_ln_P
+ 306               	.LVL16:
+ 307               	.L7:
+ 288:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 308               		.loc 1 288 13 is_stmt 1 view .LVU78
+ 309               	.LBE44:
+ 288:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 310               		.loc 1 288 29 view .LVU79
+ 288:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 311               		.loc 1 288 29 view .LVU80
+ 312               	.LBB45:
+ 288:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 313               		.loc 1 288 13 is_stmt 0 view .LVU81
+ 314 010c 60E0      		ldi r22,0
+ 315 010e 80E0      		ldi r24,lo8(__c.18)
+ 316 0110 90E0      		ldi r25,hi8(__c.18)
+ 317 0112 00C0      		rjmp .L35
+ 318               	.L11:
+ 296:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case _QWERTY:
+ 319               		.loc 1 296 5 view .LVU82
+ 320 0114 8330      		cpi r24,lo8(3)
+ 321 0116 01F0      		breq .L14
+ 322 0118 8430      		cpi r24,lo8(4)
+ 323 011a 01F0      		breq .L15
+ 314:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 324               		.loc 1 314 13 is_stmt 1 view .LVU83
+ 325               	.LBE45:
+ 314:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 326               		.loc 1 314 29 view .LVU84
+ 314:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 327               		.loc 1 314 29 view .LVU85
+ 328               	.LBB46:
+ 314:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 329               		.loc 1 314 13 is_stmt 0 view .LVU86
+ 330 011c 60E0      		ldi r22,0
+ 331 011e 80E0      		ldi r24,lo8(__c.9)
+ 332 0120 90E0      		ldi r25,hi8(__c.9)
+ 333 0122 0E94 0000 		call oled_write_ln_P
+ 334               	.LVL17:
+ 335 0126 00C0      		rjmp .L17
+ 336               	.L32:
+ 301:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 337               		.loc 1 301 13 is_stmt 1 view .LVU87
+ 338               	.LBE46:
+ 301:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 339               		.loc 1 301 26 view .LVU88
+ 301:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 340               		.loc 1 301 26 view .LVU89
+ 341               	.LBB47:
+ 301:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 342               		.loc 1 301 13 is_stmt 0 view .LVU90
+ 343 0128 60E0      		ldi r22,0
+ 344 012a 80E0      		ldi r24,lo8(__c.13)
+ 345 012c 90E0      		ldi r25,hi8(__c.13)
+ 346 012e 00C0      		rjmp .L36
+ 347               	.L14:
+ 305:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 348               		.loc 1 305 13 is_stmt 1 view .LVU91
+ 349               	.LBE47:
+ 305:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 350               		.loc 1 305 26 view .LVU92
+ 305:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 351               		.loc 1 305 26 view .LVU93
+ 352               	.LBB48:
+ 305:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 353               		.loc 1 305 13 is_stmt 0 view .LVU94
+ 354 0130 60E0      		ldi r22,0
+ 355 0132 80E0      		ldi r24,lo8(__c.12)
+ 356 0134 90E0      		ldi r25,hi8(__c.12)
+ 357 0136 00C0      		rjmp .L36
+ 358               	.L10:
+ 308:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 359               		.loc 1 308 13 is_stmt 1 view .LVU95
+ 360               	.LBE48:
+ 308:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 361               		.loc 1 308 26 view .LVU96
+ 308:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 362               		.loc 1 308 26 view .LVU97
+ 363               	.LBB49:
+ 308:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 364               		.loc 1 308 13 is_stmt 0 view .LVU98
+ 365 0138 60E0      		ldi r22,0
+ 366 013a 80E0      		ldi r24,lo8(__c.11)
+ 367 013c 90E0      		ldi r25,hi8(__c.11)
+ 368 013e 00C0      		rjmp .L36
+ 369               	.L15:
+ 311:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 370               		.loc 1 311 13 is_stmt 1 view .LVU99
+ 371               	.LBE49:
+ 311:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 372               		.loc 1 311 26 view .LVU100
+ 311:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 373               		.loc 1 311 26 view .LVU101
+ 374               	.LBB50:
+ 311:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 375               		.loc 1 311 13 is_stmt 0 view .LVU102
+ 376 0140 60E0      		ldi r22,0
+ 377 0142 80E0      		ldi r24,lo8(__c.10)
+ 378 0144 90E0      		ldi r25,hi8(__c.10)
+ 379 0146 00C0      		rjmp .L36
+ 380               	.L3:
+ 381               	.LBE50:
+ 382               	.LBE52:
+ 334:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 383               		.loc 1 334 9 is_stmt 1 view .LVU103
+ 384               	.LBB53:
+ 385               	.LBI53:
+ 189:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     /*
+ 386               		.loc 1 189 13 view .LVU104
+ 387               	.LBB54:
+ 228:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(" WPM"), false);
+ 388               		.loc 1 228 5 view .LVU105
+ 389               	.LBE54:
+ 228:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(" WPM"), false);
+ 390               		.loc 1 228 18 view .LVU106
+ 228:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(" WPM"), false);
+ 391               		.loc 1 228 18 view .LVU107
+ 392               	.LBB61:
+ 228:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR(" WPM"), false);
+ 393               		.loc 1 228 5 is_stmt 0 view .LVU108
+ 394 0148 80E0      		ldi r24,lo8(__c.6)
+ 395 014a 90E0      		ldi r25,hi8(__c.6)
+ 396 014c 0E94 0000 		call oled_write_P
+ 397               	.LVL18:
+ 229:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //oled_write_ln_P(PSTR("NUM\n"), true); //True, when WPM is above a certain range
+ 398               		.loc 1 229 5 is_stmt 1 view .LVU109
+ 399               	.LBE61:
+ 229:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //oled_write_ln_P(PSTR("NUM\n"), true); //True, when WPM is above a certain range
+ 400               		.loc 1 229 21 view .LVU110
+ 229:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //oled_write_ln_P(PSTR("NUM\n"), true); //True, when WPM is above a certain range
+ 401               		.loc 1 229 21 view .LVU111
+ 402               	.LBB62:
+ 229:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //oled_write_ln_P(PSTR("NUM\n"), true); //True, when WPM is above a certain range
+ 403               		.loc 1 229 5 is_stmt 0 view .LVU112
+ 404 0150 60E0      		ldi r22,0
+ 405 0152 80E0      		ldi r24,lo8(__c.5)
+ 406 0154 90E0      		ldi r25,hi8(__c.5)
+ 407 0156 0E94 0000 		call oled_write_ln_P
+ 408               	.LVL19:
+ 231:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     uint8_t wpm = get_current_wpm();
+ 409               		.loc 1 231 5 is_stmt 1 view .LVU113
+ 231:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     uint8_t wpm = get_current_wpm();
+ 410               		.loc 1 231 10 is_stmt 0 view .LVU114
+ 411 015a 87E0      		ldi r24,lo8(7)
+ 412 015c E0E0      		ldi r30,lo8(.LC0)
+ 413 015e F0E0      		ldi r31,hi8(.LC0)
+ 414 0160 DE01      		movw r26,r28
+ 415 0162 1196      		adiw r26,1
+ 416 0164 7D01      		movw r14,r26
+ 417               		0:
+ 418 0166 0190      		ld r0,Z+
+ 419 0168 0D92      		st X+,r0
+ 420 016a 8A95      		dec r24
+ 421 016c 01F4      		brne 0b
+ 232:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     to_string(str+1, wpm);
+ 422               		.loc 1 232 5 is_stmt 1 view .LVU115
+ 232:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     to_string(str+1, wpm);
+ 423               		.loc 1 232 19 is_stmt 0 view .LVU116
+ 424 016e 0E94 0000 		call get_current_wpm
+ 425               	.LVL20:
+ 426 0172 182F      		mov r17,r24
+ 427               	.LVL21:
+ 233:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln(str, wpm > 69);
+ 428               		.loc 1 233 5 is_stmt 1 view .LVU117
+ 429               	.LBB55:
+ 430               	.LBI55:
+ 246:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     bool prev = false;
+ 431               		.loc 1 246 13 view .LVU118
+ 432               	.LBB56:
+ 247:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (num >= 100) {
+ 433               		.loc 1 247 5 view .LVU119
+ 248:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 100)) / 100) + 48;
+ 434               		.loc 1 248 5 view .LVU120
+ 435 0174 3E2D      		mov r19,r14
+ 248:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 100)) / 100) + 48;
+ 436               		.loc 1 248 8 is_stmt 0 view .LVU121
+ 437 0176 8436      		cpi r24,lo8(100)
+ 438 0178 00F4      		brsh .+2
+ 439 017a 00C0      		rjmp .L18
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 440               		.loc 1 249 9 is_stmt 1 view .LVU122
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 441               		.loc 1 249 29 is_stmt 0 view .LVU123
+ 442 017c 64E6      		ldi r22,lo8(100)
+ 443 017e 0E94 0000 		call __udivmodqi4
+ 444 0182 292F      		mov r18,r25
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 445               		.loc 1 249 22 view .LVU124
+ 446 0184 412F      		mov r20,r17
+ 447 0186 491B      		sub r20,r25
+ 448 0188 550B      		sbc r21,r21
+ 449 018a CA01      		movw r24,r20
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 450               		.loc 1 249 37 view .LVU125
+ 451 018c 64E6      		ldi r22,lo8(100)
+ 452 018e 70E0      		ldi r23,0
+ 453 0190 0E94 0000 		call __divmodhi4
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 454               		.loc 1 249 44 view .LVU126
+ 455 0194 605D      		subi r22,lo8(-(48))
+ 249:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 456               		.loc 1 249 14 view .LVU127
+ 457 0196 6A83      		std Y+2,r22
+ 250:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         num = num % 100;
+ 458               		.loc 1 250 9 is_stmt 1 view .LVU128
+ 251:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         prev = true;
+ 459               		.loc 1 251 9 view .LVU129
+ 460               	.LVL22:
+ 252:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 461               		.loc 1 252 9 view .LVU130
+ 255:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 10)) / 10) + 48;
+ 462               		.loc 1 255 5 view .LVU131
+ 255:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 10)) / 10) + 48;
+ 463               		.loc 1 255 8 is_stmt 0 view .LVU132
+ 464 0198 2A30      		cpi r18,lo8(10)
+ 465 019a 00F4      		brsh .+2
+ 466 019c 00C0      		rjmp .L19
+ 250:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         num = num % 100;
+ 467               		.loc 1 250 13 view .LVU133
+ 468 019e FE01      		movw r30,r28
+ 469 01a0 3396      		adiw r30,3
+ 470               	.LVL23:
+ 471               	.L26:
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 472               		.loc 1 256 9 is_stmt 1 view .LVU134
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 473               		.loc 1 256 22 is_stmt 0 view .LVU135
+ 474 01a2 422F      		mov r20,r18
+ 475 01a4 50E0      		ldi r21,0
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 476               		.loc 1 256 29 view .LVU136
+ 477 01a6 822F      		mov r24,r18
+ 478 01a8 6AE0      		ldi r22,lo8(10)
+ 479 01aa 0E94 0000 		call __udivmodqi4
+ 480 01ae 292F      		mov r18,r25
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 481               		.loc 1 256 22 view .LVU137
+ 482 01b0 CA01      		movw r24,r20
+ 483 01b2 821B      		sub r24,r18
+ 484 01b4 9109      		sbc r25,__zero_reg__
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 485               		.loc 1 256 36 view .LVU138
+ 486 01b6 6AE0      		ldi r22,lo8(10)
+ 487 01b8 70E0      		ldi r23,0
+ 488 01ba 0E94 0000 		call __divmodhi4
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 489               		.loc 1 256 42 view .LVU139
+ 490 01be 605D      		subi r22,lo8(-(48))
+ 256:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 491               		.loc 1 256 14 view .LVU140
+ 492 01c0 6193      		st Z+,r22
+ 257:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         num = num % 10;
+ 493               		.loc 1 257 9 is_stmt 1 view .LVU141
+ 494               	.LVL24:
+ 258:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         prev = true;
+ 495               		.loc 1 258 9 view .LVU142
+ 259:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 496               		.loc 1 259 9 view .LVU143
+ 497               	.L20:
+ 266:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //*(str+1) = '\n';
+ 498               		.loc 1 266 5 view .LVU144
+ 266:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //*(str+1) = '\n';
+ 499               		.loc 1 266 16 is_stmt 0 view .LVU145
+ 500 01c2 205D      		subi r18,lo8(-(48))
+ 501               	.LVL25:
+ 266:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //*(str+1) = '\n';
+ 502               		.loc 1 266 10 view .LVU146
+ 503 01c4 2083      		st Z,r18
+ 504               	.LVL26:
+ 266:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     //*(str+1) = '\n';
+ 505               		.loc 1 266 10 view .LVU147
+ 506               	.LBE56:
+ 507               	.LBE55:
+ 234:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_write_ln_P(PSTR("More\nShit\n1234567890"), false);
+ 508               		.loc 1 234 5 is_stmt 1 view .LVU148
+ 509 01c6 61E0      		ldi r22,lo8(1)
+ 510 01c8 1634      		cpi r17,lo8(70)
+ 511 01ca 00F4      		brsh .L21
+ 512 01cc 60E0      		ldi r22,0
+ 513               	.L21:
+ 514 01ce 832F      		mov r24,r19
+ 515 01d0 9F2D      		mov r25,r15
+ 516 01d2 0E94 0000 		call oled_write_ln
+ 517               	.LVL27:
+ 235:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (wpm == 0 && wpm_timer == 0 && is_oled_on())
+ 518               		.loc 1 235 5 view .LVU149
+ 519               	.LBE62:
+ 235:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (wpm == 0 && wpm_timer == 0 && is_oled_on())
+ 520               		.loc 1 235 21 view .LVU150
+ 235:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (wpm == 0 && wpm_timer == 0 && is_oled_on())
+ 521               		.loc 1 235 21 view .LVU151
+ 522               	.LBB63:
+ 235:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (wpm == 0 && wpm_timer == 0 && is_oled_on())
+ 523               		.loc 1 235 5 is_stmt 0 view .LVU152
+ 524 01d6 60E0      		ldi r22,0
+ 525 01d8 80E0      		ldi r24,lo8(__c.4)
+ 526 01da 90E0      		ldi r25,hi8(__c.4)
+ 527 01dc 0E94 0000 		call oled_write_ln_P
+ 528               	.LVL28:
+ 236:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = timer_read();
+ 529               		.loc 1 236 5 is_stmt 1 view .LVU153
+ 236:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = timer_read();
+ 530               		.loc 1 236 8 is_stmt 0 view .LVU154
+ 531 01e0 1111      		cpse r17,__zero_reg__
+ 532 01e2 00C0      		rjmp .L22
+ 236:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = timer_read();
+ 533               		.loc 1 236 18 view .LVU155
+ 534 01e4 8091 0000 		lds r24,wpm_timer
+ 535 01e8 9091 0000 		lds r25,wpm_timer+1
+ 536 01ec 892B      		or r24,r25
+ 537 01ee 01F4      		brne .L23
+ 236:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = timer_read();
+ 538               		.loc 1 236 39 view .LVU156
+ 539 01f0 0E94 0000 		call is_oled_on
+ 540               	.LVL29:
+ 236:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = timer_read();
+ 541               		.loc 1 236 36 view .LVU157
+ 542 01f4 8823      		tst r24
+ 543 01f6 01F0      		breq .L23
+ 237:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (wpm > 0)
+ 544               		.loc 1 237 9 is_stmt 1 view .LVU158
+ 237:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (wpm > 0)
+ 545               		.loc 1 237 21 is_stmt 0 view .LVU159
+ 546 01f8 0E94 0000 		call timer_read
+ 547               	.LVL30:
+ 237:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (wpm > 0)
+ 548               		.loc 1 237 19 view .LVU160
+ 549 01fc 9093 0000 		sts wpm_timer+1,r25
+ 550 0200 8093 0000 		sts wpm_timer,r24
+ 551               	.L2:
+ 552               	/* epilogue start */
+ 553               	.LBE63:
+ 554               	.LBE53:
+ 555               		.loc 1 336 1 view .LVU161
+ 556 0204 2B96      		adiw r28,11
+ 557 0206 0FB6      		in __tmp_reg__,__SREG__
+ 558 0208 F894      		cli
+ 559 020a DEBF      		out __SP_H__,r29
+ 560 020c 0FBE      		out __SREG__,__tmp_reg__
+ 561 020e CDBF      		out __SP_L__,r28
+ 562 0210 DF91      		pop r29
+ 563 0212 CF91      		pop r28
+ 564 0214 1F91      		pop r17
+ 565               	.LVL31:
+ 566               		.loc 1 336 1 view .LVU162
+ 567 0216 FF90      		pop r15
+ 568 0218 EF90      		pop r14
+ 569 021a 0895      		ret
+ 570               	.LVL32:
+ 571               	.L19:
+ 572               	.LBB65:
+ 573               	.LBB64:
+ 574               	.LBB59:
+ 575               	.LBB57:
+ 261:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = '0';
+ 576               		.loc 1 261 10 is_stmt 1 view .LVU163
+ 262:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 577               		.loc 1 262 9 view .LVU164
+ 262:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         str = str+1;
+ 578               		.loc 1 262 14 is_stmt 0 view .LVU165
+ 579 021c 80E3      		ldi r24,lo8(48)
+ 580 021e 8B83      		std Y+3,r24
+ 263:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 581               		.loc 1 263 9 is_stmt 1 view .LVU166
+ 582               	.LVL33:
+ 263:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 583               		.loc 1 263 13 is_stmt 0 view .LVU167
+ 584 0220 FE01      		movw r30,r28
+ 585 0222 3496      		adiw r30,4
+ 586 0224 00C0      		rjmp .L20
+ 587               	.LVL34:
+ 588               	.L23:
+ 263:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 589               		.loc 1 263 13 view .LVU168
+ 590               	.LBE57:
+ 591               	.LBE59:
+ 238:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = 0;
+ 592               		.loc 1 238 10 is_stmt 1 view .LVU169
+ 240:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_off();
+ 593               		.loc 1 240 10 view .LVU170
+ 240:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_off();
+ 594               		.loc 1 240 14 is_stmt 0 view .LVU171
+ 595 0226 8091 0000 		lds r24,wpm_timer
+ 596 022a 9091 0000 		lds r25,wpm_timer+1
+ 597 022e 0E94 0000 		call timer_elapsed
+ 598               	.LVL35:
+ 240:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         oled_off();
+ 599               		.loc 1 240 13 view .LVU172
+ 600 0232 8036      		cpi r24,96
+ 601 0234 9A4E      		sbci r25,-22
+ 602 0236 00F0      		brlo .L2
+ 241:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = 0;
+ 603               		.loc 1 241 9 is_stmt 1 view .LVU173
+ 604 0238 0E94 0000 		call oled_off
+ 605               	.LVL36:
+ 242:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 606               		.loc 1 242 9 view .LVU174
+ 607               	.L22:
+ 238:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         wpm_timer = 0;
+ 608               		.loc 1 238 10 view .LVU175
+ 239:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (timer_elapsed(wpm_timer) >= OLED_TIMEOUT) {
+ 609               		.loc 1 239 9 view .LVU176
+ 239:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     else if (timer_elapsed(wpm_timer) >= OLED_TIMEOUT) {
+ 610               		.loc 1 239 19 is_stmt 0 view .LVU177
+ 611 023c 1092 0000 		sts wpm_timer+1,__zero_reg__
+ 612 0240 1092 0000 		sts wpm_timer,__zero_reg__
+ 613 0244 00C0      		rjmp .L2
+ 614               	.LVL37:
+ 615               	.L18:
+ 616               	.LBB60:
+ 617               	.LBB58:
+ 255:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 10)) / 10) + 48;
+ 618               		.loc 1 255 5 is_stmt 1 view .LVU178
+ 255:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 10)) / 10) + 48;
+ 619               		.loc 1 255 8 is_stmt 0 view .LVU179
+ 620 0246 282F      		mov r18,r24
+ 621 0248 FE01      		movw r30,r28
+ 622 024a 3296      		adiw r30,2
+ 623 024c 8A30      		cpi r24,lo8(10)
+ 624 024e 00F0      		brlo .+2
+ 625 0250 00C0      		rjmp .L26
+ 255:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         *str = ((num - (num % 10)) / 10) + 48;
+ 626               		.loc 1 255 8 view .LVU180
+ 627 0252 00C0      		rjmp .L20
+ 628               	.LBE58:
+ 629               	.LBE60:
+ 630               	.LBE64:
+ 631               	.LBE65:
+ 632               		.cfi_endproc
+ 633               	.LFE34:
+ 635               		.section	.text.process_record_user,"ax",@progbits
+ 636               	.global	process_record_user
+ 638               	process_record_user:
+ 639               	.LVL38:
+ 640               	.LFB35:
+ 337:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 338:keyboards/sofle/keymaps/LohseBoi/keymap.c **** //#endif
+ 339:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 340:keyboards/sofle/keymaps/LohseBoi/keymap.c **** bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+ 641               		.loc 1 340 65 is_stmt 1 view -0
+ 642               		.cfi_startproc
+ 643               		.loc 1 340 65 is_stmt 0 view .LVU182
+ 644 0000 0F93      		push r16
+ 645               	.LCFI7:
+ 646               		.cfi_def_cfa_offset 3
+ 647               		.cfi_offset 16, -2
+ 648 0002 1F93      		push r17
+ 649               	.LCFI8:
+ 650               		.cfi_def_cfa_offset 4
+ 651               		.cfi_offset 17, -3
+ 652 0004 CF93      		push r28
+ 653               	.LCFI9:
+ 654               		.cfi_def_cfa_offset 5
+ 655               		.cfi_offset 28, -4
+ 656 0006 DF93      		push r29
+ 657               	.LCFI10:
+ 658               		.cfi_def_cfa_offset 6
+ 659               		.cfi_offset 29, -5
+ 660               	/* prologue: function */
+ 661               	/* frame size = 0 */
+ 662               	/* stack size = 4 */
+ 663               	.L__stack_usage = 4
+ 664 0008 EC01      		movw r28,r24
+ 665 000a 8B01      		movw r16,r22
+ 341:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     oled_on();
+ 666               		.loc 1 341 5 is_stmt 1 view .LVU183
+ 667 000c 0E94 0000 		call oled_on
+ 668               	.LVL39:
+ 342:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     switch (keycode) {
+ 669               		.loc 1 342 5 view .LVU184
+ 670 0010 FE01      		movw r30,r28
+ 671 0012 E356      		subi r30,99
+ 672 0014 FD45      		sbci r31,93
+ 673 0016 E830      		cpi r30,8
+ 674 0018 F105      		cpc r31,__zero_reg__
+ 675 001a 00F0      		brlo .+2
+ 676 001c 00C0      		rjmp .L56
+ 677 001e E050      		subi r30,lo8(-(gs(.L40)))
+ 678 0020 F040      		sbci r31,hi8(-(gs(.L40)))
+ 679 0022 D801      		movw r26,r16
+ 680 0024 1296      		adiw r26,2
+ 681 0026 CC91      		ld r28,X
+ 682               	.LVL40:
+ 683               		.loc 1 342 5 is_stmt 0 view .LVU185
+ 684 0028 0C94 0000 		jmp __tablejump2__
+ 685               		.section	.jumptables.gcc.process_record_user,"a",@progbits
+ 686               		.p2align	1
+ 687               	.L40:
+ 688 0000 0000      		.word gs(.L47)
+ 689 0002 0000      		.word gs(.L46)
+ 690 0004 0000      		.word gs(.L45)
+ 691 0006 0000      		.word gs(.L44)
+ 692 0008 0000      		.word gs(.L43)
+ 693 000a 0000      		.word gs(.L42)
+ 694 000c 0000      		.word gs(.L41)
+ 695 000e 0000      		.word gs(.L39)
+ 696               		.section	.text.process_record_user
+ 697               	.L47:
+ 343:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_QWERTY:
+ 344:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 698               		.loc 1 344 13 is_stmt 1 view .LVU186
+ 345:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 set_single_persistent_default_layer(_QWERTY);
+ 699               		.loc 1 345 17 is_stmt 0 view .LVU187
+ 700 002c 80E0      		ldi r24,0
+ 344:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 set_single_persistent_default_layer(_QWERTY);
+ 701               		.loc 1 344 16 view .LVU188
+ 702 002e C111      		cpse r28,__zero_reg__
+ 703 0030 00C0      		rjmp .L66
+ 704               	.L37:
+ 346:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 347:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 348:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_GAMER:
+ 349:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 350:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 set_single_persistent_default_layer(_GAMER);
+ 351:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 352:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 353:keyboards/sofle/keymaps/LohseBoi/keymap.c ****        
+ 354:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_LOWER:
+ 355:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 356:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_LOWER);
+ 357:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 358:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 359:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_off(_LOWER);
+ 360:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 361:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 unregister_code(KC_LALT);
+ 362:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //alttab_active = false;
+ 363:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 364:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 365:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_RAISE:
+ 366:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 367:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_RAISE);
+ 368:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 369:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 370:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_off(_RAISE);
+ 371:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 372:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 373:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 374:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_ADJUST:
+ 375:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 376:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_ADJUST);
+ 377:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 378:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_off(_ADJUST);
+ 379:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 380:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 381:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_MED:
+ 382:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 383:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 if (!is_media_active)
+ 384:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     media_timer = timer_read(); //Timer starts
+ 385:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         
+ 386:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 is_media_active = true; 
+ 387:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 media_counter++;
+ 388:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 389:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //Do nothing on release
+ 390:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 391:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             break;
+ 392:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_ALT_TAB:
+ 393:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 394:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //alttab_active = true;
+ 395:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 register_code(KC_LALT);
+ 396:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 SEND_STRING(SS_TAP(X_TAB));
+ 397:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 398:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //Do nothing on release
+ 399:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 400:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 401:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         case KC_HLWR:
+ 402:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (record->event.pressed) {
+ 403:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_LOWER);
+ 404:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 405:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 lwr_timer = timer_read();
+ 406:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 407:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 408:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 if (timer_elapsed(lwr_timer) < 100) {
+ 409:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped = !lwr_tapped;
+ 410:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped ? layer_on(_LOWER) : layer_off(_LOWER);
+ 411:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 } else {
+ 412:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     layer_off(_LOWER);
+ 413:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 }
+ 414:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 415:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 416:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 unregister_code(KC_LALT);
+ 417:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 418:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             return false;
+ 419:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 420:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     return true;
+ 421:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 705               		.loc 1 421 1 view .LVU189
+ 706 0032 8C2F      		mov r24,r28
+ 707               	/* epilogue start */
+ 708 0034 DF91      		pop r29
+ 709 0036 CF91      		pop r28
+ 710 0038 1F91      		pop r17
+ 711 003a 0F91      		pop r16
+ 712               	.LVL41:
+ 713               		.loc 1 421 1 view .LVU190
+ 714 003c 0895      		ret
+ 715               	.LVL42:
+ 716               	.L43:
+ 349:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 set_single_persistent_default_layer(_GAMER);
+ 717               		.loc 1 349 13 is_stmt 1 view .LVU191
+ 349:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 set_single_persistent_default_layer(_GAMER);
+ 718               		.loc 1 349 16 is_stmt 0 view .LVU192
+ 719 003e CC23      		tst r28
+ 720 0040 01F0      		breq .L37
+ 350:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 721               		.loc 1 350 17 is_stmt 1 view .LVU193
+ 722 0042 81E0      		ldi r24,lo8(1)
+ 723               	.L66:
+ 724 0044 0E94 0000 		call set_single_persistent_default_layer
+ 725               	.LVL43:
+ 726               	.L67:
+ 352:keyboards/sofle/keymaps/LohseBoi/keymap.c ****        
+ 727               		.loc 1 352 20 is_stmt 0 view .LVU194
+ 728 0048 C0E0      		ldi r28,0
+ 729 004a 00C0      		rjmp .L37
+ 730               	.L46:
+ 355:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_LOWER);
+ 731               		.loc 1 355 13 is_stmt 1 view .LVU195
+ 356:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 732               		.loc 1 356 17 is_stmt 0 view .LVU196
+ 733 004c 82E0      		ldi r24,lo8(2)
+ 355:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_LOWER);
+ 734               		.loc 1 355 16 view .LVU197
+ 735 004e CC23      		tst r28
+ 736 0050 01F4      		brne .+2
+ 737 0052 00C0      		rjmp .L68
+ 738               	.L69:
+ 367:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 739               		.loc 1 367 17 is_stmt 1 view .LVU198
+ 740 0054 0E94 0000 		call layer_on
+ 741               	.LVL44:
+ 368:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 742               		.loc 1 368 17 view .LVU199
+ 743 0058 44E0      		ldi r20,lo8(4)
+ 744 005a 63E0      		ldi r22,lo8(3)
+ 745 005c 82E0      		ldi r24,lo8(2)
+ 746 005e 0E94 0000 		call update_tri_layer
+ 747               	.LVL45:
+ 748 0062 00C0      		rjmp .L67
+ 749               	.L45:
+ 366:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_RAISE);
+ 750               		.loc 1 366 13 view .LVU200
+ 367:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 751               		.loc 1 367 17 is_stmt 0 view .LVU201
+ 752 0064 83E0      		ldi r24,lo8(3)
+ 366:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_RAISE);
+ 753               		.loc 1 366 16 view .LVU202
+ 754 0066 C111      		cpse r28,__zero_reg__
+ 755 0068 00C0      		rjmp .L69
+ 370:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 756               		.loc 1 370 17 is_stmt 1 view .LVU203
+ 757 006a 0E94 0000 		call layer_off
+ 758               	.LVL46:
+ 371:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 759               		.loc 1 371 17 view .LVU204
+ 760 006e 44E0      		ldi r20,lo8(4)
+ 761 0070 63E0      		ldi r22,lo8(3)
+ 762 0072 82E0      		ldi r24,lo8(2)
+ 763 0074 0E94 0000 		call update_tri_layer
+ 764               	.LVL47:
+ 765 0078 00C0      		rjmp .L37
+ 766               	.L44:
+ 375:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_ADJUST);
+ 767               		.loc 1 375 13 view .LVU205
+ 376:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 768               		.loc 1 376 17 is_stmt 0 view .LVU206
+ 769 007a 84E0      		ldi r24,lo8(4)
+ 375:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_ADJUST);
+ 770               		.loc 1 375 16 view .LVU207
+ 771 007c CC23      		tst r28
+ 772 007e 01F0      		breq .L50
+ 376:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 773               		.loc 1 376 17 is_stmt 1 view .LVU208
+ 774 0080 0E94 0000 		call layer_on
+ 775               	.LVL48:
+ 776 0084 00C0      		rjmp .L67
+ 777               	.L50:
+ 378:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 778               		.loc 1 378 17 view .LVU209
+ 779 0086 0E94 0000 		call layer_off
+ 780               	.LVL49:
+ 781 008a 00C0      		rjmp .L37
+ 782               	.L42:
+ 382:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 if (!is_media_active)
+ 783               		.loc 1 382 13 view .LVU210
+ 382:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 if (!is_media_active)
+ 784               		.loc 1 382 16 is_stmt 0 view .LVU211
+ 785 008c CC23      		tst r28
+ 786 008e 01F4      		brne .+2
+ 787 0090 00C0      		rjmp .L56
+ 383:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     media_timer = timer_read(); //Timer starts
+ 788               		.loc 1 383 17 is_stmt 1 view .LVU212
+ 383:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     media_timer = timer_read(); //Timer starts
+ 789               		.loc 1 383 20 is_stmt 0 view .LVU213
+ 790 0092 8091 0000 		lds r24,is_media_active
+ 791 0096 8111      		cpse r24,__zero_reg__
+ 792 0098 00C0      		rjmp .L51
+ 384:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         
+ 793               		.loc 1 384 21 is_stmt 1 view .LVU214
+ 384:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         
+ 794               		.loc 1 384 35 is_stmt 0 view .LVU215
+ 795 009a 0E94 0000 		call timer_read
+ 796               	.LVL50:
+ 384:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         
+ 797               		.loc 1 384 33 view .LVU216
+ 798 009e 9093 0000 		sts media_timer+1,r25
+ 799 00a2 8093 0000 		sts media_timer,r24
+ 800               	.L51:
+ 386:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 media_counter++;
+ 801               		.loc 1 386 17 is_stmt 1 view .LVU217
+ 386:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 media_counter++;
+ 802               		.loc 1 386 33 is_stmt 0 view .LVU218
+ 803 00a6 81E0      		ldi r24,lo8(1)
+ 804 00a8 8093 0000 		sts is_media_active,r24
+ 387:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 805               		.loc 1 387 17 is_stmt 1 view .LVU219
+ 387:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 806               		.loc 1 387 30 is_stmt 0 view .LVU220
+ 807 00ac 8091 0000 		lds r24,media_counter
+ 808 00b0 8F5F      		subi r24,lo8(-(1))
+ 809 00b2 8093 0000 		sts media_counter,r24
+ 810 00b6 00C0      		rjmp .L37
+ 811               	.L41:
+ 393:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //alttab_active = true;
+ 812               		.loc 1 393 13 is_stmt 1 view .LVU221
+ 393:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //alttab_active = true;
+ 813               		.loc 1 393 16 is_stmt 0 view .LVU222
+ 814 00b8 CC23      		tst r28
+ 815 00ba 01F4      		brne .+2
+ 816 00bc 00C0      		rjmp .L37
+ 395:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 SEND_STRING(SS_TAP(X_TAB));
+ 817               		.loc 1 395 17 is_stmt 1 view .LVU223
+ 818 00be 82EE      		ldi r24,lo8(-30)
+ 819 00c0 0E94 0000 		call register_code
+ 820               	.LVL51:
+ 396:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 821               		.loc 1 396 17 view .LVU224
+ 822               	.LBB66:
+ 396:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 823               		.loc 1 396 17 view .LVU225
+ 396:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             } else {
+ 824               		.loc 1 396 17 view .LVU226
+ 825               	.LBE66:
+ 826 00c4 80E0      		ldi r24,lo8(__c.3)
+ 827 00c6 90E0      		ldi r25,hi8(__c.3)
+ 828 00c8 0E94 0000 		call send_string_P
+ 829               	.LVL52:
+ 830 00cc 00C0      		rjmp .L67
+ 831               	.L39:
+ 402:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_LOWER);
+ 832               		.loc 1 402 13 view .LVU227
+ 402:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 layer_on(_LOWER);
+ 833               		.loc 1 402 16 is_stmt 0 view .LVU228
+ 834 00ce CC23      		tst r28
+ 835 00d0 01F0      		breq .L52
+ 403:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 update_tri_layer(_LOWER, _RAISE, _ADJUST);
+ 836               		.loc 1 403 17 is_stmt 1 view .LVU229
+ 837 00d2 82E0      		ldi r24,lo8(2)
+ 838 00d4 0E94 0000 		call layer_on
+ 839               	.LVL53:
+ 404:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 lwr_timer = timer_read();
+ 840               		.loc 1 404 17 view .LVU230
+ 841 00d8 44E0      		ldi r20,lo8(4)
+ 842 00da 63E0      		ldi r22,lo8(3)
+ 843 00dc 82E0      		ldi r24,lo8(2)
+ 844 00de 0E94 0000 		call update_tri_layer
+ 845               	.LVL54:
+ 405:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 846               		.loc 1 405 17 view .LVU231
+ 405:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 847               		.loc 1 405 29 is_stmt 0 view .LVU232
+ 848 00e2 0E94 0000 		call timer_read
+ 849               	.LVL55:
+ 405:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 850               		.loc 1 405 27 view .LVU233
+ 851 00e6 9093 0000 		sts lwr_timer+1,r25
+ 852 00ea 8093 0000 		sts lwr_timer,r24
+ 853 00ee 00C0      		rjmp .L67
+ 854               	.L52:
+ 408:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped = !lwr_tapped;
+ 855               		.loc 1 408 17 is_stmt 1 view .LVU234
+ 408:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped = !lwr_tapped;
+ 856               		.loc 1 408 21 is_stmt 0 view .LVU235
+ 857 00f0 8091 0000 		lds r24,lwr_timer
+ 858 00f4 9091 0000 		lds r25,lwr_timer+1
+ 859 00f8 0E94 0000 		call timer_elapsed
+ 860               	.LVL56:
+ 408:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped = !lwr_tapped;
+ 861               		.loc 1 408 20 view .LVU236
+ 862 00fc 8436      		cpi r24,100
+ 863 00fe 9105      		cpc r25,__zero_reg__
+ 864 0100 00F4      		brsh .L53
+ 409:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped ? layer_on(_LOWER) : layer_off(_LOWER);
+ 865               		.loc 1 409 21 is_stmt 1 view .LVU237
+ 866 0102 8091 0000 		lds r24,lwr_tapped
+ 867 0106 91E0      		ldi r25,lo8(1)
+ 868 0108 8927      		eor r24,r25
+ 409:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     lwr_tapped ? layer_on(_LOWER) : layer_off(_LOWER);
+ 869               		.loc 1 409 32 is_stmt 0 view .LVU238
+ 870 010a 8093 0000 		sts lwr_tapped,r24
+ 410:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 } else {
+ 871               		.loc 1 410 21 is_stmt 1 view .LVU239
+ 410:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 } else {
+ 872               		.loc 1 410 51 is_stmt 0 view .LVU240
+ 873 010e 8823      		tst r24
+ 874 0110 01F0      		breq .L53
+ 410:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 } else {
+ 875               		.loc 1 410 34 discriminator 1 view .LVU241
+ 876 0112 82E0      		ldi r24,lo8(2)
+ 877 0114 0E94 0000 		call layer_on
+ 878               	.LVL57:
+ 879               	.L54:
+ 415:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 unregister_code(KC_LALT);
+ 880               		.loc 1 415 17 is_stmt 1 view .LVU242
+ 881 0118 44E0      		ldi r20,lo8(4)
+ 882 011a 63E0      		ldi r22,lo8(3)
+ 883 011c 82E0      		ldi r24,lo8(2)
+ 884 011e 0E94 0000 		call update_tri_layer
+ 885               	.LVL58:
+ 416:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 886               		.loc 1 416 17 view .LVU243
+ 887 0122 82EE      		ldi r24,lo8(-30)
+ 888 0124 0E94 0000 		call unregister_code
+ 889               	.LVL59:
+ 890 0128 00C0      		rjmp .L37
+ 891               	.L53:
+ 410:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 } else {
+ 892               		.loc 1 410 53 is_stmt 0 discriminator 2 view .LVU244
+ 893 012a 82E0      		ldi r24,lo8(2)
+ 894               	.L68:
+ 895 012c 0E94 0000 		call layer_off
+ 896               	.LVL60:
+ 897 0130 00C0      		rjmp .L54
+ 898               	.L56:
+ 420:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 899               		.loc 1 420 12 view .LVU245
+ 900 0132 C1E0      		ldi r28,lo8(1)
+ 901 0134 00C0      		rjmp .L37
+ 902               		.cfi_endproc
+ 903               	.LFE35:
+ 905               		.section	.text.matrix_scan_user,"ax",@progbits
+ 906               	.global	matrix_scan_user
+ 908               	matrix_scan_user:
+ 909               	.LFB36:
+ 422:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 423:keyboards/sofle/keymaps/LohseBoi/keymap.c **** void matrix_scan_user(void) {
+ 910               		.loc 1 423 29 is_stmt 1 view -0
+ 911               		.cfi_startproc
+ 912               	/* prologue: function */
+ 913               	/* frame size = 0 */
+ 914               	/* stack size = 0 */
+ 915               	.L__stack_usage = 0
+ 424:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (is_media_active) {  //If the media key has been pressed
+ 916               		.loc 1 424 5 view .LVU247
+ 917               		.loc 1 424 8 is_stmt 0 view .LVU248
+ 918 0000 8091 0000 		lds r24,is_media_active
+ 919 0004 8823      		tst r24
+ 920 0006 01F0      		breq .L70
+ 425:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         if (timer_elapsed(media_timer) > media_time) {  //If the time is up
+ 921               		.loc 1 425 9 is_stmt 1 view .LVU249
+ 922               		.loc 1 425 13 is_stmt 0 view .LVU250
+ 923 0008 8091 0000 		lds r24,media_timer
+ 924 000c 9091 0000 		lds r25,media_timer+1
+ 925 0010 0E94 0000 		call timer_elapsed
+ 926               	.LVL61:
+ 927               		.loc 1 425 12 view .LVU251
+ 928 0014 8F3E      		cpi r24,-17
+ 929 0016 9240      		sbci r25,2
+ 930 0018 00F0      		brlo .L70
+ 426:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             
+ 427:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             switch (media_counter) {  //Number of times pressed in given timeframe
+ 931               		.loc 1 427 13 is_stmt 1 view .LVU252
+ 932 001a 8091 0000 		lds r24,media_counter
+ 933 001e 8130      		cpi r24,lo8(1)
+ 934 0020 01F0      		breq .L74
+ 935 0022 8230      		cpi r24,lo8(2)
+ 936 0024 01F0      		breq .L75
+ 428:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 case 1:
+ 429:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     SEND_STRING(SS_TAP(X_MPLY));  //Play/Pause
+ 430:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 431:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 case 2:
+ 432:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     SEND_STRING(SS_TAP(X_MNXT));  //Next track
+ 433:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 434:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 case 3: default:
+ 435:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     SEND_STRING(SS_TAP(X_MPRV));  //Previous track
+ 937               		.loc 1 435 21 view .LVU253
+ 938               	.LBB67:
+ 939               		.loc 1 435 21 view .LVU254
+ 940               		.loc 1 435 21 view .LVU255
+ 941               	.LBE67:
+ 942 0026 80E0      		ldi r24,lo8(__c.0)
+ 943 0028 90E0      		ldi r25,hi8(__c.0)
+ 944 002a 00C0      		rjmp .L79
+ 945               	.L74:
+ 429:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 946               		.loc 1 429 21 view .LVU256
+ 947               	.LBB68:
+ 429:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 948               		.loc 1 429 21 view .LVU257
+ 429:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 949               		.loc 1 429 21 view .LVU258
+ 950               	.LBE68:
+ 951 002c 80E0      		ldi r24,lo8(__c.2)
+ 952 002e 90E0      		ldi r25,hi8(__c.2)
+ 953               	.L79:
+ 954               		.loc 1 435 21 is_stmt 0 view .LVU259
+ 955 0030 0E94 0000 		call send_string_P
+ 956               	.LVL62:
+ 436:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 957               		.loc 1 436 21 is_stmt 1 view .LVU260
+ 437:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             }
+ 438:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             //Resets variables
+ 439:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             media_counter = 0;
+ 958               		.loc 1 439 13 view .LVU261
+ 959               		.loc 1 439 27 is_stmt 0 view .LVU262
+ 960 0034 1092 0000 		sts media_counter,__zero_reg__
+ 440:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             is_media_active = false;
+ 961               		.loc 1 440 13 is_stmt 1 view .LVU263
+ 962               		.loc 1 440 29 is_stmt 0 view .LVU264
+ 963 0038 1092 0000 		sts is_media_active,__zero_reg__
+ 964               	.L70:
+ 965               	/* epilogue start */
+ 441:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         }
+ 442:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 443:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 966               		.loc 1 443 1 view .LVU265
+ 967 003c 0895      		ret
+ 968               	.L75:
+ 432:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 969               		.loc 1 432 21 is_stmt 1 view .LVU266
+ 970               	.LBB69:
+ 432:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 971               		.loc 1 432 21 view .LVU267
+ 432:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                     break;
+ 972               		.loc 1 432 21 view .LVU268
+ 973               	.LBE69:
+ 974 003e 80E0      		ldi r24,lo8(__c.1)
+ 975 0040 90E0      		ldi r25,hi8(__c.1)
+ 976 0042 00C0      		rjmp .L79
+ 977               		.cfi_endproc
+ 978               	.LFE36:
+ 980               		.section	.text.encoder_update_user,"ax",@progbits
+ 981               	.global	encoder_update_user
+ 983               	encoder_update_user:
+ 984               	.LVL63:
+ 985               	.LFB37:
+ 444:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 445:keyboards/sofle/keymaps/LohseBoi/keymap.c **** #ifdef ENCODER_ENABLE
+ 446:keyboards/sofle/keymaps/LohseBoi/keymap.c **** 
+ 447:keyboards/sofle/keymaps/LohseBoi/keymap.c **** bool encoder_update_user(uint8_t index, bool clockwise) {
+ 986               		.loc 1 447 57 view -0
+ 987               		.cfi_startproc
+ 988               		.loc 1 447 57 is_stmt 0 view .LVU270
+ 989 0000 CF93      		push r28
+ 990               	.LCFI11:
+ 991               		.cfi_def_cfa_offset 3
+ 992               		.cfi_offset 28, -2
+ 993               	/* prologue: function */
+ 994               	/* frame size = 0 */
+ 995               	/* stack size = 1 */
+ 996               	.L__stack_usage = 1
+ 997 0002 C82F      		mov r28,r24
+ 448:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     clockwise = !clockwise;
+ 998               		.loc 1 448 5 is_stmt 1 view .LVU271
+ 999 0004 81E0      		ldi r24,lo8(1)
+ 1000               	.LVL64:
+ 1001               		.loc 1 448 5 is_stmt 0 view .LVU272
+ 1002 0006 6827      		eor r22,r24
+ 1003               	.LVL65:
+ 449:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     if (index == 0) { //left encoder
+ 1004               		.loc 1 449 5 is_stmt 1 view .LVU273
+ 1005               		.loc 1 449 8 is_stmt 0 view .LVU274
+ 1006 0008 C111      		cpse r28,__zero_reg__
+ 1007 000a 00C0      		rjmp .L81
+ 450:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         if (turner[index] == 1) {
+ 1008               		.loc 1 450 9 is_stmt 1 view .LVU275
+ 1009               		.loc 1 450 12 is_stmt 0 view .LVU276
+ 1010 000c 8091 0000 		lds r24,turner
+ 1011 0010 8130      		cpi r24,lo8(1)
+ 1012 0012 01F4      		brne .L82
+ 451:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (clockwise)
+ 1013               		.loc 1 451 13 is_stmt 1 view .LVU277
+ 452:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //tap_code(KC_BRIU);
+ 453:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 tap_code(KC_WH_D);  //Mouse wheel - Scroll (WORKING)
+ 1014               		.loc 1 453 17 is_stmt 0 view .LVU278
+ 1015 0014 8AEF      		ldi r24,lo8(-6)
+ 451:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (clockwise)
+ 1016               		.loc 1 451 16 view .LVU279
+ 1017 0016 6111      		cpse r22,__zero_reg__
+ 1018 0018 00C0      		rjmp .L86
+ 454:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             else
+ 455:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 //tap_code(KC_BRID);
+ 456:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 tap_code(KC_WH_U);
+ 1019               		.loc 1 456 17 is_stmt 1 view .LVU280
+ 1020 001a 89EF      		ldi r24,lo8(-7)
+ 1021               	.L86:
+ 457:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         }
+ 458:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     } else if (index == 1) { //right encoder
+ 459:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         if (turner[index] == 1) {
+ 460:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (clockwise)
+ 461:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 tap_code(KC_VOLU);  //Volume
+ 462:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             else
+ 463:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 tap_code(KC_VOLD);
+ 1022               		.loc 1 463 17 is_stmt 0 view .LVU281
+ 1023 001c 0E94 0000 		call tap_code
+ 1024               	.LVL66:
+ 1025               	.L82:
+ 464:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         }
+ 465:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     }
+ 466:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     turner[index] = turner[index] == 1 ? 0 : 1;
+ 1026               		.loc 1 466 5 is_stmt 1 view .LVU282
+ 1027               		.loc 1 466 27 is_stmt 0 view .LVU283
+ 1028 0020 EC2F      		mov r30,r28
+ 1029 0022 F0E0      		ldi r31,0
+ 1030               		.loc 1 466 19 view .LVU284
+ 1031 0024 E050      		subi r30,lo8(-(turner))
+ 1032 0026 F040      		sbci r31,hi8(-(turner))
+ 1033               		.loc 1 466 44 view .LVU285
+ 1034 0028 81E0      		ldi r24,lo8(1)
+ 1035               	.LVL67:
+ 1036               		.loc 1 466 44 view .LVU286
+ 1037 002a 9081      		ld r25,Z
+ 1038 002c 9130      		cpi r25,lo8(1)
+ 1039 002e 01F4      		brne .L85
+ 1040 0030 80E0      		ldi r24,0
+ 1041               	.LVL68:
+ 1042               	.L85:
+ 1043               		.loc 1 466 19 view .LVU287
+ 1044 0032 8083      		st Z,r24
+ 467:keyboards/sofle/keymaps/LohseBoi/keymap.c ****     return true;
+ 1045               		.loc 1 467 5 is_stmt 1 view .LVU288
+ 468:keyboards/sofle/keymaps/LohseBoi/keymap.c **** }
+ 1046               		.loc 1 468 1 is_stmt 0 view .LVU289
+ 1047 0034 81E0      		ldi r24,lo8(1)
+ 1048               	.LVL69:
+ 1049               	/* epilogue start */
+ 1050               		.loc 1 468 1 view .LVU290
+ 1051 0036 CF91      		pop r28
+ 1052               	.LVL70:
+ 1053               		.loc 1 468 1 view .LVU291
+ 1054 0038 0895      		ret
+ 1055               	.LVL71:
+ 1056               	.L81:
+ 458:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         if (turner[index] == 1) {
+ 1057               		.loc 1 458 12 is_stmt 1 view .LVU292
+ 458:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         if (turner[index] == 1) {
+ 1058               		.loc 1 458 15 is_stmt 0 view .LVU293
+ 1059 003a C130      		cpi r28,lo8(1)
+ 1060 003c 01F4      		brne .L82
+ 459:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (clockwise)
+ 1061               		.loc 1 459 9 is_stmt 1 view .LVU294
+ 459:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             if (clockwise)
+ 1062               		.loc 1 459 12 is_stmt 0 view .LVU295
+ 1063 003e 8091 0000 		lds r24,turner+1
+ 1064 0042 8130      		cpi r24,lo8(1)
+ 1065 0044 01F4      		brne .L82
+ 460:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 tap_code(KC_VOLU);  //Volume
+ 1066               		.loc 1 460 13 is_stmt 1 view .LVU296
+ 461:keyboards/sofle/keymaps/LohseBoi/keymap.c ****             else
+ 1067               		.loc 1 461 17 is_stmt 0 view .LVU297
+ 1068 0046 89EA      		ldi r24,lo8(-87)
+ 460:keyboards/sofle/keymaps/LohseBoi/keymap.c ****                 tap_code(KC_VOLU);  //Volume
+ 1069               		.loc 1 460 16 view .LVU298
+ 1070 0048 6111      		cpse r22,__zero_reg__
+ 1071 004a 00C0      		rjmp .L86
+ 463:keyboards/sofle/keymaps/LohseBoi/keymap.c ****         }
+ 1072               		.loc 1 463 17 is_stmt 1 view .LVU299
+ 1073 004c 8AEA      		ldi r24,lo8(-86)
+ 1074 004e 00C0      		rjmp .L86
+ 1075               		.cfi_endproc
+ 1076               	.LFE37:
+ 1078               		.section	.progmem.data.__c.0,"a"
+ 1081               	__c.0:
+ 1082 0000 0101 AC00 		.string	"\001\001\254"
+ 1083               		.section	.progmem.data.__c.1,"a"
+ 1086               	__c.1:
+ 1087 0000 0101 AB00 		.string	"\001\001\253"
+ 1088               		.section	.progmem.data.__c.2,"a"
+ 1091               	__c.2:
+ 1092 0000 0101 AE00 		.string	"\001\001\256"
+ 1093               		.section	.progmem.data.__c.3,"a"
+ 1096               	__c.3:
+ 1097 0000 0101 2B00 		.string	"\001\001+"
+ 1098               		.section	.progmem.data.__c.4,"a"
+ 1101               	__c.4:
+ 1102 0000 4D6F 7265 		.string	"More\nShit\n1234567890"
+ 1102      0A53 6869 
+ 1102      740A 3132 
+ 1102      3334 3536 
+ 1102      3738 3930 
+ 1103               		.section	.progmem.data.__c.5,"a"
+ 1106               	__c.5:
+ 1107 0000 2057 504D 		.string	" WPM"
+ 1107      00
+ 1108               		.section	.progmem.data.__c.6,"a"
+ 1111               	__c.6:
+ 1112 0000 0A0A 00   		.string	"\n\n"
+ 1113               		.section	.progmem.data.__c.7,"a"
+ 1116               	__c.7:
+ 1117 0000 4350 534C 		.string	"CPSLK"
+ 1117      4B00 
+ 1118               		.section	.progmem.data.__c.8,"a"
+ 1121               	__c.8:
+ 1122 0000 0A0A 0A00 		.string	"\n\n\n"
+ 1123               		.section	.progmem.data.__c.9,"a"
+ 1126               	__c.9:
+ 1127 0000 556E 6465 		.string	"Undef\n"
+ 1127      660A 00
+ 1128               		.section	.progmem.data.__c.10,"a"
+ 1131               	__c.10:
+ 1132 0000 4144 4A0A 		.string	"ADJ\n"
+ 1132      00
+ 1133               		.section	.progmem.data.__c.11,"a"
+ 1136               	__c.11:
+ 1137 0000 4C57 520A 		.string	"LWR\n"
+ 1137      00
+ 1138               		.section	.progmem.data.__c.12,"a"
+ 1141               	__c.12:
+ 1142 0000 5253 450A 		.string	"RSE\n"
+ 1142      00
+ 1143               		.section	.progmem.data.__c.13,"a"
+ 1146               	__c.13:
+ 1147 0000 4741 4D45 		.string	"GAMER\n"
+ 1147      520A 00
+ 1148               		.section	.progmem.data.__c.14,"a"
+ 1151               	__c.14:
+ 1152 0000 4241 5345 		.string	"BASE\n"
+ 1152      0A00 
+ 1153               		.section	.progmem.data.__c.15,"a"
+ 1156               	__c.15:
+ 1157 0000 4C41 5945 		.string	"LAYER"
+ 1157      5200 
+ 1158               		.section	.progmem.data.__c.16,"a"
+ 1161               	__c.16:
+ 1162 0000 0A0A 00   		.string	"\n\n"
+ 1163               		.section	.progmem.data.__c.17,"a"
+ 1166               	__c.17:
+ 1167 0000 556E 6465 		.string	"Undef"
+ 1167      6600 
+ 1168               		.section	.progmem.data.__c.18,"a"
+ 1171               	__c.18:
+ 1172 0000 4741 4D45 		.string	"GAMER"
+ 1172      5200 
+ 1173               		.section	.progmem.data.__c.19,"a"
+ 1176               	__c.19:
+ 1177 0000 5177 7274 		.string	"Qwrt\n"
+ 1177      0A00 
+ 1178               		.section	.progmem.data.__c.20,"a"
+ 1181               	__c.20:
+ 1182 0000 5749 4E00 		.string	"WIN"
+ 1183               		.section	.progmem.data.__c.21,"a"
+ 1186               	__c.21:
+ 1187 0000 4D41 4300 		.string	"MAC"
+ 1188               		.section	.progmem.data.__c.22,"a"
+ 1191               	__c.22:
+ 1192 0000 00        		.zero	1
+ 1193               		.section	.progmem.data.__c.23,"a"
+ 1196               	__c.23:
+ 1197 0000 4D4F 4445 		.string	"MODE"
+ 1197      00
+ 1198               		.section	.progmem.data.__c.24,"a"
+ 1201               	__c.24:
+ 1202 0000 0A0A 00   		.string	"\n\n"
+ 1203               	.global	keymaps
+ 1204               		.section	.progmem.data.keymaps,"a"
+ 1207               	keymaps:
+ 1208 0000 2D00      		.word	45
+ 1209 0002 1E00      		.word	30
+ 1210 0004 1F00      		.word	31
+ 1211 0006 2000      		.word	32
+ 1212 0008 2100      		.word	33
+ 1213 000a 2200      		.word	34
+ 1214 000c 165C      		.word	23574
+ 1215 000e 1400      		.word	20
+ 1216 0010 1A00      		.word	26
+ 1217 0012 0800      		.word	8
+ 1218 0014 1500      		.word	21
+ 1219 0016 1700      		.word	23
+ 1220 0018 2B00      		.word	43
+ 1221 001a 0400      		.word	4
+ 1222 001c 1600      		.word	22
+ 1223 001e 0700      		.word	7
+ 1224 0020 0900      		.word	9
+ 1225 0022 0A00      		.word	10
+ 1226 0024 E100      		.word	225
+ 1227 0026 1D00      		.word	29
+ 1228 0028 1B00      		.word	27
+ 1229 002a 0600      		.word	6
+ 1230 002c 1900      		.word	25
+ 1231 002e 0500      		.word	5
+ 1232 0030 2F00      		.word	47
+ 1233 0032 E000      		.word	224
+ 1234 0034 E300      		.word	227
+ 1235 0036 6A5D      		.word	23914
+ 1236 0038 2C00      		.word	44
+ 1237 003a A800      		.word	168
+ 1238 003c 2E00      		.word	46
+ 1239 003e 2700      		.word	39
+ 1240 0040 2600      		.word	38
+ 1241 0042 2500      		.word	37
+ 1242 0044 2400      		.word	36
+ 1243 0046 2300      		.word	35
+ 1244 0048 3100      		.word	49
+ 1245 004a 1300      		.word	19
+ 1246 004c 1200      		.word	18
+ 1247 004e 0C00      		.word	12
+ 1248 0050 1800      		.word	24
+ 1249 0052 1C00      		.word	28
+ 1250 0054 3400      		.word	52
+ 1251 0056 3300      		.word	51
+ 1252 0058 0F00      		.word	15
+ 1253 005a 0E00      		.word	14
+ 1254 005c 0D00      		.word	13
+ 1255 005e 0B00      		.word	11
+ 1256 0060 2A00      		.word	42
+ 1257 0062 3800      		.word	56
+ 1258 0064 3700      		.word	55
+ 1259 0066 3600      		.word	54
+ 1260 0068 1000      		.word	16
+ 1261 006a 1100      		.word	17
+ 1262 006c 3000      		.word	48
+ 1263 006e 4C00      		.word	76
+ 1264 0070 E200      		.word	226
+ 1265 0072 655D      		.word	23909
+ 1266 0074 2800      		.word	40
+ 1267 0076 685D      		.word	23912
+ 1268 0078 2900      		.word	41
+ 1269 007a 1E00      		.word	30
+ 1270 007c 1F00      		.word	31
+ 1271 007e 2000      		.word	32
+ 1272 0080 2100      		.word	33
+ 1273 0082 2200      		.word	34
+ 1274 0084 2B00      		.word	43
+ 1275 0086 1400      		.word	20
+ 1276 0088 1A00      		.word	26
+ 1277 008a 0800      		.word	8
+ 1278 008c 1500      		.word	21
+ 1279 008e 1700      		.word	23
+ 1280 0090 E000      		.word	224
+ 1281 0092 0400      		.word	4
+ 1282 0094 1600      		.word	22
+ 1283 0096 0700      		.word	7
+ 1284 0098 0900      		.word	9
+ 1285 009a 0A00      		.word	10
+ 1286 009c E100      		.word	225
+ 1287 009e 1D00      		.word	29
+ 1288 00a0 1B00      		.word	27
+ 1289 00a2 0600      		.word	6
+ 1290 00a4 1900      		.word	25
+ 1291 00a6 0500      		.word	5
+ 1292 00a8 645D      		.word	23908
+ 1293 00aa 0C00      		.word	12
+ 1294 00ac 1000      		.word	16
+ 1295 00ae E200      		.word	226
+ 1296 00b0 0100      		.word	1
+ 1297 00b2 A800      		.word	168
+ 1298 00b4 2E00      		.word	46
+ 1299 00b6 2700      		.word	39
+ 1300 00b8 2600      		.word	38
+ 1301 00ba 2500      		.word	37
+ 1302 00bc 2400      		.word	36
+ 1303 00be 2300      		.word	35
+ 1304 00c0 3100      		.word	49
+ 1305 00c2 1300      		.word	19
+ 1306 00c4 1200      		.word	18
+ 1307 00c6 0C00      		.word	12
+ 1308 00c8 1800      		.word	24
+ 1309 00ca 1C00      		.word	28
+ 1310 00cc 3400      		.word	52
+ 1311 00ce 3300      		.word	51
+ 1312 00d0 0F00      		.word	15
+ 1313 00d2 0E00      		.word	14
+ 1314 00d4 0D00      		.word	13
+ 1315 00d6 0B00      		.word	11
+ 1316 00d8 2A00      		.word	42
+ 1317 00da 3800      		.word	56
+ 1318 00dc 3700      		.word	55
+ 1319 00de 3600      		.word	54
+ 1320 00e0 1000      		.word	16
+ 1321 00e2 1100      		.word	17
+ 1322 00e4 665D      		.word	23910
+ 1323 00e6 4C00      		.word	76
+ 1324 00e8 E200      		.word	226
+ 1325 00ea 655D      		.word	23909
+ 1326 00ec 0100      		.word	1
+ 1327 00ee 685D      		.word	23912
+ 1328 00f0 3A00      		.word	58
+ 1329 00f2 3B00      		.word	59
+ 1330 00f4 3C00      		.word	60
+ 1331 00f6 3D00      		.word	61
+ 1332 00f8 3E00      		.word	62
+ 1333 00fa 3F00      		.word	63
+ 1334 00fc 3500      		.word	53
+ 1335 00fe 0000      		.word	0
+ 1336 0100 0000      		.word	0
+ 1337 0102 0000      		.word	0
+ 1338 0104 0000      		.word	0
+ 1339 0106 0000      		.word	0
+ 1340 0108 695D      		.word	23913
+ 1341 010a 0000      		.word	0
+ 1342 010c 0000      		.word	0
+ 1343 010e 0000      		.word	0
+ 1344 0110 0000      		.word	0
+ 1345 0112 0000      		.word	0
+ 1346 0114 3962      		.word	25145
+ 1347 0116 0000      		.word	0
+ 1348 0118 0000      		.word	0
+ 1349 011a 0000      		.word	0
+ 1350 011c 0000      		.word	0
+ 1351 011e 0000      		.word	0
+ 1352 0120 0000      		.word	0
+ 1353 0122 0100      		.word	1
+ 1354 0124 0100      		.word	1
+ 1355 0126 0100      		.word	1
+ 1356 0128 0100      		.word	1
+ 1357 012a 0100      		.word	1
+ 1358 012c 4500      		.word	69
+ 1359 012e 4400      		.word	68
+ 1360 0130 4300      		.word	67
+ 1361 0132 4200      		.word	66
+ 1362 0134 4100      		.word	65
+ 1363 0136 4000      		.word	64
+ 1364 0138 0000      		.word	0
+ 1365 013a 0000      		.word	0
+ 1366 013c 0000      		.word	0
+ 1367 013e 0000      		.word	0
+ 1368 0140 0000      		.word	0
+ 1369 0142 0000      		.word	0
+ 1370 0144 0000      		.word	0
+ 1371 0146 0000      		.word	0
+ 1372 0148 4F00      		.word	79
+ 1373 014a 5200      		.word	82
+ 1374 014c 5100      		.word	81
+ 1375 014e 5000      		.word	80
+ 1376 0150 0100      		.word	1
+ 1377 0152 0000      		.word	0
+ 1378 0154 0000      		.word	0
+ 1379 0156 0000      		.word	0
+ 1380 0158 0000      		.word	0
+ 1381 015a 0000      		.word	0
+ 1382 015c 0000      		.word	0
+ 1383 015e 0100      		.word	1
+ 1384 0160 0100      		.word	1
+ 1385 0162 0100      		.word	1
+ 1386 0164 0100      		.word	1
+ 1387 0166 0100      		.word	1
+ 1388 0168 0100      		.word	1
+ 1389 016a 0100      		.word	1
+ 1390 016c 0100      		.word	1
+ 1391 016e 0100      		.word	1
+ 1392 0170 0100      		.word	1
+ 1393 0172 0100      		.word	1
+ 1394 0174 3500      		.word	53
+ 1395 0176 0000      		.word	0
+ 1396 0178 1A14      		.word	5146
+ 1397 017a 0000      		.word	0
+ 1398 017c 0000      		.word	0
+ 1399 017e 0000      		.word	0
+ 1400 0180 0100      		.word	1
+ 1401 0182 0000      		.word	0
+ 1402 0184 0000      		.word	0
+ 1403 0186 0000      		.word	0
+ 1404 0188 0000      		.word	0
+ 1405 018a 0000      		.word	0
+ 1406 018c E100      		.word	225
+ 1407 018e 1D14      		.word	5149
+ 1408 0190 0000      		.word	0
+ 1409 0192 0000      		.word	0
+ 1410 0194 0000      		.word	0
+ 1411 0196 0000      		.word	0
+ 1412 0198 0000      		.word	0
+ 1413 019a 0100      		.word	1
+ 1414 019c 0100      		.word	1
+ 1415 019e 0100      		.word	1
+ 1416 01a0 0100      		.word	1
+ 1417 01a2 0100      		.word	1
+ 1418 01a4 0100      		.word	1
+ 1419 01a6 0100      		.word	1
+ 1420 01a8 0100      		.word	1
+ 1421 01aa 0100      		.word	1
+ 1422 01ac 0100      		.word	1
+ 1423 01ae 0100      		.word	1
+ 1424 01b0 0000      		.word	0
+ 1425 01b2 0000      		.word	0
+ 1426 01b4 0000      		.word	0
+ 1427 01b6 0000      		.word	0
+ 1428 01b8 0000      		.word	0
+ 1429 01ba 0000      		.word	0
+ 1430 01bc 0000      		.word	0
+ 1431 01be 0000      		.word	0
+ 1432 01c0 0F14      		.word	5135
+ 1433 01c2 0000      		.word	0
+ 1434 01c4 0000      		.word	0
+ 1435 01c6 0000      		.word	0
+ 1436 01c8 2A00      		.word	42
+ 1437 01ca 0000      		.word	0
+ 1438 01cc 0000      		.word	0
+ 1439 01ce 0000      		.word	0
+ 1440 01d0 0000      		.word	0
+ 1441 01d2 0000      		.word	0
+ 1442 01d4 0000      		.word	0
+ 1443 01d6 0100      		.word	1
+ 1444 01d8 0100      		.word	1
+ 1445 01da 0100      		.word	1
+ 1446 01dc 0100      		.word	1
+ 1447 01de 0100      		.word	1
+ 1448 01e0 0000      		.word	0
+ 1449 01e2 0000      		.word	0
+ 1450 01e4 0000      		.word	0
+ 1451 01e6 0000      		.word	0
+ 1452 01e8 0000      		.word	0
+ 1453 01ea 0000      		.word	0
+ 1454 01ec 0000      		.word	0
+ 1455 01ee 635D      		.word	23907
+ 1456 01f0 0000      		.word	0
+ 1457 01f2 0000      		.word	0
+ 1458 01f4 0000      		.word	0
+ 1459 01f6 0000      		.word	0
+ 1460 01f8 0000      		.word	0
+ 1461 01fa 0000      		.word	0
+ 1462 01fc 015D      		.word	23809
+ 1463 01fe 0000      		.word	0
+ 1464 0200 0000      		.word	0
+ 1465 0202 675D      		.word	23911
+ 1466 0204 0100      		.word	1
+ 1467 0206 0000      		.word	0
+ 1468 0208 0000      		.word	0
+ 1469 020a 0000      		.word	0
+ 1470 020c 0000      		.word	0
+ 1471 020e 0000      		.word	0
+ 1472 0210 0000      		.word	0
+ 1473 0212 0100      		.word	1
+ 1474 0214 0100      		.word	1
+ 1475 0216 0100      		.word	1
+ 1476 0218 0100      		.word	1
+ 1477 021a 0000      		.word	0
+ 1478 021c 005C      		.word	23552
+ 1479 021e 0000      		.word	0
+ 1480 0220 0000      		.word	0
+ 1481 0222 0000      		.word	0
+ 1482 0224 0000      		.word	0
+ 1483 0226 0000      		.word	0
+ 1484 0228 0000      		.word	0
+ 1485 022a 0000      		.word	0
+ 1486 022c 0000      		.word	0
+ 1487 022e 0000      		.word	0
+ 1488 0230 0000      		.word	0
+ 1489 0232 0000      		.word	0
+ 1490 0234 0000      		.word	0
+ 1491 0236 0000      		.word	0
+ 1492 0238 A900      		.word	169
+ 1493 023a A800      		.word	168
+ 1494 023c AA00      		.word	170
+ 1495 023e 0000      		.word	0
+ 1496 0240 0100      		.word	1
+ 1497 0242 0000      		.word	0
+ 1498 0244 AB00      		.word	171
+ 1499 0246 AE00      		.word	174
+ 1500 0248 AC00      		.word	172
+ 1501 024a 0000      		.word	0
+ 1502 024c 0000      		.word	0
+ 1503 024e 0100      		.word	1
+ 1504 0250 0100      		.word	1
+ 1505 0252 0100      		.word	1
+ 1506 0254 0100      		.word	1
+ 1507 0256 0000      		.word	0
+ 1508               	.global	turner
+ 1509               		.section	.bss.turner,"aw",@nobits
+ 1512               	turner:
+ 1513 0000 0000      		.zero	2
+ 1514               	.global	media_counter
+ 1515               		.section	.bss.media_counter,"aw",@nobits
+ 1518               	media_counter:
+ 1519 0000 00        		.zero	1
+ 1520               	.global	media_timer
+ 1521               		.section	.bss.media_timer,"aw",@nobits
+ 1524               	media_timer:
+ 1525 0000 0000      		.zero	2
+ 1526               	.global	is_media_active
+ 1527               		.section	.bss.is_media_active,"aw",@nobits
+ 1530               	is_media_active:
+ 1531 0000 00        		.zero	1
+ 1532               	.global	media_time
+ 1533               		.section	.rodata.media_time,"a"
+ 1536               	media_time:
+ 1537 0000 EE02      		.word	750
+ 1538               	.global	lwr_tapped
+ 1539               		.section	.bss.lwr_tapped,"aw",@nobits
+ 1542               	lwr_tapped:
+ 1543 0000 00        		.zero	1
+ 1544               	.global	lwr_timer
+ 1545               		.section	.bss.lwr_timer,"aw",@nobits
+ 1548               	lwr_timer:
+ 1549 0000 0000      		.zero	2
+ 1550               	.global	alttab_active
+ 1551               		.section	.bss.alttab_active,"aw",@nobits
+ 1554               	alttab_active:
+ 1555 0000 00        		.zero	1
+ 1556               	.global	wpm_timer
+ 1557               		.section	.bss.wpm_timer,"aw",@nobits
+ 1560               	wpm_timer:
+ 1561 0000 0000      		.zero	2
+ 1562               		.text
+ 1563               	.Letext0:
+ 1564               		.file 2 "/usr/avr/include/stdint.h"
+ 1565               		.file 3 "quantum/keyboard.h"
+ 1566               		.file 4 "quantum/keycode.h"
+ 1567               		.file 5 "quantum/action_code.h"
+ 1568               		.file 6 "quantum/action.h"
+ 1569               		.file 7 "quantum/led.h"
+ 1570               		.file 8 "quantum/keycode_config.h"
+ 1571               		.file 9 "quantum/quantum_keycodes.h"
+ 1572               		.file 10 "quantum/keymap.h"
+ 1573               		.file 11 "quantum/action_layer.h"
+ 1574               		.file 12 "quantum/sequencer/sequencer.h"
+ 1575               		.file 13 "drivers/oled/oled_driver.h"
+ 1576               		.file 14 "quantum/send_string.h"
+ 1577               		.file 15 "quantum/quantum.h"
+ 1578               		.file 16 "tmk_core/common/timer.h"
+ 1579               		.file 17 "quantum/wpm.h"
+ 1580               		.file 18 "tmk_core/common/host.h"
+ 1581               		.file 19 "quantum/bitwise.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 keymap.c
+     /tmp/ccV2xtOB.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccV2xtOB.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccV2xtOB.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccV2xtOB.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccV2xtOB.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccV2xtOB.s:13     .text.oled_init_user:0000000000000000 oled_init_user
+     /tmp/ccV2xtOB.s:39     .text.oled_task_user:0000000000000000 oled_task_user
+     /tmp/ccV2xtOB.s:1201   .progmem.data.__c.24:0000000000000000 __c.24
+     /tmp/ccV2xtOB.s:1196   .progmem.data.__c.23:0000000000000000 __c.23
+     /tmp/ccV2xtOB.s:1191   .progmem.data.__c.22:0000000000000000 __c.22
+     /tmp/ccV2xtOB.s:1186   .progmem.data.__c.21:0000000000000000 __c.21
+     /tmp/ccV2xtOB.s:1166   .progmem.data.__c.17:0000000000000000 __c.17
+     /tmp/ccV2xtOB.s:1181   .progmem.data.__c.20:0000000000000000 __c.20
+     /tmp/ccV2xtOB.s:1176   .progmem.data.__c.19:0000000000000000 __c.19
+     /tmp/ccV2xtOB.s:1161   .progmem.data.__c.16:0000000000000000 __c.16
+     /tmp/ccV2xtOB.s:1156   .progmem.data.__c.15:0000000000000000 __c.15
+     /tmp/ccV2xtOB.s:1151   .progmem.data.__c.14:0000000000000000 __c.14
+     /tmp/ccV2xtOB.s:1121   .progmem.data.__c.8:0000000000000000 __c.8
+     /tmp/ccV2xtOB.s:1116   .progmem.data.__c.7:0000000000000000 __c.7
+     /tmp/ccV2xtOB.s:1171   .progmem.data.__c.18:0000000000000000 __c.18
+     /tmp/ccV2xtOB.s:1126   .progmem.data.__c.9:0000000000000000 __c.9
+     /tmp/ccV2xtOB.s:1146   .progmem.data.__c.13:0000000000000000 __c.13
+     /tmp/ccV2xtOB.s:1141   .progmem.data.__c.12:0000000000000000 __c.12
+     /tmp/ccV2xtOB.s:1136   .progmem.data.__c.11:0000000000000000 __c.11
+     /tmp/ccV2xtOB.s:1131   .progmem.data.__c.10:0000000000000000 __c.10
+     /tmp/ccV2xtOB.s:1111   .progmem.data.__c.6:0000000000000000 __c.6
+     /tmp/ccV2xtOB.s:1106   .progmem.data.__c.5:0000000000000000 __c.5
+     /tmp/ccV2xtOB.s:1101   .progmem.data.__c.4:0000000000000000 __c.4
+     /tmp/ccV2xtOB.s:1560   .bss.wpm_timer:0000000000000000 wpm_timer
+     /tmp/ccV2xtOB.s:638    .text.process_record_user:0000000000000000 process_record_user
+     /tmp/ccV2xtOB.s:1530   .bss.is_media_active:0000000000000000 is_media_active
+     /tmp/ccV2xtOB.s:1524   .bss.media_timer:0000000000000000 media_timer
+     /tmp/ccV2xtOB.s:1518   .bss.media_counter:0000000000000000 media_counter
+     /tmp/ccV2xtOB.s:1096   .progmem.data.__c.3:0000000000000000 __c.3
+     /tmp/ccV2xtOB.s:1548   .bss.lwr_timer:0000000000000000 lwr_timer
+     /tmp/ccV2xtOB.s:1542   .bss.lwr_tapped:0000000000000000 lwr_tapped
+     /tmp/ccV2xtOB.s:908    .text.matrix_scan_user:0000000000000000 matrix_scan_user
+     /tmp/ccV2xtOB.s:1081   .progmem.data.__c.0:0000000000000000 __c.0
+     /tmp/ccV2xtOB.s:1091   .progmem.data.__c.2:0000000000000000 __c.2
+     /tmp/ccV2xtOB.s:1086   .progmem.data.__c.1:0000000000000000 __c.1
+     /tmp/ccV2xtOB.s:983    .text.encoder_update_user:0000000000000000 encoder_update_user
+     /tmp/ccV2xtOB.s:1512   .bss.turner:0000000000000000 turner
+     /tmp/ccV2xtOB.s:1207   .progmem.data.keymaps:0000000000000000 keymaps
+     /tmp/ccV2xtOB.s:1536   .rodata.media_time:0000000000000000 media_time
+     /tmp/ccV2xtOB.s:1554   .bss.alttab_active:0000000000000000 alttab_active
+
+UNDEFINED SYMBOLS
+is_keyboard_master
+oled_write_P
+oled_write_ln_P
+keymap_config
+default_layer_state
+biton32
+layer_state
+host_keyboard_led_state
+get_current_wpm
+__udivmodqi4
+__divmodhi4
+oled_write_ln
+is_oled_on
+timer_read
+timer_elapsed
+oled_off
+oled_on
+__tablejump2__
+set_single_persistent_default_layer
+layer_on
+update_tri_layer
+layer_off
+register_code
+send_string_P
+unregister_code
+tap_code
+__do_copy_data
+__do_clear_bss

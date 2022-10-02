@@ -1,0 +1,494 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 2
+  15              		.file	"dip_switch.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "quantum/dip_switch.c"
+  20              		.section	.text.dip_switch_update_user,"ax",%progbits
+  21              		.align	1
+  22              		.weak	dip_switch_update_user
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	dip_switch_update_user:
+  28              	.LVL0:
+  29              	.LFB295:
+   1:quantum/dip_switch.c **** /*
+   2:quantum/dip_switch.c ****  * Copyright 2018 Jack Humbert <jack.humb@gmail.com>
+   3:quantum/dip_switch.c ****  * Copyright 2019 Drashna Jaelre (Christopher Courtney) <drashna@live.com>
+   4:quantum/dip_switch.c ****  *
+   5:quantum/dip_switch.c ****  * This program is free software: you can redistribute it and/or modify
+   6:quantum/dip_switch.c ****  * it under the terms of the GNU General Public License as published by
+   7:quantum/dip_switch.c ****  * the Free Software Foundation, either version 2 of the License, or
+   8:quantum/dip_switch.c ****  * (at your option) any later version.
+   9:quantum/dip_switch.c ****  *
+  10:quantum/dip_switch.c ****  * This program is distributed in the hope that it will be useful,
+  11:quantum/dip_switch.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  12:quantum/dip_switch.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  13:quantum/dip_switch.c ****  * GNU General Public License for more details.
+  14:quantum/dip_switch.c ****  *
+  15:quantum/dip_switch.c ****  * You should have received a copy of the GNU General Public License
+  16:quantum/dip_switch.c ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  17:quantum/dip_switch.c ****  */
+  18:quantum/dip_switch.c **** 
+  19:quantum/dip_switch.c **** #include "dip_switch.h"
+  20:quantum/dip_switch.c **** #ifdef SPLIT_KEYBOARD
+  21:quantum/dip_switch.c **** #    include "split_common/split_util.h"
+  22:quantum/dip_switch.c **** #endif
+  23:quantum/dip_switch.c **** 
+  24:quantum/dip_switch.c **** // for memcpy
+  25:quantum/dip_switch.c **** #include <string.h>
+  26:quantum/dip_switch.c **** 
+  27:quantum/dip_switch.c **** #if !defined(DIP_SWITCH_PINS) && !defined(DIP_SWITCH_MATRIX_GRID)
+  28:quantum/dip_switch.c **** #    error "Either DIP_SWITCH_PINS or DIP_SWITCH_MATRIX_GRID must be defined."
+  29:quantum/dip_switch.c **** #endif
+  30:quantum/dip_switch.c **** 
+  31:quantum/dip_switch.c **** #if defined(DIP_SWITCH_PINS) && defined(DIP_SWITCH_MATRIX_GRID)
+  32:quantum/dip_switch.c **** #    error "Both DIP_SWITCH_PINS and DIP_SWITCH_MATRIX_GRID are defined."
+  33:quantum/dip_switch.c **** #endif
+  34:quantum/dip_switch.c **** 
+  35:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+  36:quantum/dip_switch.c **** #    define NUMBER_OF_DIP_SWITCHES (sizeof(dip_switch_pad) / sizeof(pin_t))
+  37:quantum/dip_switch.c **** static pin_t dip_switch_pad[] = DIP_SWITCH_PINS;
+  38:quantum/dip_switch.c **** #endif
+  39:quantum/dip_switch.c **** 
+  40:quantum/dip_switch.c **** #ifdef DIP_SWITCH_MATRIX_GRID
+  41:quantum/dip_switch.c **** typedef struct matrix_index_t {
+  42:quantum/dip_switch.c ****     uint8_t row;
+  43:quantum/dip_switch.c ****     uint8_t col;
+  44:quantum/dip_switch.c **** } matrix_index_t;
+  45:quantum/dip_switch.c **** 
+  46:quantum/dip_switch.c **** #    define NUMBER_OF_DIP_SWITCHES (sizeof(dip_switch_pad) / sizeof(matrix_index_t))
+  47:quantum/dip_switch.c **** static matrix_index_t dip_switch_pad[] = DIP_SWITCH_MATRIX_GRID;
+  48:quantum/dip_switch.c **** extern bool           peek_matrix(uint8_t row_index, uint8_t col_index, bool read_raw);
+  49:quantum/dip_switch.c **** static uint16_t       scan_count;
+  50:quantum/dip_switch.c **** #endif /* DIP_SWITCH_MATRIX_GRID */
+  51:quantum/dip_switch.c **** 
+  52:quantum/dip_switch.c **** static bool dip_switch_state[NUMBER_OF_DIP_SWITCHES]      = {0};
+  53:quantum/dip_switch.c **** static bool last_dip_switch_state[NUMBER_OF_DIP_SWITCHES] = {0};
+  54:quantum/dip_switch.c **** 
+  55:quantum/dip_switch.c **** __attribute__((weak)) bool dip_switch_update_user(uint8_t index, bool active) { return true; }
+  30              		.loc 1 55 79 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  35              		.loc 1 55 81 view .LVU1
+  36              		.loc 1 55 94 is_stmt 0 view .LVU2
+  37 0000 0120     		movs	r0, #1
+  38              	.LVL1:
+  39              		.loc 1 55 94 view .LVU3
+  40 0002 7047     		bx	lr
+  41              		.cfi_endproc
+  42              	.LFE295:
+  44              		.section	.text.dip_switch_update_kb,"ax",%progbits
+  45              		.align	1
+  46              		.weak	dip_switch_update_kb
+  47              		.syntax unified
+  48              		.thumb
+  49              		.thumb_func
+  51              	dip_switch_update_kb:
+  52              	.LVL2:
+  53              	.LFB296:
+  56:quantum/dip_switch.c **** 
+  57:quantum/dip_switch.c **** __attribute__((weak)) bool dip_switch_update_kb(uint8_t index, bool active) { return dip_switch_upd
+  54              		.loc 1 57 77 is_stmt 1 view -0
+  55              		.cfi_startproc
+  56              		@ args = 0, pretend = 0, frame = 0
+  57              		@ frame_needed = 0, uses_anonymous_args = 0
+  58              		.loc 1 57 79 view .LVU5
+  59              		.loc 1 57 77 is_stmt 0 view .LVU6
+  60 0000 08B5     		push	{r3, lr}
+  61              		.cfi_def_cfa_offset 8
+  62              		.cfi_offset 3, -8
+  63              		.cfi_offset 14, -4
+  64              		.loc 1 57 86 view .LVU7
+  65 0002 FFF7FEFF 		bl	dip_switch_update_user
+  66              	.LVL3:
+  67              		.loc 1 57 125 view .LVU8
+  68 0006 08BD     		pop	{r3, pc}
+  69              		.cfi_endproc
+  70              	.LFE296:
+  72              		.section	.text.dip_switch_update_mask_user,"ax",%progbits
+  73              		.align	1
+  74              		.weak	dip_switch_update_mask_user
+  75              		.syntax unified
+  76              		.thumb
+  77              		.thumb_func
+  79              	dip_switch_update_mask_user:
+  80              	.LVL4:
+  81              	.LFB297:
+  58:quantum/dip_switch.c **** 
+  59:quantum/dip_switch.c **** __attribute__((weak)) bool dip_switch_update_mask_user(uint32_t state) { return true; }
+  82              		.loc 1 59 72 is_stmt 1 view -0
+  83              		.cfi_startproc
+  84              		@ args = 0, pretend = 0, frame = 0
+  85              		@ frame_needed = 0, uses_anonymous_args = 0
+  86              		@ link register save eliminated.
+  87              		.loc 1 59 74 view .LVU10
+  88              		.loc 1 59 87 is_stmt 0 view .LVU11
+  89 0000 0120     		movs	r0, #1
+  90              	.LVL5:
+  91              		.loc 1 59 87 view .LVU12
+  92 0002 7047     		bx	lr
+  93              		.cfi_endproc
+  94              	.LFE297:
+  96              		.section	.text.dip_switch_update_mask_kb,"ax",%progbits
+  97              		.align	1
+  98              		.weak	dip_switch_update_mask_kb
+  99              		.syntax unified
+ 100              		.thumb
+ 101              		.thumb_func
+ 103              	dip_switch_update_mask_kb:
+ 104              	.LVL6:
+ 105              	.LFB298:
+  60:quantum/dip_switch.c **** 
+  61:quantum/dip_switch.c **** __attribute__((weak)) bool dip_switch_update_mask_kb(uint32_t state) { return dip_switch_update_mas
+ 106              		.loc 1 61 70 is_stmt 1 view -0
+ 107              		.cfi_startproc
+ 108              		@ args = 0, pretend = 0, frame = 0
+ 109              		@ frame_needed = 0, uses_anonymous_args = 0
+ 110              		.loc 1 61 72 view .LVU14
+ 111              		.loc 1 61 70 is_stmt 0 view .LVU15
+ 112 0000 08B5     		push	{r3, lr}
+ 113              		.cfi_def_cfa_offset 8
+ 114              		.cfi_offset 3, -8
+ 115              		.cfi_offset 14, -4
+ 116              		.loc 1 61 79 view .LVU16
+ 117 0002 FFF7FEFF 		bl	dip_switch_update_mask_user
+ 118              	.LVL7:
+ 119              		.loc 1 61 115 view .LVU17
+ 120 0006 08BD     		pop	{r3, pc}
+ 121              		.cfi_endproc
+ 122              	.LFE298:
+ 124              		.section	.text.dip_switch_read,"ax",%progbits
+ 125              		.align	1
+ 126              		.global	dip_switch_read
+ 127              		.syntax unified
+ 128              		.thumb
+ 129              		.thumb_func
+ 131              	dip_switch_read:
+ 132              	.LVL8:
+ 133              	.LFB300:
+  62:quantum/dip_switch.c **** 
+  63:quantum/dip_switch.c **** void dip_switch_init(void) {
+  64:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+  65:quantum/dip_switch.c **** #    if defined(SPLIT_KEYBOARD) && defined(DIP_SWITCH_PINS_RIGHT)
+  66:quantum/dip_switch.c ****     if (!isLeftHand) {
+  67:quantum/dip_switch.c ****         const pin_t dip_switch_pad_right[] = DIP_SWITCH_PINS_RIGHT;
+  68:quantum/dip_switch.c ****         for (uint8_t i = 0; i < NUMBER_OF_DIP_SWITCHES; i++) {
+  69:quantum/dip_switch.c ****             dip_switch_pad[i] = dip_switch_pad_right[i];
+  70:quantum/dip_switch.c ****         }
+  71:quantum/dip_switch.c ****     }
+  72:quantum/dip_switch.c **** #    endif
+  73:quantum/dip_switch.c ****     for (uint8_t i = 0; i < NUMBER_OF_DIP_SWITCHES; i++) {
+  74:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+  75:quantum/dip_switch.c ****     }
+  76:quantum/dip_switch.c ****     dip_switch_read(true);
+  77:quantum/dip_switch.c **** #endif
+  78:quantum/dip_switch.c **** #ifdef DIP_SWITCH_MATRIX_GRID
+  79:quantum/dip_switch.c ****     scan_count = 0;
+  80:quantum/dip_switch.c **** #endif
+  81:quantum/dip_switch.c **** }
+  82:quantum/dip_switch.c **** 
+  83:quantum/dip_switch.c **** void dip_switch_read(bool forced) {
+ 134              		.loc 1 83 35 is_stmt 1 view -0
+ 135              		.cfi_startproc
+ 136              		@ args = 0, pretend = 0, frame = 0
+ 137              		@ frame_needed = 0, uses_anonymous_args = 0
+  84:quantum/dip_switch.c ****     bool     has_dip_state_changed = false;
+ 138              		.loc 1 84 5 view .LVU19
+  85:quantum/dip_switch.c ****     uint32_t dip_switch_mask       = 0;
+ 139              		.loc 1 85 5 view .LVU20
+  86:quantum/dip_switch.c **** 
+  87:quantum/dip_switch.c **** #ifdef DIP_SWITCH_MATRIX_GRID
+  88:quantum/dip_switch.c ****     bool read_raw = false;
+  89:quantum/dip_switch.c **** 
+  90:quantum/dip_switch.c ****     if (scan_count < 500) {
+  91:quantum/dip_switch.c ****         scan_count++;
+  92:quantum/dip_switch.c ****         if (scan_count == 10) {
+  93:quantum/dip_switch.c ****             read_raw = true;
+  94:quantum/dip_switch.c ****             forced   = true; /* First reading of the dip switch */
+  95:quantum/dip_switch.c ****         } else {
+  96:quantum/dip_switch.c ****             return;
+  97:quantum/dip_switch.c ****         }
+  98:quantum/dip_switch.c ****     }
+  99:quantum/dip_switch.c **** #endif
+ 100:quantum/dip_switch.c **** 
+ 101:quantum/dip_switch.c ****     for (uint8_t i = 0; i < NUMBER_OF_DIP_SWITCHES; i++) {
+ 140              		.loc 1 101 5 view .LVU21
+ 141              	.LBB2:
+ 142              		.loc 1 101 10 view .LVU22
+ 143              		.loc 1 101 27 view .LVU23
+ 144              	.LBE2:
+  83:quantum/dip_switch.c ****     bool     has_dip_state_changed = false;
+ 145              		.loc 1 83 35 is_stmt 0 view .LVU24
+ 146 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 147              		.cfi_def_cfa_offset 40
+ 148              		.cfi_offset 3, -40
+ 149              		.cfi_offset 4, -36
+ 150              		.cfi_offset 5, -32
+ 151              		.cfi_offset 6, -28
+ 152              		.cfi_offset 7, -24
+ 153              		.cfi_offset 8, -20
+ 154              		.cfi_offset 9, -16
+ 155              		.cfi_offset 10, -12
+ 156              		.cfi_offset 11, -8
+ 157              		.cfi_offset 14, -4
+ 158 0004 184E     		ldr	r6, .L17
+ 159 0006 194F     		ldr	r7, .L17+4
+ 160 0008 DFF864B0 		ldr	fp, .L17+8
+  83:quantum/dip_switch.c ****     bool     has_dip_state_changed = false;
+ 161              		.loc 1 83 35 view .LVU25
+ 162 000c 0024     		movs	r4, #0
+ 163 000e 8246     		mov	r10, r0
+  85:quantum/dip_switch.c ****     uint32_t dip_switch_mask       = 0;
+ 164              		.loc 1 85 14 view .LVU26
+ 165 0010 2546     		mov	r5, r4
+  84:quantum/dip_switch.c ****     uint32_t dip_switch_mask       = 0;
+ 166              		.loc 1 84 14 view .LVU27
+ 167 0012 2246     		mov	r2, r4
+ 168 0014 B146     		mov	r9, r6
+ 169 0016 B846     		mov	r8, r7
+ 170              	.LVL9:
+ 171              	.L8:
+ 172              	.LBB3:
+ 102:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+ 103:quantum/dip_switch.c ****         dip_switch_state[i] = !readPin(dip_switch_pad[i]);
+ 173              		.loc 1 103 9 is_stmt 1 view .LVU28
+ 174              		.loc 1 103 32 is_stmt 0 view .LVU29
+ 175 0018 5BF8043B 		ldr	r3, [fp], #4
+ 176 001c 23F00F01 		bic	r1, r3, #15
+ 177 0020 03F00F03 		and	r3, r3, #15
+ 178 0024 0969     		ldr	r1, [r1, #16]
+ 179 0026 D940     		lsrs	r1, r1, r3
+ 180 0028 C943     		mvns	r1, r1
+ 181              		.loc 1 103 31 view .LVU30
+ 182 002a 01F00103 		and	r3, r1, #1
+ 183 002e 1946     		mov	r1, r3
+ 184              		.loc 1 103 29 view .LVU31
+ 185 0030 06F8013B 		strb	r3, [r6], #1
+ 104:quantum/dip_switch.c **** #endif
+ 105:quantum/dip_switch.c **** #ifdef DIP_SWITCH_MATRIX_GRID
+ 106:quantum/dip_switch.c ****         dip_switch_state[i] = peek_matrix(dip_switch_pad[i].row, dip_switch_pad[i].col, read_raw);
+ 107:quantum/dip_switch.c **** #endif
+ 108:quantum/dip_switch.c ****         dip_switch_mask |= dip_switch_state[i] << i;
+ 186              		.loc 1 108 9 is_stmt 1 view .LVU32
+ 187              		.loc 1 108 48 is_stmt 0 view .LVU33
+ 188 0034 A340     		lsls	r3, r3, r4
+ 189              		.loc 1 108 25 view .LVU34
+ 190 0036 1D43     		orrs	r5, r5, r3
+ 191              	.LVL10:
+ 109:quantum/dip_switch.c ****         if (last_dip_switch_state[i] != dip_switch_state[i] || forced) {
+ 192              		.loc 1 109 9 is_stmt 1 view .LVU35
+ 193              		.loc 1 109 34 is_stmt 0 view .LVU36
+ 194 0038 17F8013B 		ldrb	r3, [r7], #1	@ zero_extendqisi2
+ 195              		.loc 1 109 12 view .LVU37
+ 196 003c 9942     		cmp	r1, r3
+ 197 003e 02D1     		bne	.L6
+ 198              		.loc 1 109 61 discriminator 1 view .LVU38
+ 199 0040 BAF1000F 		cmp	r10, #0
+ 200 0044 03D0     		beq	.L7
+ 201              	.L6:
+ 110:quantum/dip_switch.c ****             has_dip_state_changed = true;
+ 202              		.loc 1 110 13 is_stmt 1 view .LVU39
+ 203              	.LVL11:
+ 111:quantum/dip_switch.c ****             dip_switch_update_kb(i, dip_switch_state[i]);
+ 204              		.loc 1 111 13 view .LVU40
+ 205 0046 E0B2     		uxtb	r0, r4
+ 206 0048 FFF7FEFF 		bl	dip_switch_update_kb
+ 207              	.LVL12:
+ 110:quantum/dip_switch.c ****             has_dip_state_changed = true;
+ 208              		.loc 1 110 35 is_stmt 0 view .LVU41
+ 209 004c 0122     		movs	r2, #1
+ 210              	.LVL13:
+ 211              	.L7:
+ 101:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+ 212              		.loc 1 101 54 is_stmt 1 discriminator 2 view .LVU42
+ 101:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+ 213              		.loc 1 101 27 discriminator 2 view .LVU43
+ 214 004e 0134     		adds	r4, r4, #1
+ 215              	.LVL14:
+ 101:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+ 216              		.loc 1 101 27 is_stmt 0 discriminator 2 view .LVU44
+ 217 0050 042C     		cmp	r4, #4
+ 218 0052 E1D1     		bne	.L8
+ 219              	.LBE3:
+ 112:quantum/dip_switch.c ****         }
+ 113:quantum/dip_switch.c ****     }
+ 114:quantum/dip_switch.c ****     if (has_dip_state_changed) {
+ 220              		.loc 1 114 5 is_stmt 1 view .LVU45
+ 221              		.loc 1 114 8 is_stmt 0 view .LVU46
+ 222 0054 32B1     		cbz	r2, .L5
+ 115:quantum/dip_switch.c ****         dip_switch_update_mask_kb(dip_switch_mask);
+ 223              		.loc 1 115 9 is_stmt 1 view .LVU47
+ 224 0056 2846     		mov	r0, r5
+ 225 0058 FFF7FEFF 		bl	dip_switch_update_mask_kb
+ 226              	.LVL15:
+ 116:quantum/dip_switch.c ****         memcpy(last_dip_switch_state, dip_switch_state, sizeof(dip_switch_state));
+ 227              		.loc 1 116 9 view .LVU48
+ 228 005c D9F80030 		ldr	r3, [r9]	@ unaligned
+ 229 0060 C8F80030 		str	r3, [r8]	@ unaligned
+ 230              	.L5:
+ 117:quantum/dip_switch.c ****     }
+ 118:quantum/dip_switch.c **** }
+ 231              		.loc 1 118 1 is_stmt 0 view .LVU49
+ 232 0064 BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 233              	.LVL16:
+ 234              	.L18:
+ 235              		.loc 1 118 1 view .LVU50
+ 236              		.align	2
+ 237              	.L17:
+ 238 0068 00000000 		.word	dip_switch_state
+ 239 006c 00000000 		.word	last_dip_switch_state
+ 240 0070 00000000 		.word	dip_switch_pad
+ 241              		.cfi_endproc
+ 242              	.LFE300:
+ 244              		.section	.text.dip_switch_init,"ax",%progbits
+ 245              		.align	1
+ 246              		.global	dip_switch_init
+ 247              		.syntax unified
+ 248              		.thumb
+ 249              		.thumb_func
+ 251              	dip_switch_init:
+ 252              	.LFB299:
+  63:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+ 253              		.loc 1 63 28 is_stmt 1 view -0
+ 254              		.cfi_startproc
+ 255              		@ args = 0, pretend = 0, frame = 0
+ 256              		@ frame_needed = 0, uses_anonymous_args = 0
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 257              		.loc 1 73 5 view .LVU52
+ 258              	.LBB4:
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 259              		.loc 1 73 10 view .LVU53
+ 260              	.LVL17:
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 261              		.loc 1 73 27 view .LVU54
+ 262              	.LBE4:
+  63:quantum/dip_switch.c **** #ifdef DIP_SWITCH_PINS
+ 263              		.loc 1 63 28 is_stmt 0 view .LVU55
+ 264 0000 70B5     		push	{r4, r5, r6, lr}
+ 265              		.cfi_def_cfa_offset 16
+ 266              		.cfi_offset 4, -16
+ 267              		.cfi_offset 5, -12
+ 268              		.cfi_offset 6, -8
+ 269              		.cfi_offset 14, -4
+ 270 0002 0B4D     		ldr	r5, .L22
+ 271              	.LBB5:
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 272              		.loc 1 73 18 view .LVU56
+ 273 0004 0024     		movs	r4, #0
+  74:quantum/dip_switch.c ****     }
+ 274              		.loc 1 74 9 view .LVU57
+ 275 0006 0126     		movs	r6, #1
+ 276              	.LVL18:
+ 277              	.L20:
+  74:quantum/dip_switch.c ****     }
+ 278              		.loc 1 74 9 is_stmt 1 discriminator 3 view .LVU58
+ 279 0008 55F8040B 		ldr	r0, [r5], #4
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 280              		.loc 1 73 54 is_stmt 0 discriminator 3 view .LVU59
+ 281 000c 0134     		adds	r4, r4, #1
+ 282              	.LVL19:
+  74:quantum/dip_switch.c ****     }
+ 283              		.loc 1 74 9 discriminator 3 view .LVU60
+ 284 000e 00F00F01 		and	r1, r0, #15
+ 285 0012 2022     		movs	r2, #32
+ 286 0014 06FA01F1 		lsl	r1, r6, r1
+ 287 0018 20F00F00 		bic	r0, r0, #15
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 288              		.loc 1 73 54 discriminator 3 view .LVU61
+ 289 001c E4B2     		uxtb	r4, r4
+  74:quantum/dip_switch.c ****     }
+ 290              		.loc 1 74 9 discriminator 3 view .LVU62
+ 291 001e FFF7FEFF 		bl	_pal_lld_setgroupmode
+ 292              	.LVL20:
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 293              		.loc 1 73 54 is_stmt 1 discriminator 3 view .LVU63
+  73:quantum/dip_switch.c ****         setPinInputHigh(dip_switch_pad[i]);
+ 294              		.loc 1 73 27 discriminator 3 view .LVU64
+ 295 0022 042C     		cmp	r4, #4
+ 296 0024 F0D1     		bne	.L20
+ 297              	.LBE5:
+  76:quantum/dip_switch.c **** #endif
+ 298              		.loc 1 76 5 view .LVU65
+  81:quantum/dip_switch.c **** 
+ 299              		.loc 1 81 1 is_stmt 0 view .LVU66
+ 300 0026 BDE87040 		pop	{r4, r5, r6, lr}
+ 301              		.cfi_restore 14
+ 302              		.cfi_restore 6
+ 303              		.cfi_restore 5
+ 304              		.cfi_restore 4
+ 305              		.cfi_def_cfa_offset 0
+ 306              	.LVL21:
+  76:quantum/dip_switch.c **** #endif
+ 307              		.loc 1 76 5 view .LVU67
+ 308 002a 0120     		movs	r0, #1
+ 309 002c FFF7FEBF 		b	dip_switch_read
+ 310              	.LVL22:
+ 311              	.L23:
+ 312              		.align	2
+ 313              	.L22:
+ 314 0030 00000000 		.word	dip_switch_pad
+ 315              		.cfi_endproc
+ 316              	.LFE299:
+ 318              		.section	.bss.last_dip_switch_state,"aw",%nobits
+ 321              	last_dip_switch_state:
+ 322 0000 00000000 		.space	4
+ 323              		.section	.bss.dip_switch_state,"aw",%nobits
+ 326              	dip_switch_state:
+ 327 0000 00000000 		.space	4
+ 328              		.section	.rodata.dip_switch_pad,"a"
+ 329              		.align	2
+ 332              	dip_switch_pad:
+ 333 0000 0E040048 		.word	1207960590
+ 334 0004 0F000048 		.word	1207959567
+ 335 0008 00000048 		.word	1207959552
+ 336 000c 09040048 		.word	1207960585
+ 337              		.text
+ 338              	.Letext0:
+ 339              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 340              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 341              		.file 4 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 342              		.file 5 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 343              		.file 6 "tmk_core/common/chibios/gpio.h"
+ 344              		.file 7 "quantum/sequencer/sequencer.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 dip_switch.c
+     /tmp/ccRiG3Un.s:21     .text.dip_switch_update_user:0000000000000000 $t
+     /tmp/ccRiG3Un.s:27     .text.dip_switch_update_user:0000000000000000 dip_switch_update_user
+     /tmp/ccRiG3Un.s:45     .text.dip_switch_update_kb:0000000000000000 $t
+     /tmp/ccRiG3Un.s:51     .text.dip_switch_update_kb:0000000000000000 dip_switch_update_kb
+     /tmp/ccRiG3Un.s:73     .text.dip_switch_update_mask_user:0000000000000000 $t
+     /tmp/ccRiG3Un.s:79     .text.dip_switch_update_mask_user:0000000000000000 dip_switch_update_mask_user
+     /tmp/ccRiG3Un.s:97     .text.dip_switch_update_mask_kb:0000000000000000 $t
+     /tmp/ccRiG3Un.s:103    .text.dip_switch_update_mask_kb:0000000000000000 dip_switch_update_mask_kb
+     /tmp/ccRiG3Un.s:125    .text.dip_switch_read:0000000000000000 $t
+     /tmp/ccRiG3Un.s:131    .text.dip_switch_read:0000000000000000 dip_switch_read
+     /tmp/ccRiG3Un.s:238    .text.dip_switch_read:0000000000000068 $d
+     /tmp/ccRiG3Un.s:326    .bss.dip_switch_state:0000000000000000 dip_switch_state
+     /tmp/ccRiG3Un.s:321    .bss.last_dip_switch_state:0000000000000000 last_dip_switch_state
+     /tmp/ccRiG3Un.s:332    .rodata.dip_switch_pad:0000000000000000 dip_switch_pad
+     /tmp/ccRiG3Un.s:245    .text.dip_switch_init:0000000000000000 $t
+     /tmp/ccRiG3Un.s:251    .text.dip_switch_init:0000000000000000 dip_switch_init
+     /tmp/ccRiG3Un.s:314    .text.dip_switch_init:0000000000000030 $d
+     /tmp/ccRiG3Un.s:322    .bss.last_dip_switch_state:0000000000000000 $d
+     /tmp/ccRiG3Un.s:327    .bss.dip_switch_state:0000000000000000 $d
+     /tmp/ccRiG3Un.s:329    .rodata.dip_switch_pad:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+_pal_lld_setgroupmode
